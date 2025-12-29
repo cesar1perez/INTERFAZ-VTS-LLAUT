@@ -15,12 +15,9 @@
         .glass { background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); }
         .card-current { background: #fefce8; border: 2px solid #eab308 !important; }
         .shadow-pro { box-shadow: 0 10px 25px -5px rgba(0,0,0,0.05); }
-        /* Bordes por línea de producto */
         .linea-pro { border-left: 8px solid #003366; } .linea-lub { border-left: 8px solid #f97316; }
         .linea-moto { border-left: 8px solid #ef4444; } .linea-filt { border-left: 8px solid #22c55e; }
         .linea-alc { border-left: 8px solid #8b5cf6; } .linea-rec { border-left: 8px solid #94a3b8; }
-        
-        /* Animación suave */
         .fade-in { animation: fadeIn 0.8s ease-out forwards; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
     </style>
@@ -29,7 +26,8 @@
 
     <div id="loader" class="fixed inset-0 bg-llanterama z-50 flex flex-col items-center justify-center text-white">
         <div class="w-10 h-10 border-2 border-yellow-400 border-t-transparent rounded-full animate-spin mb-4"></div>
-        <p class="text-[9px] font-bold tracking-[0.3em] uppercase opacity-50 italic underline">Desencriptando Datos</p>
+        <p id="loader-text" class="text-[9px] font-bold tracking-[0.3em] uppercase opacity-50 italic underline">Conectando con la Bóveda</p>
+        <button id="retry-btn" onclick="location.reload()" class="hidden mt-4 bg-yellow-500 text-blue-900 px-4 py-2 rounded-full text-xs font-bold">Reintentar Conexión</button>
     </div>
 
     <div id="view-cover" class="fixed inset-0 bg-llanterama z-40 flex flex-col items-center justify-center text-center p-8 overflow-hidden">
@@ -37,28 +35,23 @@
             <div class="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-500 rounded-full blur-[120px]"></div>
             <div class="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-yellow-500 rounded-full blur-[120px]"></div>
         </div>
-
         <div class="relative z-10 fade-in">
             <div class="w-20 h-20 bg-yellow-500 rounded-2xl flex items-center justify-center mx-auto mb-8 shadow-2xl rotate-3 border-4 border-white/20">
                 <i class="fas fa-shield-alt text-4xl text-blue-950"></i>
             </div>
-            
-            <h1 class="text-4xl font-black text-white italic tracking-tighter leading-none mb-4 uppercase italic">
+            <h1 class="text-4xl font-black text-white italic tracking-tighter leading-none mb-4 uppercase">
                 SISTEMA DE<br><span class="text-yellow-400">INTELIGENCIA</span>
             </h1>
-
             <div class="glass px-6 py-4 rounded-2xl mb-12 max-w-xs mx-auto">
                 <p class="text-[10px] text-yellow-100/80 font-bold uppercase tracking-[0.2em] mb-2">Aviso de Seguridad</p>
                 <p class="text-[11px] text-blue-100 font-medium leading-relaxed opacity-80">
-                    Esta aplicación contiene <span class="text-yellow-400 font-bold">información exclusiva y confidencial</span> de Llanterama Tulancingo. Queda prohibida su reproducción total o parcial.
+                    Esta aplicación contiene <span class="text-yellow-400 font-bold">información exclusiva y confidencial</span> de Llanterama Tulancingo.
                 </p>
             </div>
-
             <button onclick="enterApp()" class="group relative bg-white text-blue-950 font-black px-16 py-4 rounded-full shadow-2xl uppercase tracking-widest text-xs transition-all hover:bg-yellow-400 active:scale-95">
                 Acceder al Panel
                 <i class="fas fa-lock-open ml-2 opacity-50 group-hover:opacity-100"></i>
             </button>
-            
             <p class="mt-8 text-[8px] text-blue-300 font-bold uppercase tracking-widest opacity-40 italic">© 2025 Business Analytics Center</p>
         </div>
     </div>
@@ -66,7 +59,7 @@
     <header id="main-header" class="bg-llanterama text-white p-5 sticky top-0 z-30 shadow-xl border-b-4 border-yellow-500 hidden">
         <div class="max-w-md mx-auto flex justify-between items-center">
             <div onclick="location.reload()" class="cursor-pointer">
-                <h1 class="text-xl font-black italic leading-none uppercase italic">Llanterama</h1>
+                <h1 class="text-xl font-black italic leading-none uppercase">Llanterama</h1>
                 <p class="text-[8px] font-bold text-yellow-400 tracking-widest uppercase">Tulancingo BI</p>
             </div>
             <button onclick="renderAnalytics()" class="bg-white/10 p-2 rounded-xl border border-white/20 text-yellow-400">
@@ -80,23 +73,58 @@
     </main>
 
     <script>
+        // URL DIRECTA - Sin proxy para evitar bloqueos de terceros
         const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRA2Ijt1TI5_APzSJNjdlGF1_Jex0-n3iTiy8R996VR6PNx6V7tM8xO8u3sFKwp2A/pub?gid=1217270027&single=true&output=csv';
-        const PROXY = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(CSV_URL);
         let db = [];
         const mesesRef = ["ENERO", "FEBRERO", "MARZO", "ABRIL", "MAYO", "JUNIO", "JULIO", "AGOSTO", "SEPTIEMBRE", "OCTUBRE", "NOVIEMBRE", "DICIEMBRE"];
 
         async function start() {
+            const loaderText = document.getElementById('loader-text');
+            const retryBtn = document.getElementById('retry-btn');
+            
+            // Timeout de seguridad: Si en 12 segundos no carga, mostrar botón de reintento
+            const timeout = setTimeout(() => {
+                loaderText.innerText = "LA CONEXIÓN ESTÁ TARDANDO DEMASIADO";
+                retryBtn.classList.remove('hidden');
+            }, 12000);
+
             try {
-                const r = await fetch(PROXY + '&nocache=' + Date.now());
-                const t = await r.text();
-                Papa.parse(t, { header: true, skipEmptyLines: true, complete: (res) => {
-                    db = res.data.filter(r => r.MES && r.AÑO);
-                    document.getElementById('loader').classList.add('hidden');
-                }});
-            } catch (e) { alert("Error al conectar con la bóveda de datos"); }
+                // Fetch con cache-busting para obligar a traer datos frescos
+                const response = await fetch(CSV_URL + '&cb=' + Date.now());
+                
+                if (!response.ok) throw new Error("Respuesta de red no válida");
+
+                const text = await response.text();
+                
+                Papa.parse(text, {
+                    header: true,
+                    skipEmptyLines: true,
+                    complete: (results) => {
+                        clearTimeout(timeout);
+                        if (results.data && results.data.length > 0) {
+                            db = results.data.filter(r => r.MES && r.AÑO);
+                            document.getElementById('loader').classList.add('hidden');
+                            console.log("Datos cargados exitosamente");
+                        } else {
+                            throw new Error("CSV vacío");
+                        }
+                    }
+                });
+            } catch (error) {
+                clearTimeout(timeout);
+                console.error("Error crítico:", error);
+                loaderText.innerText = "ERROR AL DESENCRIPTAR DATOS";
+                retryBtn.classList.remove('hidden');
+                alert("Atención: No se pudo conectar con la base de datos de Google. Verifica tu conexión.");
+            }
         }
 
+        // --- Funciones de Renderizado (Sin cambios para mantener tu diseño) ---
         function enterApp() {
+            if(db.length === 0) {
+                alert("Los datos aún no están listos. Por favor espera.");
+                return;
+            }
             document.getElementById('view-cover').classList.add('hidden');
             document.getElementById('main-header').classList.remove('hidden');
             renderPeriods();
@@ -243,8 +271,11 @@
             document.getElementById('content-area').innerHTML = html + `</div>`;
             window.scrollTo(0,0);
         }
+
         function n(v) { return parseFloat(String(v || "0").replace(/[^0-9.-]+/g,"")) || 0; }
         function f(v) { return Math.round(v).toLocaleString('es-MX'); }
+        
+        // Ejecución inicial
         start();
     </script>
 </body>
