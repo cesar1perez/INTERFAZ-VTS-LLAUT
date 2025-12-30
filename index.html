@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>LLANTERAMA BI MOBILE</title>
+    <title>SISTEMA LLANTERAMA</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
@@ -16,13 +16,13 @@
 
         .yellow-glow { text-shadow: 0 0 15px #facc15 !important; }
         
+        /* AJUSTE PARA QUE EL LOGO NO SE CORTE */
         @media (max-width: 480px) {
-            .text-7xl { font-size: 3.2rem !important; }
-            .text-6xl { font-size: 2.5rem !important; } 
+            .logo-bienvenida { font-size: 2.8rem !important; } 
+            .text-6xl { font-size: 2.2rem !important; } 
             .text-4xl { font-size: 1.8rem !important; } 
             .number-big { font-size: 2.2rem !important; } 
             .kpi-title-text { font-size: 1.2rem !important; }
-            .p-10 { padding: 1.5rem !important; } 
         }
 
         .mes-actual-resaltado { 
@@ -72,16 +72,6 @@
             letter-spacing: 1px;
             text-transform: uppercase;
         }
-
-        select {
-            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23ffffff' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
-            background-position: right 0.5rem center;
-            background-repeat: no-repeat;
-            background-size: 1.5em 1.5em;
-            padding-right: 2.5rem;
-            -webkit-appearance: none;
-            appearance: none;
-        }
     </style>
 </head>
 <body class="bg-slate-50">
@@ -92,15 +82,15 @@
     </div>
 
     <div id="view-cover" class="fixed inset-0 bg-[#001529] z-50 flex flex-col items-center justify-center text-center p-6">
-        <h1 class="text-7xl font-black text-white italic mb-2 yellow-glow font-['Orbitron'] leading-tight">LLANTERAMA</h1>
-        <p class="text-yellow-400 font-bold text-[9px] tracking-[0.3em] mb-12 uppercase">Business Intelligence Unit</p>
+        <h1 class="logo-bienvenida text-6xl font-black text-white italic mb-2 yellow-glow font-['Orbitron'] leading-tight">LLANTERAMA</h1>
+        <p class="text-yellow-400 font-bold text-[9px] tracking-[0.3em] mb-12 uppercase">Unidad de Inteligencia Comercial</p>
         <button onclick="enterApp()" class="bg-yellow-400 text-blue-900 font-black px-10 py-4 rounded-xl uppercase text-sm shadow-xl active:scale-95 transition-all">ACCEDER</button>
         <p class="mt-20 text-red-500 font-black text-[8px] tracking-widest uppercase opacity-50">Acceso Privado</p>
     </div>
 
     <header id="main-header" class="hidden bg-[#001529] text-white p-4 sticky top-0 z-40 border-b-2 border-yellow-400">
         <div class="max-w-xl mx-auto flex justify-between items-center">
-            <h2 class="font-black italic uppercase text-base tracking-tighter yellow-glow">Llanterama Analytics</h2>
+            <h2 class="font-black italic uppercase text-base tracking-tighter yellow-glow">Llanterama Análisis</h2>
             <button onclick="location.reload()" class="bg-yellow-400 text-blue-950 w-8 h-8 rounded-lg flex items-center justify-center shadow-lg"><i class="fas fa-sync-alt text-xs"></i></button>
         </div>
     </header>
@@ -189,10 +179,6 @@
         function renderReport(v, period) {
             const [m, a] = period.split(' ');
             const d = db.find(r => r.VENDEDOR === v && r.MES === m && r.AÑO === a);
-            
-            // Generar lista de periodos disponibles para el selector de comparación
-            const availablePeriods = [...new Set(db.map(r => `${r.MES} ${r.AÑO}`))];
-
             const cats = [
                 {n:'Premium', o:'OBJ PREMIUM', r:'REAL PREMIUM', color: '#1e3a8a'},
                 {n:'AGM', o:'OBJ AGM', r:'REAL AGM', color: '#1d4ed8'},
@@ -208,10 +194,7 @@
             let html = `
             <div class="flex justify-between items-center mb-6 no-print">
                 <button onclick="renderSellers('${d.ZONA}', '${period}')" class="text-[10px] font-black text-slate-500 uppercase">← SALIR</button>
-                <div class="flex gap-2">
-                    <button onclick="toggleCompareMenu()" class="bg-green-600 text-white px-3 py-2 rounded-lg text-[9px] font-black shadow-lg uppercase tracking-tighter italic">Comparar</button>
-                    <button onclick="downloadPDF('${d.VENDEDOR}', '${period}')" class="bg-blue-900 text-yellow-400 px-4 py-2 rounded-lg text-[10px] font-black shadow-lg uppercase">PDF</button>
-                </div>
+                <button onclick="downloadPDF('${d.VENDEDOR}', '${period}')" class="bg-blue-900 text-yellow-400 px-4 py-2 rounded-lg text-[10px] font-black shadow-lg uppercase">Generar PDF</button>
             </div>
             
             <div id="pdf-container">
@@ -219,17 +202,7 @@
                 <div class="bg-[#001529] p-8 rounded-b-[40px] text-white mb-6 border-b-4 border-yellow-400">
                     <p class="text-yellow-400 font-black text-[8px] uppercase tracking-widest mb-2">${period} | ${d.ZONA}</p>
                     <h2 class="text-3xl font-black italic uppercase tracking-tighter leading-tight mb-8">${d.VENDEDOR}</h2>
-                    
-                    <div id="compare-menu" class="hidden mb-6 p-4 bg-white/5 border border-white/20 rounded-2xl animate-fade-in">
-                        <p class="text-[8px] font-black text-yellow-400 uppercase mb-2 text-center">Selecciona periodo a comparar:</p>
-                        <select id="period-selector" onchange="executeComparison('${v}', '${m}', '${a}')" class="w-full bg-blue-900 text-white text-xs font-bold p-3 rounded-xl border border-blue-400 mb-4">
-                            <option value="">-- Seleccionar Mes --</option>
-                            ${availablePeriods.map(p => `<option value="${p}">${p}</option>`).join('')}
-                        </select>
-                        <div id="compare-results" class="hidden grid grid-cols-2 gap-2 text-white"></div>
-                    </div>
-
-                    <div id="main-data-box" class="bg-white/10 p-4 rounded-2xl text-center border border-white/10">
+                    <div class="bg-white/10 p-4 rounded-2xl text-center border border-white/10">
                         <p class="text-[8px] font-bold text-slate-400 uppercase mb-1">Total Facturado</p>
                         <p class="text-4xl font-black text-white">$${f(n(d['IMPORTE NETO']))}</p>
                     </div>
@@ -281,44 +254,11 @@
             window.scrollTo(0,0);
         }
 
-        function toggleCompareMenu() {
-            const menu = document.getElementById('compare-menu');
-            menu.classList.toggle('hidden');
-        }
-
-        function executeComparison(v, curM, curA) {
-            const selectedP = document.getElementById('period-selector').value;
-            const resDiv = document.getElementById('compare-results');
-            if(!selectedP) { resDiv.classList.add('hidden'); return; }
-
-            const [pM, pA] = selectedP.split(' ');
-            
-            const cur = db.find(r => r.VENDEDOR === v && r.MES === curM && r.AÑO === curA);
-            const pas = db.find(r => r.VENDEDOR === v && r.MES === pM && r.AÑO === pA);
-
-            if(!pas) { alert("No hay datos del periodo seleccionado para este vendedor."); return; }
-
-            const dFact = n(cur['IMPORTE NETO']) - n(pas['IMPORTE NETO']);
-            const dPz = n(cur['REAL ACUMULADORES']) - n(pas['REAL ACUMULADORES']);
-
-            resDiv.innerHTML = `
-                <div class="bg-white/10 p-2 rounded-lg border border-white/20">
-                    <p class="text-[7px] text-slate-400 uppercase">Dif. Venta</p>
-                    <p class="text-sm font-black ${dFact >= 0 ? 'text-green-400' : 'text-red-400'}">${dFact >= 0 ? '+' : ''}$${f(dFact)}</p>
-                </div>
-                <div class="bg-white/10 p-2 rounded-lg border border-white/20">
-                    <p class="text-[7px] text-slate-400 uppercase">Dif. Piezas</p>
-                    <p class="text-sm font-black ${dPz >= 0 ? 'text-green-400' : 'text-red-400'}">${dPz >= 0 ? '+' : ''}${Math.round(dPz)} pz</p>
-                </div>
-            `;
-            resDiv.classList.remove('hidden');
-        }
-
         function downloadPDF(nombre, fecha) {
             const element = document.getElementById('pdf-container');
             const opt = {
                 margin: [5, 2, 5, 2],
-                filename: `REPORT_${nombre}.pdf`,
+                filename: `REPORTE_${nombre}.pdf`,
                 image: { type: 'jpeg', quality: 0.98 },
                 html2canvas: { scale: 2, useCORS: true },
                 jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
