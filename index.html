@@ -2,8 +2,8 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LLANTERAMA - SISTEMA PRIVADO</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>LLANTERAMA BI MOBILE</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
@@ -12,79 +12,84 @@
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@900&family=Inter:wght@400;700;900&display=swap');
         
-        /* FUERZA VISUAL */
-        .yellow-glow { text-shadow: 0 0 15px #facc15, 0 0 30px #facc15 !important; }
+        body { font-family: 'Inter', sans-serif; overflow-x: hidden; }
+
+        /* EFECTOS VISUALES */
+        .yellow-glow { text-shadow: 0 0 15px #facc15 !important; }
         
-        /* RESALTE MES ACTUAL */
-        .mes-actual-resaltado { 
-            background: #facc15 !important; 
-            border: 3px solid #001529 !important;
-            box-shadow: 0 0 20px rgba(250, 204, 21, 0.5) !important;
-            transform: scale(1.02);
+        /* AJUSTES MÓVILES ESPECÍFICOS */
+        @media (max-width: 480px) {
+            .text-7xl { font-size: 3.5rem !important; } /* Título bienvenida */
+            .text-6xl { font-size: 2.5rem !important; } /* Facturación total */
+            .text-4xl { font-size: 1.8rem !important; } /* Títulos zonas */
+            .number-big { font-size: 2.2rem !important; } /* Números pz */
+            .kpi-title-text { font-size: 1.2rem !important; }
+            .p-10 { padding: 1.5rem !important; } /* Padding de cabecera */
         }
 
-        /* NUMERACION ZONAS */
+        .mes-actual-resaltado { 
+            background: #facc15 !important; 
+            border: 2px solid #001529 !important;
+            box-shadow: 0 4px 15px rgba(250, 204, 21, 0.4) !important;
+        }
+
         .zona-badge {
             background: #001529 !important;
             color: #facc15 !important;
-            width: 45px;
-            height: 45px;
+            width: 32px;
+            height: 32px;
             display: flex;
             align-items: center;
             justify-content: center;
             border-radius: 50%;
             font-weight: 900;
-            font-size: 1.2rem;
-            border: 2px solid #facc15;
-        }
-
-        .confidencial-bar {
-            background: #ef4444 !important;
-            color: white !important;
-            font-size: 10px !important;
-            font-weight: 900 !important;
-            text-align: center;
-            padding: 5px;
-            letter-spacing: 3px;
-            text-transform: uppercase;
+            font-size: 0.8rem;
+            flex-shrink: 0;
         }
 
         .pdf-card { 
             page-break-inside: avoid; 
             border-radius: 20px; 
             background: white; 
-            border: 1px solid #cbd5e1; 
-            padding: 20px; 
+            border: 1px solid #e2e8f0; 
+            padding: 15px; 
             margin-bottom: 15px; 
         }
 
-        .number-big { font-size: 3rem !important; font-weight: 900 !important; line-height: 1; }
+        .confidencial-bar {
+            background: #ef4444 !important;
+            color: white !important;
+            font-size: 8px !important;
+            font-weight: 900 !important;
+            text-align: center;
+            padding: 4px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
     </style>
 </head>
-<body class="bg-slate-100 font-['Inter']">
+<body class="bg-slate-50">
 
     <div id="loader" class="fixed inset-0 bg-[#001529] z-[100] flex flex-col items-center justify-center text-white">
-        <div class="w-12 h-12 border-4 border-yellow-400 border-t-transparent rounded-full animate-spin mb-4"></div>
-        <p class="text-red-500 font-black tracking-widest animate-pulse uppercase">Información Confidencial</p>
+        <div class="w-10 h-10 border-4 border-yellow-400 border-t-transparent rounded-full animate-spin mb-4"></div>
+        <p class="text-[10px] font-black tracking-widest uppercase">Cargando Inteligencia...</p>
     </div>
 
     <div id="view-cover" class="fixed inset-0 bg-[#001529] z-50 flex flex-col items-center justify-center text-center p-6">
-        <h1 class="text-7xl font-black text-white italic mb-2 yellow-glow font-['Orbitron']">LLANTERAMA</h1>
-        <p class="text-yellow-400 font-bold text-xs tracking-[0.5em] mb-12 uppercase">Enterprise Intelligence Unit</p>
-        <button onclick="enterApp()" class="bg-yellow-400 text-blue-900 font-black px-16 py-5 rounded-2xl uppercase text-lg shadow-[0_0_40px_rgba(250,204,21,0.6)] active:scale-95 transition-all">ACCEDER AL SISTEMA</button>
-        <div class="mt-16 border-2 border-red-500/30 p-4 rounded-xl">
-            <p class="text-red-500 font-black text-[10px] tracking-widest uppercase italic">Advertencia: Acceso restringido a personal de gerencia</p>
-        </div>
+        <h1 class="text-7xl font-black text-white italic mb-2 yellow-glow font-['Orbitron'] leading-tight">LLANTERAMA</h1>
+        <p class="text-yellow-400 font-bold text-[9px] tracking-[0.3em] mb-12 uppercase">Business Intelligence Unit</p>
+        <button onclick="enterApp()" class="bg-yellow-400 text-blue-900 font-black px-10 py-4 rounded-xl uppercase text-sm shadow-xl active:scale-95 transition-all">ACCEDER</button>
+        <p class="mt-20 text-red-500 font-black text-[8px] tracking-widest uppercase opacity-50">Acceso Privado</p>
     </div>
 
-    <header id="main-header" class="hidden bg-[#001529] text-white p-4 sticky top-0 z-40 border-b-4 border-yellow-400 shadow-2xl">
-        <div class="max-w-2xl mx-auto flex justify-between items-center">
-            <h2 class="font-black italic uppercase text-xl yellow-glow">Llanterama</h2>
-            <button onclick="location.reload()" class="bg-yellow-400 text-blue-950 p-2 rounded-full w-10 h-10 flex items-center justify-center font-bold"><i class="fas fa-sync"></i></button>
+    <header id="main-header" class="hidden bg-[#001529] text-white p-4 sticky top-0 z-40 border-b-2 border-yellow-400">
+        <div class="max-w-xl mx-auto flex justify-between items-center">
+            <h2 class="font-black italic uppercase text-base tracking-tighter yellow-glow">Llanterama Analytics</h2>
+            <button onclick="location.reload()" class="bg-yellow-400 text-blue-950 w-8 h-8 rounded-lg flex items-center justify-center shadow-lg"><i class="fas fa-sync-alt text-xs"></i></button>
         </div>
     </header>
 
-    <main class="max-w-2xl mx-auto p-4 pb-24">
+    <main class="max-w-xl mx-auto p-4 pb-20">
         <div id="content-area"></div>
     </main>
 
@@ -101,7 +106,7 @@
                     db = res.data.filter(r => r.MES); 
                     document.getElementById('loader').classList.add('hidden'); 
                 }});
-            } catch (e) { alert("ERROR DE CONEXIÓN"); }
+            } catch (e) { alert("Error de Conexión"); }
         }
 
         function enterApp() {
@@ -115,16 +120,16 @@
                 const [mA, aA] = a.split(' '), [mB, aB] = b.split(' ');
                 return aA !== aB ? aB - aA : mesesRef.indexOf(mB) - mesesRef.indexOf(mA);
             });
-            let html = `<p class="text-[11px] font-black text-slate-500 uppercase tracking-widest mb-6">Seleccione Periodo Fiscal:</p>`;
+            let html = `<p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">Seleccione Periodo:</p>`;
             sorted.forEach((p, i) => {
                 const isActual = (i === 0);
                 html += `
-                <div onclick="selectMonth('${p}')" class="p-6 rounded-3xl mb-4 cursor-pointer flex justify-between items-center shadow-lg transition-all ${isActual ? 'mes-actual-resaltado' : 'bg-white border border-slate-200'}">
+                <div onclick="selectMonth('${p}')" class="p-5 rounded-2xl mb-3 cursor-pointer flex justify-between items-center shadow-sm border ${isActual ? 'mes-actual-resaltado' : 'bg-white border-slate-200'}">
                     <div>
-                        ${isActual ? '<span class="text-[9px] font-black bg-blue-950 text-white px-3 py-1 rounded-full mb-2 inline-block">PERIODO ACTUAL EN CURSO</span>' : ''}
-                        <h4 class="text-3xl font-black ${isActual ? 'text-blue-950' : 'text-blue-900'} italic uppercase">${p}</h4>
+                        ${isActual ? '<span class="text-[8px] font-black bg-blue-950 text-white px-2 py-0.5 rounded mb-1 inline-block">ACTUAL</span>' : ''}
+                        <h4 class="text-xl font-black ${isActual ? 'text-blue-950' : 'text-blue-900'} italic uppercase">${p}</h4>
                     </div>
-                    <i class="fas fa-chevron-right text-blue-950 text-2xl"></i>
+                    <i class="fas fa-chevron-right ${isActual ? 'text-blue-950' : 'text-slate-300'}"></i>
                 </div>`;
             });
             document.getElementById('content-area').innerHTML = html;
@@ -134,18 +139,18 @@
 
         function renderZones(data, period) {
             const zones = [...new Set(data.map(r => r.ZONA))];
-            let html = `<button onclick="renderPeriods()" class="mb-6 bg-slate-200 px-4 py-2 rounded-xl text-xs font-black uppercase tracking-tighter">← REGRESAR</button>`;
+            let html = `<button onclick="renderPeriods()" class="mb-4 text-[10px] font-black text-blue-900 uppercase">← VOLVER</button>`;
             zones.forEach((z, i) => {
                 const total = data.filter(r => r.ZONA === z).reduce((acc, r) => acc + n(r['IMPORTE NETO']), 0);
                 html += `
-                <div onclick="renderSellers('${z}', '${period}')" class="bg-white p-6 rounded-[35px] mb-6 cursor-pointer shadow-xl border-2 border-slate-100">
-                    <div class="flex items-center gap-5 mb-6">
+                <div onclick="renderSellers('${z}', '${period}')" class="bg-white p-5 rounded-3xl mb-4 cursor-pointer shadow-md border-b-2 border-yellow-400">
+                    <div class="flex items-center gap-3 mb-4">
                         <div class="zona-badge">#${i+1}</div>
-                        <h4 class="text-4xl font-black text-blue-900 italic uppercase tracking-tighter">${z}</h4>
+                        <h4 class="text-2xl font-black text-blue-900 italic uppercase tracking-tighter">${z}</h4>
                     </div>
-                    <div class="bg-blue-50 p-6 rounded-3xl border border-blue-100">
-                        <p class="text-[10px] font-black text-blue-400 uppercase tracking-widest mb-1">VENTA TOTAL ZONA</p>
-                        <p class="text-4xl font-black text-blue-900">$${f(total)}</p>
+                    <div class="bg-slate-50 p-4 rounded-xl border border-slate-100">
+                        <p class="text-[8px] font-black text-slate-400 uppercase">Venta Acumulada</p>
+                        <p class="text-2xl font-black text-blue-900">$${f(total)}</p>
                     </div>
                 </div>`;
             });
@@ -155,11 +160,11 @@
         function renderSellers(z, period) {
             const [m, a] = period.split(' ');
             const sellers = db.filter(r => r.ZONA === z && r.MES === m && r.AÑO === a);
-            let html = `<button onclick="selectMonth('${period}')" class="mb-6 bg-slate-200 px-4 py-2 rounded-xl text-xs font-black uppercase">← VOLVER A ZONAS</button>`;
+            let html = `<button onclick="selectMonth('${period}')" class="mb-4 text-[10px] font-black text-blue-900 uppercase">← VOLVER</button>`;
             sellers.forEach(s => {
-                html += `<div onclick="renderReport('${s.VENDEDOR}', '${period}')" class="bg-white p-6 rounded-2xl mb-3 cursor-pointer flex justify-between items-center border-l-[12px] border-blue-900 shadow-md">
-                    <p class="font-black text-slate-800 uppercase text-lg italic">${s.VENDEDOR}</p>
-                    <i class="fas fa-file-contract text-blue-900 text-xl"></i>
+                html += `<div onclick="renderReport('${s.VENDEDOR}', '${period}')" class="bg-white p-4 rounded-xl mb-2 cursor-pointer flex justify-between items-center border-l-8 border-blue-900 shadow-sm">
+                    <p class="font-black text-slate-700 uppercase text-xs italic">${s.VENDEDOR}</p>
+                    <i class="fas fa-chevron-right text-slate-200"></i>
                 </div>`;
             });
             document.getElementById('content-area').innerHTML = html;
@@ -181,23 +186,23 @@
             ];
 
             let html = `
-            <div class="flex justify-between items-center mb-8 no-print">
-                <button onclick="renderSellers('${d.ZONA}', '${period}')" class="bg-white border-2 border-slate-200 px-6 py-2 rounded-xl text-xs font-black uppercase tracking-widest">SALIR</button>
-                <button onclick="downloadPDF('${d.VENDEDOR}', '${period}')" class="bg-blue-900 text-yellow-400 px-8 py-3 rounded-xl text-xs font-black shadow-2xl uppercase tracking-[0.2em]"><i class="fas fa-file-pdf mr-2 text-lg"></i>Bajar PDF</button>
+            <div class="flex justify-between items-center mb-6 no-print">
+                <button onclick="renderSellers('${d.ZONA}', '${period}')" class="text-[10px] font-black text-slate-500 uppercase">← SALIR</button>
+                <button onclick="downloadPDF('${d.VENDEDOR}', '${period}')" class="bg-blue-900 text-yellow-400 px-4 py-2 rounded-lg text-[10px] font-black shadow-lg uppercase">PDF</button>
             </div>
             
             <div id="pdf-container">
-                <div class="confidencial-bar">INFORMACIÓN PRIVADA - PROPIEDAD DE LLANTERAMA - PROHIBIDA SU DISTRIBUCIÓN</div>
-                <div class="bg-[#001529] p-10 rounded-b-[50px] text-white mb-10 border-b-8 border-yellow-400 relative">
-                    <p class="text-yellow-400 font-black text-xs uppercase tracking-[0.4em] mb-4">${period} | ${d.ZONA}</p>
-                    <h2 class="text-5xl font-black italic uppercase tracking-tighter leading-none mb-10">${d.VENDEDOR}</h2>
-                    <div class="bg-white/10 p-6 rounded-3xl text-center border-2 border-white/10 shadow-inner">
-                        <p class="text-[10px] font-black text-slate-400 uppercase mb-2">RESULTADO NETO FACTURADO</p>
-                        <p class="text-6xl font-black text-white">$${f(n(d['IMPORTE NETO']))}</p>
+                <div class="confidencial-bar">INFORMACIÓN PRIVADA - LLANTERAMA</div>
+                <div class="bg-[#001529] p-8 rounded-b-[40px] text-white mb-6 border-b-4 border-yellow-400">
+                    <p class="text-yellow-400 font-black text-[8px] uppercase tracking-widest mb-2">${period} | ${d.ZONA}</p>
+                    <h2 class="text-3xl font-black italic uppercase tracking-tighter leading-tight mb-8">${d.VENDEDOR}</h2>
+                    <div class="bg-white/10 p-4 rounded-2xl text-center border border-white/10">
+                        <p class="text-[8px] font-bold text-slate-400 uppercase mb-1">Total Facturado</p>
+                        <p class="text-4xl font-black text-white">$${f(n(d['IMPORTE NETO']))}</p>
                     </div>
                 </div>
 
-                <div class="space-y-12 px-2">`;
+                <div class="space-y-4 px-1">`;
 
             cats.forEach(c => {
                 const obj = Math.round(n(d[c.o]));
@@ -206,39 +211,39 @@
                 const falta = obj - real;
 
                 html += `
-                <div class="pdf-card ${c.main ? 'border-4 border-blue-950 bg-slate-50' : ''}">
-                    <div class="flex justify-between items-start mb-8">
+                <div class="pdf-card ${c.main ? 'border-2 border-blue-900' : ''}">
+                    <div class="flex justify-between items-start mb-4">
                         <div class="max-w-[70%]">
-                            <h4 class="text-3xl font-black italic uppercase text-blue-950 leading-none tracking-tighter mb-2">${c.n}</h4>
-                            ${c.main ? '<span class="bg-blue-950 text-yellow-400 text-[10px] font-black px-3 py-1 rounded">KPI CRÍTICO</span>' : ''}
+                            <h4 class="kpi-title-text text-lg font-black italic uppercase text-blue-950 leading-none">${c.n}</h4>
+                            ${c.main ? '<span class="bg-blue-950 text-yellow-400 text-[7px] font-black px-1.5 py-0.5 rounded mt-1 inline-block">CONSOLIDADO</span>' : ''}
                         </div>
-                        <div class="bg-blue-950 text-yellow-400 px-4 py-2 rounded-2xl font-black text-2xl shadow-lg border-2 border-yellow-400">${Math.round(perc)}%</div>
+                        <div class="bg-blue-950 text-yellow-400 px-3 py-1 rounded-xl font-black text-sm shadow-md">${Math.round(perc)}%</div>
                     </div>
 
-                    <div class="grid grid-cols-2 gap-4 mb-8">
-                        <div class="bg-slate-100 p-6 rounded-3xl text-center">
-                            <p class="text-[10px] font-black text-slate-500 uppercase mb-2">Vendido</p>
-                            <p class="number-big text-blue-950 tracking-tighter">${real}</p>
+                    <div class="grid grid-cols-2 gap-2 mb-4">
+                        <div class="bg-slate-50 p-3 rounded-2xl text-center border border-slate-100">
+                            <p class="text-[7px] font-black text-slate-400 uppercase mb-1">Vendido</p>
+                            <p class="number-big text-blue-950 leading-none">${real}</p>
                         </div>
-                        <div class="bg-blue-950 p-6 rounded-3xl text-center shadow-xl">
-                            <p class="text-[10px] font-black text-yellow-500 uppercase mb-2">Meta</p>
-                            <p class="number-big text-yellow-400 tracking-tighter">${obj}</p>
+                        <div class="bg-blue-950 p-3 rounded-2xl text-center shadow-lg">
+                            <p class="text-[7px] font-black text-yellow-500 uppercase mb-1">Meta</p>
+                            <p class="number-big text-yellow-400 leading-none">${obj}</p>
                         </div>
                     </div>
 
-                    <div class="h-4 bg-slate-200 rounded-full overflow-hidden mb-8 border border-slate-300">
-                        <div style="width: ${Math.min(perc, 100)}%; background: ${c.color}" class="h-full rounded-full transition-all duration-1000 shadow-lg"></div>
+                    <div class="h-2 bg-slate-100 rounded-full overflow-hidden mb-3">
+                        <div style="width: ${Math.min(perc, 100)}%; background: ${c.color}" class="h-full rounded-full"></div>
                     </div>
 
-                    <div class="text-center p-4 rounded-2xl ${falta > 0 ? 'bg-red-50 border-2 border-red-200' : 'bg-green-100 border-2 border-green-300'}">
+                    <div class="text-center">
                         ${falta > 0 ? 
-                            `<p class="text-2xl font-black text-red-600 italic uppercase">FALTAN ${falta} PZ PARA OBJETIVO</p>` : 
-                            `<p class="text-2xl font-black text-green-700 italic uppercase"><i class="fas fa-trophy mr-2 text-yellow-500"></i> ¡OBJETIVO LOGRADO!</p>`
+                            `<p class="text-[10px] font-black text-red-500 italic uppercase">Faltan ${falta} pz</p>` : 
+                            `<p class="text-[10px] font-black text-green-600 italic uppercase">¡Logrado!</p>`
                         }
                     </div>
                 </div>`;
             });
-            html += `<div class="confidencial-bar rounded-full my-10">FIN DEL REPORTE - USO INTERNO EXCLUSIVO</div>`;
+            html += `<p class="text-center confidential-tag mt-6 mb-4 opacity-40">Fin del Informe Confidencial</p>`;
             document.getElementById('content-area').innerHTML = html + `</div></div>`;
             window.scrollTo(0,0);
         }
@@ -246,10 +251,10 @@
         function downloadPDF(nombre, fecha) {
             const element = document.getElementById('pdf-container');
             const opt = {
-                margin: [5, 5, 5, 5],
-                filename: `CONFIDENCIAL_${nombre}.pdf`,
-                image: { type: 'jpeg', quality: 1 },
-                html2canvas: { scale: 3, useCORS: true },
+                margin: [5, 2, 5, 2],
+                filename: `REPORT_${nombre}.pdf`,
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2, useCORS: true },
                 jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
             };
             html2pdf().set(opt).from(element).save();
