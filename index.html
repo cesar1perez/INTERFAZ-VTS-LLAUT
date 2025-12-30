@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Llanterama Dashboard</title>
+    <title>Llanterama BI - Confidencial</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
@@ -11,27 +11,33 @@
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
         body { font-family: 'Inter', sans-serif; background-color: #f1f5f9; }
+        .yellow-glow { text-shadow: 0 0 20px rgba(250, 204, 21, 0.9), 0 0 40px rgba(250, 204, 21, 0.5); }
         .pdf-card { page-break-inside: avoid; border-radius: 24px; background: white; border: 1px solid #e2e8f0; padding: 25px; margin-bottom: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
-        .kpi-title { font-size: 1.6rem; font-weight: 900; color: #0f172a; text-transform: uppercase; font-style: italic; line-height: 1.1; }
+        .kpi-title { font-size: 1.4rem; font-weight: 900; color: #0f172a; text-transform: uppercase; font-style: italic; line-height: 1.1; }
         .number-big { font-size: 2.8rem; font-weight: 900; line-height: 1; letter-spacing: -1px; }
         .badge-percent { background: #0f172a; color: #facc15; padding: 4px 12px; border-radius: 999px; font-weight: 900; font-size: 0.9rem; }
+        .confidential-tag { font-size: 9px; font-weight: 800; letter-spacing: 2px; text-transform: uppercase; color: #ef4444; }
+        .current-month-card { background: #fffdf0 !important; border: 2px solid #facc15 !important; }
     </style>
 </head>
 <body>
 
     <div id="loader" class="fixed inset-0 bg-[#001529] z-[100] flex flex-col items-center justify-center text-white">
-        <div class="w-10 h-10 border-4 border-yellow-400 border-t-transparent rounded-full animate-spin"></div>
+        <div class="w-10 h-10 border-4 border-yellow-400 border-t-transparent rounded-full animate-spin mb-4"></div>
+        <p class="confidential-tag">Sincronizando Datos</p>
     </div>
 
     <div id="view-cover" class="fixed inset-0 bg-[#001529] z-50 flex flex-col items-center justify-center text-center p-6">
-        <h1 class="text-5xl font-black text-white italic mb-8">LLANTERAMA</h1>
-        <button onclick="enterApp()" class="bg-yellow-400 text-blue-900 font-black px-10 py-4 rounded-xl uppercase text-sm tracking-widest shadow-xl">Ver Reportes</button>
+        <h1 class="text-6xl font-black text-white italic mb-2 yellow-glow">LLANTERAMA</h1>
+        <p class="text-yellow-400 font-bold text-[10px] tracking-[0.5em] mb-10 uppercase">Intelligence System</p>
+        <button onclick="enterApp()" class="bg-yellow-400 text-blue-900 font-black px-12 py-4 rounded-xl uppercase text-sm tracking-widest shadow-[0_0_30px_rgba(250, 204, 21, 0.4)]">Entrar al Portal</button>
+        <p class="mt-12 confidential-tag">Acceso Restringido - Personal Autorizado</p>
     </div>
 
-    <header id="main-header" class="hidden bg-[#001529] text-white p-4 sticky top-0 z-40 border-b-2 border-yellow-400">
+    <header id="main-header" class="hidden bg-[#001529] text-white p-4 sticky top-0 z-40 border-b-2 border-yellow-400 shadow-xl">
         <div class="max-w-2xl mx-auto flex justify-between items-center">
-            <h2 class="font-black italic uppercase">Analytics</h2>
-            <button onclick="location.reload()" class="opacity-50"><i class="fas fa-sync-alt"></i></button>
+            <h2 class="font-black italic uppercase text-lg">Llanterama Analytics</h2>
+            <button onclick="location.reload()" class="bg-white/10 w-8 h-8 rounded-lg"><i class="fas fa-sync-alt text-xs text-yellow-400"></i></button>
         </div>
     </header>
 
@@ -52,7 +58,7 @@
                     db = res.data.filter(r => r.MES); 
                     document.getElementById('loader').classList.add('hidden'); 
                 }});
-            } catch (e) { alert("Error de red"); }
+            } catch (e) { console.error(e); }
         }
 
         function enterApp() {
@@ -66,11 +72,15 @@
                 const [mA, aA] = a.split(' '), [mB, aB] = b.split(' ');
                 return aA !== aB ? aB - aA : mesesRef.indexOf(mB) - mesesRef.indexOf(mA);
             });
-            let html = `<p class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4 ml-2">Periodos</p>`;
+            let html = `<p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 px-2 italic">Reportes Mensuales</p>`;
             sorted.forEach((p, i) => {
-                html += `<div onclick="selectMonth('${p}')" class="bg-white p-6 rounded-2xl mb-3 cursor-pointer flex justify-between items-center shadow-sm border border-slate-100">
-                    <h4 class="text-xl font-black text-blue-900 italic uppercase">${p}</h4>
-                    <i class="fas fa-chevron-right text-slate-300"></i>
+                const isActual = (i === 0);
+                html += `<div onclick="selectMonth('${p}')" class="bg-white p-5 rounded-2xl mb-3 cursor-pointer flex justify-between items-center shadow-sm border border-slate-200 ${isActual ? 'current-month-card' : ''}">
+                    <div>
+                        ${isActual ? '<span class="text-[8px] font-black bg-yellow-400 text-blue-900 px-2 py-0.5 rounded-md mb-1 inline-block">PERIODO ACTUAL</span>' : ''}
+                        <h4 class="text-xl font-black text-blue-900 italic uppercase leading-none">${p}</h4>
+                    </div>
+                    <i class="fas fa-chevron-right ${isActual ? 'text-yellow-600' : 'text-slate-300'}"></i>
                 </div>`;
             });
             document.getElementById('content-area').innerHTML = html;
@@ -80,15 +90,20 @@
 
         function renderZones(data, period) {
             const zones = [...new Set(data.map(r => r.ZONA))];
-            let html = `<button onclick="renderPeriods()" class="mb-4 text-xs font-bold text-blue-900 uppercase">← Volver</button>`;
+            let html = `<button onclick="renderPeriods()" class="mb-4 text-xs font-bold text-blue-900 uppercase">← Regresar</button>`;
             zones.forEach((z, i) => {
                 const total = data.filter(r => r.ZONA === z).reduce((acc, r) => acc + n(r['IMPORTE NETO']), 0);
                 html += `<div onclick="renderSellers('${z}', '${period}')" class="bg-white p-6 rounded-3xl mb-4 cursor-pointer shadow-md border-b-4 border-yellow-400">
-                    <p class="text-[10px] font-bold text-slate-400 uppercase mb-1">Zona</p>
-                    <h4 class="text-2xl font-black text-blue-900 italic uppercase mb-4">${z}</h4>
-                    <div class="bg-slate-50 p-4 rounded-xl border border-slate-100">
-                        <p class="text-[9px] font-bold text-slate-400 uppercase">Venta Total</p>
-                        <p class="text-2xl font-black text-blue-900">$${f(total)}</p>
+                    <div class="flex items-center gap-3 mb-4">
+                        <span class="bg-blue-900 text-yellow-400 text-[10px] font-black px-3 py-1 rounded-lg">#${i+1}</span>
+                        <h4 class="text-2xl font-black text-blue-900 italic uppercase">${z}</h4>
+                    </div>
+                    <div class="bg-slate-50 p-4 rounded-xl border border-slate-100 flex justify-between items-center">
+                        <div>
+                            <p class="text-[9px] font-bold text-slate-400 uppercase">Venta Acumulada</p>
+                            <p class="text-2xl font-black text-blue-900">$${f(total)}</p>
+                        </div>
+                        <i class="fas fa-chart-bar text-blue-100 text-3xl"></i>
                     </div>
                 </div>`;
             });
@@ -98,11 +113,11 @@
         function renderSellers(z, period) {
             const [m, a] = period.split(' ');
             const sellers = db.filter(r => r.ZONA === z && r.MES === m && r.AÑO === a);
-            let html = `<button onclick="selectMonth('${period}')" class="mb-4 text-xs font-bold text-blue-900 uppercase">← Volver</button>`;
+            let html = `<button onclick="selectMonth('${period}')" class="mb-4 text-xs font-bold text-blue-900 uppercase">← Volver a Zonas</button>`;
             sellers.forEach(s => {
-                html += `<div onclick="renderReport('${s.VENDEDOR}', '${period}')" class="bg-white p-5 rounded-2xl mb-2 cursor-pointer flex justify-between items-center border-l-4 border-blue-900 shadow-sm">
-                    <p class="font-bold text-slate-700 uppercase text-sm">${s.VENDEDOR}</p>
-                    <i class="fas fa-file-pdf text-slate-300"></i>
+                html += `<div onclick="renderReport('${s.VENDEDOR}', '${period}')" class="bg-white p-5 rounded-xl mb-2 cursor-pointer flex justify-between items-center border-l-4 border-blue-900 shadow-sm">
+                    <p class="font-bold text-slate-700 uppercase text-sm italic">${s.VENDEDOR}</p>
+                    <i class="fas fa-file-invoice text-slate-200"></i>
                 </div>`;
             });
             document.getElementById('content-area').innerHTML = html;
@@ -126,15 +141,15 @@
             let html = `
             <div class="flex justify-between items-center mb-6 no-print">
                 <button onclick="renderSellers('${d.ZONA}', '${period}')" class="text-xs font-bold text-slate-500 uppercase">← Salir</button>
-                <button onclick="downloadPDF('${d.VENDEDOR}', '${period}')" class="bg-blue-900 text-white px-5 py-2 rounded-lg text-xs font-bold shadow-lg">Descargar Reporte</button>
+                <button onclick="downloadPDF('${d.VENDEDOR}', '${period}')" class="bg-blue-900 text-yellow-400 px-5 py-2 rounded-lg text-xs font-black shadow-lg uppercase tracking-widest"><i class="fas fa-download mr-2"></i>Descargar PDF</button>
             </div>
             
-            <div id="pdf-container" class="max-w-[800px] mx-auto">
-                <div class="bg-[#001529] p-8 rounded-[32px] text-white mb-6 border-b-4 border-yellow-400 relative overflow-hidden">
-                    <p class="text-[9px] font-black text-yellow-400 uppercase tracking-widest mb-1 opacity-80">${period} | ${d.ZONA}</p>
+            <div id="pdf-container">
+                <div class="bg-[#001529] p-8 rounded-[32px] text-white mb-6 border-b-4 border-yellow-400 relative">
+                    <p class="text-[9px] font-black text-yellow-400 uppercase tracking-widest mb-1">${period} | ZONA: ${d.ZONA}</p>
                     <h2 class="text-3xl font-black italic uppercase mb-6 tracking-tight">${d.VENDEDOR}</h2>
-                    <div class="bg-white/10 p-4 rounded-2xl inline-block w-full text-center border border-white/5">
-                        <p class="text-[8px] font-bold text-slate-400 uppercase mb-1">Importe Neto Facturado</p>
+                    <div class="bg-white/10 p-4 rounded-2xl text-center border border-white/5">
+                        <p class="text-[8px] font-bold text-slate-400 uppercase mb-1">Total Neto Facturado</p>
                         <p class="text-4xl font-black text-white">$${f(n(d['IMPORTE NETO']))}</p>
                     </div>
                 </div>
@@ -148,41 +163,44 @@
                 const falta = obj - real;
 
                 html += `
-                <div class="pdf-card ${c.main ? 'border-2 border-blue-900 bg-blue-50/30' : ''}">
+                <div class="pdf-card ${c.main ? 'border-2 border-blue-900 bg-blue-50/10' : ''}">
                     <div class="flex justify-between items-start mb-6">
-                        <div class="max-w-[70%]">
-                            <h4 class="kpi-title" style="font-size: ${c.main ? '1.5rem' : '1.2rem'}">${c.n}</h4>
-                            ${c.main ? '<span class="text-[8px] font-black bg-blue-900 text-white px-2 py-0.5 rounded">KPI MAESTRO</span>' : ''}
+                        <div class="max-w-[75%]">
+                            <h4 class="kpi-title">${c.n}</h4>
+                            ${c.main ? '<span class="text-[8px] font-black bg-blue-900 text-white px-2 py-0.5 rounded mt-1 inline-block">MÉTRICA CONSOLIDADA</span>' : ''}
                         </div>
-                        <div class="text-center">
-                            <p class="text-[8px] font-bold text-slate-400 uppercase mb-1">Progreso</p>
+                        <div class="text-right">
                             <span class="badge-percent">${Math.round(perc)}%</span>
                         </div>
                     </div>
 
                     <div class="grid grid-cols-2 gap-3 mb-6">
-                        <div class="bg-white p-3 rounded-2xl border border-slate-100 text-center">
-                            <p class="text-[8px] font-bold text-slate-400 uppercase mb-1">Vendido</p>
+                        <div class="bg-slate-50 p-3 rounded-2xl text-center">
+                            <p class="text-[8px] font-bold text-slate-400 uppercase mb-1 tracking-wider">Vendido</p>
                             <p class="number-big text-blue-950">${real}</p>
                         </div>
-                        <div class="bg-white p-3 rounded-2xl border border-slate-100 text-center">
-                            <p class="text-[8px] font-bold text-slate-400 uppercase mb-1">Meta</p>
-                            <p class="number-big text-blue-600">${obj}</p>
+                        <div class="bg-slate-900 p-3 rounded-2xl text-center text-white shadow-md">
+                            <p class="text-[8px] font-bold text-yellow-400 uppercase mb-1 tracking-wider">Meta</p>
+                            <p class="number-big text-yellow-400">${obj}</p>
                         </div>
                     </div>
 
-                    <div class="h-2 bg-slate-100 rounded-full overflow-hidden mb-5">
-                        <div style="width: ${Math.min(perc, 100)}%; background: ${c.color}" class="h-full rounded-full"></div>
+                    <div class="h-2 bg-slate-100 rounded-full overflow-hidden mb-4">
+                        <div style="width: ${Math.min(perc, 100)}%; background: ${c.color}" class="h-full rounded-full transition-all duration-700"></div>
                     </div>
 
-                    <div class="pt-4 border-t border-slate-100 text-center">
+                    <div class="text-center pt-2">
                         ${falta > 0 ? 
-                            `<p class="text-sm font-black text-red-500 italic uppercase">Faltan ${falta} piezas para la meta</p>` : 
-                            `<p class="text-sm font-black text-green-600 italic uppercase"><i class="fas fa-star mr-1"></i> ¡Objetivo Logrado!</p>`
+                            `<p class="text-[11px] font-black text-red-500 italic uppercase tracking-tighter">Faltan ${falta} piezas para llegar</p>` : 
+                            `<p class="text-[11px] font-black text-green-600 italic uppercase tracking-tighter"><i class="fas fa-check-circle mr-1"></i> ¡Objetivo Logrado!</p>`
                         }
                     </div>
                 </div>`;
             });
+            html += `<div class="mt-8 mb-4 px-6 text-center">
+                        <p class="confidential-tag mb-1">Propiedad Exclusiva de Llanterama</p>
+                        <p class="text-[8px] text-slate-400 font-bold uppercase tracking-widest">Información Confidencial - Prohibida su Reproducción</p>
+                    </div>`;
             document.getElementById('content-area').innerHTML = html + `</div></div>`;
             window.scrollTo(0,0);
         }
@@ -190,8 +208,8 @@
         function downloadPDF(nombre, fecha) {
             const element = document.getElementById('pdf-container');
             const opt = {
-                margin: [10, 5, 10, 5],
-                filename: `Reporte_${nombre}.pdf`,
+                margin: [8, 5, 10, 5],
+                filename: `REPORT_CONFIDENCIAL_${nombre}.pdf`,
                 image: { type: 'jpeg', quality: 0.98 },
                 html2canvas: { scale: 2 },
                 jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
