@@ -3,39 +3,33 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Llanterama Intelligence</title>
+    <title>Llanterama Business Intelligence</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;700;900&display=swap');
-        body { font-family: 'Outfit', sans-serif; background: #f4f7fa; }
-        .card-premium { background: white; border-radius: 35px; box-shadow: 0 15px 40px rgba(0,0,0,0.06); border: 1px solid rgba(0,0,0,0.03); }
-        .btn-gold { background: linear-gradient(135deg, #facc15 0%, #eab308 100%); box-shadow: 0 10px 20px rgba(234, 179, 8, 0.3); }
-        .pdf-break { page-break-inside: avoid; break-inside: avoid; }
-    </style>
 </head>
-<body>
+<body style="font-family: 'Arial', sans-serif; background-color: #f0f4f8; margin: 0; padding: 0;">
 
-    <div id="loader" class="fixed inset-0 bg-[#001529] z-[100] flex flex-col items-center justify-center text-white">
-        <div class="w-12 h-12 border-4 border-yellow-400 border-t-transparent rounded-full animate-spin mb-4"></div>
-        <p class="text-[10px] font-black tracking-widest text-yellow-400 uppercase">Actualizando Datos...</p>
+    <div id="loader" style="position: fixed; inset: 0; background: #001529; z-index: 100; display: flex; flex-direction: column; align-items: center; justify-content: center; color: white;">
+        <div style="width: 50px; height: 50px; border: 5px solid #facc15; border-top-color: transparent; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+        <p style="margin-top: 20px; font-weight: bold; letter-spacing: 2px;">CARGANDO DATOS ELITE...</p>
+    </div>
+    <style>@keyframes spin { to { transform: rotate(360deg); } }</style>
+
+    <div id="view-cover" style="position: fixed; inset: 0; background: #001529; z-index: 50; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center;">
+        <h1 style="color: white; font-size: 4rem; font-weight: 900; italic: true; margin-bottom: 40px; letter-spacing: -2px;">LLANTERAMA</h1>
+        <button onclick="enterApp()" style="background: #facc15; color: #001529; font-weight: 900; padding: 20px 50px; border-radius: 20px; border: none; cursor: pointer; text-transform: uppercase; font-size: 1.2rem;">Entrar al Dashboard</button>
     </div>
 
-    <div id="view-cover" class="fixed inset-0 bg-[#001529] z-50 flex flex-col items-center justify-center text-center p-6">
-        <h1 class="text-6xl font-black text-white italic tracking-tighter mb-10">LLANTERAMA</h1>
-        <button onclick="enterApp()" class="btn-gold text-blue-900 font-black px-14 py-5 rounded-3xl uppercase tracking-widest text-sm">Entrar al Sistema</button>
-    </div>
-
-    <header id="main-header" class="hidden bg-[#001529] text-white p-6 sticky top-0 z-40 border-b-2 border-yellow-400 shadow-xl">
-        <div class="max-w-2xl mx-auto flex justify-between items-center text-center">
-            <h1 class="text-2xl font-black italic uppercase">Llanterama</h1>
-            <button onclick="location.reload()" class="bg-white/10 w-10 h-10 rounded-full flex items-center justify-center"><i class="fas fa-sync-alt"></i></button>
+    <header id="main-header" style="display: none; background: #001529; color: white; padding: 20px; position: sticky; top: 0; z-index: 40; border-bottom: 4px solid #facc15;">
+        <div style="max-width: 600px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center;">
+            <h2 style="margin: 0; font-weight: 900; font-style: italic; text-transform: uppercase;">Llanterama BI</h2>
+            <button onclick="location.reload()" style="background: rgba(255,255,255,0.1); border: none; color: white; width: 40px; height: 40px; border-radius: 50%; cursor: pointer;"><i class="fas fa-sync"></i></button>
         </div>
     </header>
 
-    <main class="max-w-2xl mx-auto p-4 pt-8 pb-32">
+    <main style="max-width: 600px; margin: 0 auto; padding: 20px;">
         <div id="content-area"></div>
     </main>
 
@@ -48,13 +42,16 @@
             try {
                 const response = await fetch(CSV_URL + '&cb=' + Date.now());
                 const text = await response.text();
-                Papa.parse(text, { header: true, skipEmptyLines: true, complete: (res) => { db = res.data.filter(r => r.MES); document.getElementById('loader').classList.add('hidden'); } });
-            } catch (e) { console.error(e); }
+                Papa.parse(text, { header: true, skipEmptyLines: true, complete: (res) => { 
+                    db = res.data.filter(r => r.MES); 
+                    document.getElementById('loader').style.display = 'none'; 
+                }});
+            } catch (e) { alert("Error al cargar Excel"); }
         }
 
         function enterApp() {
-            document.getElementById('view-cover').classList.add('hidden');
-            document.getElementById('main-header').classList.remove('hidden');
+            document.getElementById('view-cover').style.display = 'none';
+            document.getElementById('main-header').style.display = 'block';
             renderPeriods();
         }
 
@@ -63,12 +60,17 @@
                 const [mA, aA] = a.split(' '), [mB, aB] = b.split(' ');
                 return aA !== aB ? aB - aA : mesesRef.indexOf(mB) - mesesRef.indexOf(mA);
             });
-            let html = `<h2 class="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-6 px-4 italic">Periodos Disponibles</h2>`;
+            let html = `<h3 style="color: #64748b; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 20px;">Seleccionar Periodo</h3>`;
             sorted.forEach((p, i) => {
-                html += `<div onclick="selectMonth('${p}')" class="card-premium p-8 mb-4 cursor-pointer flex justify-between items-center ${i === 0 ? 'border-2 border-yellow-400' : ''}">
-                    <div>${i === 0 ? '<span class="bg-yellow-400 text-blue-950 text-[9px] font-black px-3 py-1 rounded-full uppercase mb-2 inline-block">Actual</span>' : ''}
-                    <h3 class="text-3xl font-black text-blue-900 italic uppercase">${p}</h3></div>
-                    <i class="fas fa-chevron-right text-slate-200"></i></div>`;
+                const isCurrent = (i === 0);
+                html += `
+                <div onclick="selectMonth('${p}')" style="background: white; padding: 30px; border-radius: 25px; margin-bottom: 15px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 6px rgba(0,0,0,0.05); ${isCurrent ? 'border: 3px solid #facc15; background: #fffdf0;' : ''}">
+                    <div>
+                        ${isCurrent ? '<span style="background: #facc15; color: #001529; font-size: 0.7rem; font-weight: bold; padding: 4px 10px; border-radius: 10px; text-transform: uppercase;">Mes Actual</span>' : ''}
+                        <h4 style="margin: 5px 0 0 0; font-size: 1.8rem; color: #001529; font-weight: 900; text-transform: uppercase; font-style: italic;">${p}</h4>
+                    </div>
+                    <i class="fas fa-chevron-right" style="color: #cbd5e1;"></i>
+                </div>`;
             });
             document.getElementById('content-area').innerHTML = html;
         }
@@ -77,12 +79,20 @@
 
         function renderZones(data, period) {
             const zones = [...new Set(data.map(r => r.ZONA))];
-            let html = `<button onclick="renderPeriods()" class="mb-6 ml-4 text-blue-900 font-bold text-xs uppercase"><i class="fas fa-arrow-left"></i> Volver</button>`;
+            let html = `<button onclick="renderPeriods()" style="margin-bottom: 20px; border: none; background: none; color: #001529; font-weight: bold; cursor: pointer;"><i class="fas fa-arrow-left"></i> VOLVER</button>`;
             zones.forEach((z, i) => {
                 const total = data.filter(r => r.ZONA === z).reduce((acc, r) => acc + n(r['IMPORTE NETO']), 0);
-                html += `<div onclick="renderSellers('${z}', '${period}')" class="card-premium p-8 mb-6 cursor-pointer">
-                    <div class="flex items-center gap-4 mb-4"><div class="bg-blue-900 text-yellow-400 px-4 py-1 rounded-lg font-black italic">#${i + 1}</div><h3 class="text-3xl font-black text-blue-900 italic uppercase">${z}</h3></div>
-                    <div class="bg-slate-50 p-6 rounded-2xl"><p class="text-[10px] font-black text-slate-400 uppercase">Facturación Zona</p><p class="text-4xl font-black text-blue-900">$${f(total)}</p></div></div>`;
+                html += `
+                <div onclick="renderSellers('${z}', '${period}')" style="background: white; padding: 30px; border-radius: 30px; margin-bottom: 20px; cursor: pointer; box-shadow: 0 10px 15px rgba(0,0,0,0.05);">
+                    <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 20px;">
+                        <span style="background: #001529; color: #facc15; padding: 5px 15px; border-radius: 10px; font-weight: 900; font-style: italic;">#${i+1}</span>
+                        <h4 style="margin: 0; font-size: 2rem; color: #001529; font-weight: 900; text-transform: uppercase; font-style: italic; letter-spacing: -1px;">${z}</h4>
+                    </div>
+                    <div style="background: #f8fafc; padding: 20px; border-radius: 20px; border: 1px solid #e2e8f0;">
+                        <p style="margin: 0; font-size: 0.7rem; color: #64748b; font-weight: bold; text-transform: uppercase;">Venta Total Zona</p>
+                        <p style="margin: 0; font-size: 2.5rem; color: #001529; font-weight: 900;">$${f(total)}</p>
+                    </div>
+                </div>`;
             });
             document.getElementById('content-area').innerHTML = html;
         }
@@ -90,9 +100,12 @@
         function renderSellers(z, period) {
             const [m, a] = period.split(' ');
             const sellers = db.filter(r => r.ZONA === z && r.MES === m && r.AÑO === a);
-            let html = `<button onclick="selectMonth('${period}')" class="mb-6 ml-4 text-blue-900 font-bold text-xs uppercase"><i class="fas fa-arrow-left"></i> Zonas</button>`;
+            let html = `<button onclick="selectMonth('${period}')" style="margin-bottom: 20px; border: none; background: none; color: #001529; font-weight: bold; cursor: pointer;"><i class="fas fa-arrow-left"></i> VOLVER A ZONAS</button>`;
             sellers.forEach(s => {
-                html += `<div onclick="renderReport('${s.VENDEDOR}', '${period}')" class="card-premium p-6 mb-3 flex justify-between items-center cursor-pointer border-l-8 border-blue-900"><p class="font-black text-blue-900 uppercase text-xl italic">${s.VENDEDOR}</p><i class="fas fa-arrow-right text-slate-200"></i></div>`;
+                html += `<div onclick="renderReport('${s.VENDEDOR}', '${period}')" style="background: white; padding: 25px; border-radius: 20px; margin-bottom: 10px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; border-left: 10px solid #001529; box-shadow: 0 4px 6px rgba(0,0,0,0.03);">
+                    <p style="margin: 0; font-weight: 900; text-transform: uppercase; font-size: 1.2rem; font-style: italic; color: #001529;">${s.VENDEDOR}</p>
+                    <i class="fas fa-file-invoice" style="color: #cbd5e1;"></i>
+                </div>`;
             });
             document.getElementById('content-area').innerHTML = html;
         }
@@ -101,80 +114,74 @@
             const [m, a] = period.split(' ');
             const d = db.find(r => r.VENDEDOR === v && r.MES === m && r.AÑO === a);
             const cats = [
-                {n:'Premium', o:'OBJ PREMIUM', r:'REAL PREMIUM', c:'bg-blue-900'},
-                {n:'AGM', o:'OBJ AGM', r:'REAL AGM', c:'bg-blue-700'},
-                {n:'Estándar', o:'OBJ ESTANDAR', r:'REAL ESTANDAR', c:'bg-blue-500'},
-                {n:'Acumuladores', o:'OBJ ACUMULADORES', r:'REAL ACUMULADORES', c:'bg-blue-800'},
-                {n:'Lubricantes', o:'OBJ LUBRICANTES', r:'REAL LUBRICANTES', c:'bg-orange-500'},
-                {n:'Motobaterías', o:'OBJ MOTOBATERIAS', r:'REAL MOTOBATERIAS', c:'bg-red-500'},
-                {n:'Filtros', o:'OBJ FILTROS', r:'REAL FILTROS', c:'bg-green-600'},
-                {n:'Alcalinas', o:'OBJ ALCALINAS', r:'REAL ALCALINA', c:'bg-purple-600'},
-                {n:'Recolecciones', o:'OBJ RECOLECCIONES', r:'REAL RECOLECCIONES', c:'bg-slate-400'}
+                {n:'Premium', o:'OBJ PREMIUM', r:'REAL PREMIUM', color: '#001529'},
+                {n:'AGM', o:'OBJ AGM', r:'REAL AGM', color: '#1e40af'},
+                {n:'Estándar', o:'OBJ ESTANDAR', r:'REAL ESTANDAR', color: '#3b82f6'},
+                {n:'Acumuladores', o:'OBJ ACUMULADORES', r:'REAL ACUMULADORES', color: '#1d4ed8'},
+                {n:'Lubricantes', o:'OBJ LUBRICANTES', r:'REAL LUBRICANTES', color: '#f97316'},
+                {n:'Motobaterías', o:'OBJ MOTOBATERIAS', r:'REAL MOTOBATERIAS', color: '#ef4444'},
+                {n:'Filtros', o:'OBJ FILTROS', r:'REAL FILTROS', color: '#16a34a'},
+                {n:'Alcalinas', o:'OBJ ALCALINAS', r:'REAL ALCALINA', color: '#9333ea'},
+                {n:'Recolecciones', o:'OBJ RECOLECCIONES', r:'REAL RECOLECCIONES', color: '#64748b'}
             ];
 
             let html = `
-            <div class="flex justify-between items-center mb-8 no-export">
-                <button onclick="renderSellers('${d.ZONA}', '${period}')" class="bg-white p-3 px-5 rounded-2xl text-xs font-black shadow-sm uppercase">← Volver</button>
-                <button onclick="downloadPDF('${d.VENDEDOR}', '${period}')" class="btn-gold px-6 py-3 rounded-2xl text-blue-900 text-xs font-black uppercase"><i class="fas fa-download mr-1"></i> Bajar PDF</button>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 20px;">
+                <button onclick="renderSellers('${d.ZONA}', '${period}')" style="background: white; padding: 10px 20px; border-radius: 15px; border: none; font-weight: bold; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">← VOLVER</button>
+                <button onclick="downloadPDF('${d.VENDEDOR}', '${period}')" style="background: #001529; color: #facc15; padding: 10px 20px; border-radius: 15px; border: none; font-weight: bold; cursor: pointer; box-shadow: 0 5px 15px rgba(0,0,0,0.2);"><i class="fas fa-file-pdf"></i> DESCARGAR PDF</button>
             </div>
             
             <div id="pdf-container">
-                <div class="bg-[#001529] p-8 rounded-[40px] text-white mb-8 border-b-8 border-yellow-400 shadow-2xl">
-                    <p class="text-yellow-400 font-black text-[10px] uppercase tracking-[0.2em] mb-4">${period} | ${d.ZONA}</p>
-                    <h2 class="text-5xl font-black italic uppercase tracking-tighter mb-8 leading-none">${d.VENDEDOR}</h2>
-                    <div class="bg-white/10 p-6 rounded-3xl text-center">
-                        <p class="text-[9px] uppercase font-bold text-slate-300 mb-1">IMPORTE TOTAL FACTURADO</p>
-                        <p class="text-5xl font-black text-white">$${f(n(d['IMPORTE NETO']))}</p>
+                <div style="background: #001529; padding: 40px; border-radius: 40px; color: white; margin-bottom: 30px; border-bottom: 10px solid #facc15; text-align: center;">
+                    <p style="color: #facc15; text-transform: uppercase; font-size: 0.8rem; font-weight: bold; letter-spacing: 3px; margin-bottom: 10px;">${period} | ${d.ZONA}</p>
+                    <h2 style="font-size: 3.5rem; margin: 0; font-weight: 900; font-style: italic; text-transform: uppercase; letter-spacing: -2px; line-height: 1;">${d.VENDEDOR}</h2>
+                    <div style="margin-top: 30px; background: rgba(255,255,255,0.1); padding: 20px; border-radius: 20px;">
+                        <p style="margin: 0; font-size: 0.7rem; color: #cbd5e1; text-transform: uppercase;">Facturación Total</p>
+                        <p style="margin: 0; font-size: 3.5rem; font-weight: 900; color: white;">$${f(n(d['IMPORTE NETO']))}</p>
                     </div>
                 </div>
 
-                <div class="space-y-12 pb-20">`;
+                <div style="display: flex; flex-direction: column; gap: 30px;">`;
 
             cats.forEach(c => {
-                const obj = Math.round(n(d[c.o])); 
+                const obj = Math.round(n(d[c.o]));
                 const real = Math.round(n(d[c.r]));
                 const perc = obj > 0 ? (real / obj) * 100 : (real > 0 ? 100 : 0);
                 const falta = obj - real;
 
                 html += `
-                <div class="card-premium p-8 pdf-break border-t-8 border-blue-900">
-                    <div class="flex justify-between items-center mb-10">
-                        <h4 style="font-size: 2.2rem; font-weight: 900; line-height: 1;" class="uppercase italic text-blue-950 tracking-tighter">${c.n}</h4>
-                        <div class="bg-slate-100 px-4 py-1 rounded-full text-blue-900 font-black text-lg">${Math.round(perc)}%</div>
+                <div style="background: white; padding: 35px; border-radius: 40px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); border: 1px solid #edf2f7; page-break-inside: avoid;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;">
+                        <h4 style="font-size: 2.8rem; font-weight: 900; text-transform: uppercase; font-style: italic; margin: 0; color: #001529; letter-spacing: -1.5px; border-left: 10px solid #facc15; padding-left: 15px; line-height: 1;">${c.n}</h4>
+                        <span style="font-size: 1.2rem; font-weight: 900; background: #f1f5f9; padding: 5px 15px; border-radius: 12px; color: #475569;">${Math.round(perc)}%</span>
                     </div>
 
-                    <div class="grid grid-cols-2 gap-4 mb-8">
-                        <div class="bg-slate-50 p-6 rounded-[30px] border border-slate-100 text-center">
-                            <p class="text-[10px] font-black text-slate-400 uppercase mb-2">VENDIDO</p>
-                            <p style="font-size: 3.5rem; font-weight: 900; line-height: 1;" class="text-blue-900 tracking-tighter">${real}</p>
-                            <p class="text-[10px] font-bold text-blue-900 mt-1 uppercase">PIEZAS</p>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 30px;">
+                        <div style="background: #f8fafc; padding: 25px; border-radius: 30px; text-align: center; border: 1px solid #e2e8f0;">
+                            <p style="font-size: 0.7rem; font-weight: bold; color: #94a3b8; text-transform: uppercase; margin-bottom: 5px;">Vendido</p>
+                            <p style="font-size: 4rem; font-weight: 900; margin: 0; color: #001529; line-height: 1;">${real}</p>
+                            <p style="font-size: 0.7rem; font-weight: bold; color: #001529; margin-top: 5px;">PIEZAS</p>
                         </div>
-                        <div class="bg-blue-900 p-6 rounded-[30px] text-center text-white shadow-xl transform scale-105">
-                            <p class="text-[10px] font-black text-blue-300 uppercase mb-2">META</p>
-                            <p style="font-size: 3.5rem; font-weight: 900; line-height: 1;" class="text-yellow-400 tracking-tighter">${obj}</p>
-                            <p class="text-[10px] font-bold text-yellow-400 mt-1 uppercase">PIEZAS</p>
+                        <div style="background: #001529; padding: 25px; border-radius: 30px; text-align: center; color: white; transform: scale(1.05); box-shadow: 0 10px 20px rgba(0,21,41,0.2);">
+                            <p style="font-size: 0.7rem; font-weight: bold; color: #facc15; text-transform: uppercase; margin-bottom: 5px;">Meta</p>
+                            <p style="font-size: 4rem; font-weight: 900; margin: 0; color: #facc15; line-height: 1;">${obj}</p>
+                            <p style="font-size: 0.7rem; font-weight: bold; color: #facc15; margin-top: 5px;">PIEZAS</p>
                         </div>
                     </div>
 
-                    <div class="h-6 bg-slate-100 rounded-full overflow-hidden mb-8 p-1 shadow-inner">
-                        <div class="${c.c} h-full rounded-full transition-all duration-1000" style="width: ${Math.min(perc, 100)}%"></div>
+                    <div style="height: 15px; background: #e2e8f0; border-radius: 10px; overflow: hidden; margin-bottom: 30px;">
+                        <div style="width: ${Math.min(perc, 100)}%; height: 100%; background: ${c.color}; border-radius: 10px;"></div>
                     </div>
 
-                    <div class="flex flex-col items-center justify-center p-6 rounded-[30px] ${falta > 0 ? 'bg-red-50 border-2 border-red-100' : 'bg-green-50 border-2 border-green-100'}">
-                        <p class="text-[11px] font-black text-slate-500 uppercase mb-1">ESTADO DEL OBJETIVO</p>
+                    <div style="padding: 25px; border-radius: 30px; text-align: center; ${falta > 0 ? 'background: #fff1f2; border: 2px solid #fecdd3;' : 'background: #f0fdf4; border: 2px solid #bbf7d0;'}">
+                        <p style="font-size: 0.7rem; font-weight: bold; color: #64748b; text-transform: uppercase; margin-bottom: 5px;">Resultado Objetivo</p>
                         ${falta > 0 ? 
-                            `<div class="text-center">
-                                <p style="font-size: 3.2rem; font-weight: 900; line-height: 1;" class="text-red-600 tracking-tighter italic">FALTAN ${falta}</p>
-                                <p class="text-xs font-black text-red-400 uppercase tracking-widest mt-1">PARA LLEGAR A LA META</p>
-                            </div>` : 
-                            `<div class="text-center">
-                                <p style="font-size: 3rem; font-weight: 900; line-height: 1;" class="text-green-600 tracking-tighter italic uppercase"><i class="fas fa-trophy mr-2"></i>¡LOGRADO!</p>
-                            </div>`
+                            `<h5 style="font-size: 3rem; font-weight: 900; color: #e11d48; margin: 0; font-style: italic; text-transform: uppercase; line-height: 1;">Faltan ${falta} <span style="font-size: 1rem;">pz</span></h5>` : 
+                            `<h5 style="font-size: 2.5rem; font-weight: 900; color: #16a34a; margin: 0; font-style: italic; text-transform: uppercase; line-height: 1;">¡LOGRADO!</h5>`
                         }
                     </div>
                 </div>`;
             });
-
             document.getElementById('content-area').innerHTML = html + `</div></div>`;
             window.scrollTo(0,0);
         }
@@ -183,7 +190,7 @@
             const element = document.getElementById('pdf-container');
             const opt = {
                 margin: [10, 5, 10, 5],
-                filename: `Reporte_${nombre}_${fecha}.pdf`,
+                filename: `Llanterama_${nombre}_${fecha}.pdf`,
                 image: { type: 'jpeg', quality: 1 },
                 html2canvas: { scale: 3, useCORS: true },
                 jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
