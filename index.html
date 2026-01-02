@@ -3,139 +3,101 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>SISTEMA LLANTERAMA</title>
+    <title>LLANTERAMA TULANCINGO ELITE</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=JetBrains+Mono:wght@400;700;800&display=swap" rel="stylesheet">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@900&family=Inter:wght@400;700;900&display=swap');
+        body { font-family: 'JetBrains Mono', monospace; background-color: #f8fafc; color: #0f172a; }
+        .font-orbitron { font-family: 'Orbitron', sans-serif; }
+        .yellow-glow { text-shadow: 0 0 10px rgba(250, 204, 21, 0.5); }
+        .glass-btn { transition: all 0.2s ease; cursor: pointer; }
+        .glass-btn:active { transform: scale(0.96); }
+        .consolidado-premium { background: linear-gradient(135deg, #001529 0%, #002d54 100%); border: 1px solid rgba(250, 204, 21, 0.3); }
+        .pdf-card { border-radius: 20px; background: white; border: 1px solid #e2e8f0; padding: 20px; margin-bottom: 14px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
+        .zona-badge { background: #001529; color: #facc15; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 50%; font-weight: 900; font-size: 12px; }
         
-        body { font-family: 'Inter', sans-serif; overflow-x: hidden; }
+        .color-zona-0 { border-left-color: #ef4444 !important; }
+        .color-zona-1 { border-left-color: #3b82f6 !important; }
+        .color-zona-2 { border-left-color: #10b981 !important; }
+        .color-zona-3 { border-left-color: #f59e0b !important; }
+        .color-zona-4 { border-left-color: #8b5cf6 !important; }
 
-        .yellow-glow { text-shadow: 0 0 15px #facc15 !important; }
-        
-        /* AJUSTE PARA QUE EL LOGO NO SE CORTE */
-        @media (max-width: 480px) {
-            .logo-bienvenida { font-size: 2.8rem !important; } 
-            .text-6xl { font-size: 2.2rem !important; } 
-            .text-4xl { font-size: 1.8rem !important; } 
-            .number-big { font-size: 2.2rem !important; } 
-            .kpi-title-text { font-size: 1.2rem !important; }
-        }
-
-        .mes-actual-resaltado { 
-            background: #facc15 !important; 
-            border: 2px solid #001529 !important;
-            box-shadow: 0 4px 15px rgba(250, 204, 21, 0.4) !important;
-        }
-
-        .zona-badge {
-            background: #001529 !important;
-            color: #facc15 !important;
-            width: 32px;
-            height: 32px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 50%;
-            font-weight: 900;
-            font-size: 0.8rem;
-            flex-shrink: 0;
-        }
-
-        /* COLORES POR ZONA */
-        .z-color-0 { border-left: 10px solid #ef4444 !important; }
-        .z-color-1 { border-left: 10px solid #3b82f6 !important; }
-        .z-color-2 { border-left: 10px solid #10b981 !important; }
-        .z-color-3 { border-left: 10px solid #f59e0b !important; }
-        .z-color-4 { border-left: 10px solid #8b5cf6 !important; }
-        .z-color-5 { border-left: 10px solid #06b6d4 !important; }
-
-        .pdf-card { 
-            page-break-inside: avoid; 
-            border-radius: 20px; 
-            background: white; 
-            border: 1px solid #e2e8f0; 
-            padding: 15px; 
-            margin-bottom: 15px; 
-        }
-
-        .confidencial-bar {
-            background: #ef4444 !important;
-            color: white !important;
-            font-size: 8px !important;
-            font-weight: 900 !important;
-            text-align: center;
-            padding: 4px;
-            letter-spacing: 1px;
-            text-transform: uppercase;
-        }
+        .dropdown-content { max-height: 0; overflow: hidden; transition: max-height 0.4s ease-in-out; }
+        .dropdown-active .dropdown-content { max-height: 8000px; padding-top: 20px; overflow: visible; }
     </style>
 </head>
-<body class="bg-slate-50">
+<body>
 
     <div id="loader" class="fixed inset-0 bg-[#001529] z-[100] flex flex-col items-center justify-center text-white">
         <div class="w-10 h-10 border-4 border-yellow-400 border-t-transparent rounded-full animate-spin mb-4"></div>
-        <p class="text-[10px] font-black tracking-widest uppercase">Cargando Inteligencia...</p>
+        <p class="text-[10px] font-black tracking-widest uppercase">Sincronizando Tulancingo...</p>
     </div>
 
-    <div id="view-cover" class="fixed inset-0 bg-[#001529] z-50 flex flex-col items-center justify-center text-center p-6">
-        <h1 class="logo-bienvenida text-6xl font-black text-white italic mb-2 yellow-glow font-['Orbitron'] leading-tight">LLANTERAMA</h1>
-        <p class="text-yellow-400 font-bold text-[9px] tracking-[0.3em] mb-12 uppercase">Unidad de Inteligencia Comercial</p>
-        <button onclick="enterApp()" class="bg-yellow-400 text-blue-900 font-black px-10 py-4 rounded-xl uppercase text-sm shadow-xl active:scale-95 transition-all">ACCEDER</button>
-        <p class="mt-20 text-red-500 font-black text-[8px] tracking-widest uppercase opacity-50">Acceso Privado</p>
-    </div>
-
-    <header id="main-header" class="hidden bg-[#001529] text-white p-4 sticky top-0 z-40 border-b-2 border-yellow-400">
-        <div class="max-w-xl mx-auto flex justify-between items-center">
-            <h2 class="font-black italic uppercase text-base tracking-tighter yellow-glow">Llanterama Análisis</h2>
-            <button onclick="location.reload()" class="bg-yellow-400 text-blue-950 w-8 h-8 rounded-lg flex items-center justify-center shadow-lg"><i class="fas fa-sync-alt text-xs"></i></button>
+    <header id="main-header" class="hidden bg-[#001529] text-white sticky top-0 z-40 border-b-2 border-yellow-400 shadow-xl">
+        <div class="max-w-xl mx-auto p-4 flex justify-between items-center">
+            <h2 class="font-black italic uppercase text-sm tracking-tighter yellow-glow font-orbitron">LLANTERAMA TULANCINGO</h2>
+            <p id="update-tag" class="text-[8px] text-yellow-500 font-bold uppercase"></p>
         </div>
     </header>
 
-    <main class="max-w-xl mx-auto p-4 pb-20">
-        <div id="content-area"></div>
-    </main>
+    <div id="view-cover" class="fixed inset-0 bg-[#001529] z-50 flex flex-col items-center justify-center text-center p-6 text-white">
+        <h1 class="text-5xl font-black italic mb-2 yellow-glow font-orbitron leading-tight uppercase">TULANCINGO</h1>
+        <p class="text-yellow-400 text-[9px] tracking-[0.4em] mb-12 uppercase font-bold">Unidad de Inteligencia Comercial</p>
+        <button onclick="enterApp()" class="glass-btn bg-yellow-400 text-blue-950 font-black px-12 py-5 rounded-2xl text-xs tracking-widest uppercase shadow-2xl">Ingresar al Sistema</button>
+    </div>
+
+    <main class="max-w-xl mx-auto p-4 pb-24"><div id="content-area"></div></main>
 
     <script>
         const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRA2Ijt1TI5_APzSJNjdlGF1_Jex0-n3iTiy8R996VR6PNx6V7tM8xO8u3sFKwp2A/pub?gid=1217270027&single=true&output=csv';
         let db = [];
         const mesesRef = ["ENERO", "FEBRERO", "MARZO", "ABRIL", "MAYO", "JUNIO", "JULIO", "AGOSTO", "SEPTIEMBRE", "OCTUBRE", "NOVIEMBRE", "DICIEMBRE"];
 
+        // Categorías adaptadas a los nombres de columna de Llanterama Tulancingo
+        const cats = [
+            {n:'Total Acumuladores', o:'OBJ ACUMULADORES', r:'REAL ACUMULADORES', color: '#0f172a'},
+            {n:'Premium', o:'OBJ PREMIUM', r:'REAL PREMIUM', color: '#1e3a8a'},
+            {n:'AGM', o:'OBJ AGM', r:'REAL AGM', color: '#1d4ed8'},
+            {n:'Estándar', o:'OBJ ESTANDAR', r:'REAL ESTANDAR', color: '#3b82f6'},
+            {n:'Lubricantes', o:'OBJ LUBRICANTES', r:'REAL LUBRICANTES', color: '#f97316'},
+            {n:'Motobaterías', o:'OBJ MOTOBATERIAS', r:'REAL MOTOBATERIAS', color: '#ef4444'},
+            {n:'Filtros', o:'OBJ FILTROS', r:'REAL FILTROS', color: '#16a34a'},
+            {n:'Alcalinas', o:'OBJ ALCALINAS', r:'REAL ALCALINA', color: '#9333ea'},
+            {n:'Recolecciones', o:'OBJ RECOLECCIONES', r:'REAL RECOLECCIONES', color: '#64748b'}
+        ];
+
         async function start() {
             try {
-                const response = await fetch(CSV_URL + '&cb=' + Date.now());
+                const response = await fetch(CSV_URL + '&t=' + Date.now());
                 const text = await response.text();
                 Papa.parse(text, { header: true, skipEmptyLines: true, complete: (res) => { 
-                    db = res.data.filter(r => r.MES); 
+                    db = res.data.filter(r => r.MES && (n(r['IMPORTE NETO']) > 0 || n(r['REAL ACUMULADORES']) > 0)); 
+                    document.getElementById('update-tag').innerText = `LIVE: ${new Date().toLocaleTimeString()}`;
                     document.getElementById('loader').classList.add('hidden'); 
                 }});
-            } catch (e) { alert("Error de Conexión"); }
+            } catch (e) { alert("Error de Sincronización Tulancingo"); }
         }
 
-        function enterApp() {
-            document.getElementById('view-cover').style.display = 'none';
-            document.getElementById('main-header').classList.remove('hidden');
-            renderPeriods();
+        function enterApp() { 
+            document.getElementById('view-cover').classList.add('hidden'); 
+            document.getElementById('main-header').classList.remove('hidden'); 
+            renderPeriods(); 
         }
 
         function renderPeriods() {
-            const sorted = [...new Set(db.map(r => `${r.MES} ${r.AÑO}`))].sort((a, b) => {
+            const periodos = [...new Set(db.map(r => `${r.MES} ${r.AÑO}`))].sort((a,b) => {
                 const [mA, aA] = a.split(' '), [mB, aB] = b.split(' ');
                 return aA !== aB ? aB - aA : mesesRef.indexOf(mB) - mesesRef.indexOf(mA);
             });
-            let html = `<p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">Seleccione Periodo:</p>`;
-            sorted.forEach((p, i) => {
-                const isActual = (i === 0);
-                html += `
-                <div onclick="selectMonth('${p}')" class="p-5 rounded-2xl mb-3 cursor-pointer flex justify-between items-center shadow-sm border ${isActual ? 'mes-actual-resaltado' : 'bg-white border-slate-200'}">
-                    <div>
-                        ${isActual ? '<span class="text-[8px] font-black bg-blue-950 text-white px-2 py-0.5 rounded mb-1 inline-block">ACTUAL</span>' : ''}
-                        <h4 class="text-xl font-black ${isActual ? 'text-blue-950' : 'text-blue-900'} italic uppercase">${p}</h4>
-                    </div>
-                    <i class="fas fa-chevron-right ${isActual ? 'text-blue-950' : 'text-slate-300'}"></i>
+            let html = `<p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-6">Seleccione Periodo</p>`;
+            periodos.forEach((p, i) => {
+                const isAct = (i === 0);
+                html += `<div onclick="selectMonth('${p}')" class="glass-btn p-6 rounded-3xl mb-4 flex justify-between items-center shadow-sm border ${isAct ? 'bg-yellow-400 border-blue-900' : 'bg-white border-slate-200'}">
+                    <h4 class="text-xl font-black text-blue-950 uppercase italic font-orbitron">${p}</h4>
+                    <i class="fas fa-chevron-right text-blue-900/30"></i>
                 </div>`;
             });
             document.getElementById('content-area').innerHTML = html;
@@ -143,34 +105,108 @@
 
         function selectMonth(p) { const [m, a] = p.split(' '); renderZones(db.filter(r => r.MES === m && r.AÑO === a), p); }
 
+        function toggleDropdown(id) { 
+            const el = document.getElementById(id);
+            el.classList.toggle('dropdown-active');
+        }
+
         function renderZones(data, period) {
             const zones = [...new Set(data.map(r => r.ZONA))];
-            let html = `<button onclick="renderPeriods()" class="mb-4 text-[10px] font-black text-blue-900 uppercase">← VOLVER</button>`;
-            zones.forEach((z, i) => {
-                const total = data.filter(r => r.ZONA === z).reduce((acc, r) => acc + n(r['IMPORTE NETO']), 0);
-                html += `
-                <div onclick="renderSellers('${z}', '${period}')" class="bg-white p-5 rounded-3xl mb-4 cursor-pointer shadow-md border-b-2 border-yellow-400 z-color-${i % 6}">
-                    <div class="flex items-center gap-3 mb-4">
-                        <div class="zona-badge">#${i+1}</div>
-                        <h4 class="text-2xl font-black text-blue-900 italic uppercase tracking-tighter">${z}</h4>
+            const totalGral = data.reduce((acc, r) => acc + n(r['IMPORTE NETO']), 0);
+
+            let html = `
+                <button onclick="renderPeriods()" class="glass-btn mb-6 text-[10px] font-black text-blue-900 bg-white px-6 py-2 rounded-full border shadow-sm uppercase">← VOLVER AL MENÚ</button>
+                <div id="consolidado-main" class="glass-btn consolidado-premium p-8 rounded-[2.5rem] mb-8 text-white shadow-2xl relative overflow-hidden">
+                    <div class="flex justify-between items-center mb-1">
+                        <span class="text-yellow-400 text-[10px] font-black uppercase tracking-widest font-orbitron">CONSOLIDADO TULANCINGO</span>
+                        <div class="flex gap-2">
+                            <button onclick="event.stopPropagation(); toggleDropdown('consolidado-main')" class="bg-white/10 w-10 h-10 rounded-lg flex items-center justify-center"><i class="fas fa-chevron-down text-sm"></i></button>
+                            <button onclick="event.stopPropagation(); renderGeneralConsolidated('${period}')" class="bg-white/10 w-10 h-10 rounded-lg flex items-center justify-center"><i class="fas fa-expand text-sm"></i></button>
+                        </div>
                     </div>
-                    <div class="bg-slate-50 p-4 rounded-xl border border-slate-100">
-                        <p class="text-[8px] font-black text-slate-400 uppercase">Venta Acumulada</p>
-                        <p class="text-2xl font-black text-blue-900">$${f(total)}</p>
+                    <p class="font-black font-orbitron text-4xl yellow-glow tracking-tighter">$${f(totalGral)}</p>
+                    <div class="dropdown-content">
+                        ${cats.map(c => renderProgressItem(data, c)).join('')}
+                    </div>
+                </div>
+            `;
+
+            zones.forEach((z, i) => {
+                const dZ = data.filter(r => r.ZONA === z);
+                const realZ = dZ.reduce((acc, r) => acc + n(r['IMPORTE NETO']), 0);
+                html += `
+                <div id="zona-card-${i}" class="bg-white p-6 rounded-[2rem] mb-5 shadow-lg border border-slate-100 border-l-[12px] color-zona-${i % 5}">
+                    <div class="flex justify-between items-center mb-4">
+                        <div class="flex items-center gap-3">
+                            <span class="zona-badge">#${i+1}</span>
+                            <h4 class="text-2xl font-black text-blue-950 italic uppercase font-orbitron tracking-tighter">${z}</h4>
+                        </div>
+                        <div class="flex gap-2">
+                             <button onclick="toggleDropdown('zona-card-${i}')" class="bg-slate-100 w-12 h-12 rounded-xl text-blue-900 flex items-center justify-center"><i class="fas fa-chevron-down text-lg"></i></button>
+                             <button onclick="renderSellers('${z}', '${period}')" class="bg-blue-950 w-12 h-12 rounded-xl text-white flex items-center justify-center"><i class="fas fa-arrow-right text-lg"></i></button>
+                        </div>
+                    </div>
+                    <div class="bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                         <p class="text-[10px] font-black text-slate-400 uppercase mb-1">Venta Neta Zona</p>
+                         <p class="text-3xl font-black text-blue-900">$${f(realZ)}</p>
+                    </div>
+                    <div class="dropdown-content">
+                        <p class="text-xs font-black text-blue-900 mb-4 uppercase italic border-b border-blue-50 pb-2">Progreso de Venta por Línea:</p>
+                        ${cats.map(c => renderProgressItem(dZ, c)).join('')}
                     </div>
                 </div>`;
             });
             document.getElementById('content-area').innerHTML = html;
         }
 
+        function renderProgressItem(dataArr, c) {
+            const obj = sum(dataArr, c.o);
+            const real = sum(dataArr, c.r);
+            const perc = obj > 0 ? (real / obj) * 100 : (real > 0 ? 100 : 0);
+            const falta = obj - real;
+
+            return `
+            <div class="pdf-card !shadow-none !border-slate-100 !mb-4">
+                <div class="flex justify-between items-start mb-4">
+                    <h4 class="text-base font-extrabold italic uppercase text-blue-950 leading-tight w-2/3">${c.n}</h4>
+                    <div class="bg-blue-950 text-yellow-400 px-3 py-1.5 rounded-xl font-black text-sm shadow-md">${Math.round(perc)}%</div>
+                </div>
+                <div class="grid grid-cols-2 gap-3 mb-4">
+                    <div class="bg-slate-100 p-3 rounded-xl text-center">
+                        <p class="text-[9px] font-black text-slate-500 uppercase">Vendido</p>
+                        <p class="text-2xl font-black text-blue-950">${real}</p>
+                    </div>
+                    <div class="bg-blue-950 p-3 rounded-xl text-center">
+                        <p class="text-[9px] font-black text-yellow-500 uppercase">Meta</p>
+                        <p class="text-2xl font-black text-yellow-400">${obj}</p>
+                    </div>
+                </div>
+                <div class="h-3 bg-slate-200 rounded-full overflow-hidden mb-3">
+                    <div style="width: ${Math.min(perc, 100)}%; background: ${c.color}" class="h-full rounded-full"></div>
+                </div>
+                <div class="text-center">
+                    ${obj > 0 ? (falta > 0 ? 
+                        `<p class="text-xs font-black text-red-500 italic uppercase tracking-tighter">Faltan ${falta} pz</p>` : 
+                        `<p class="text-xs font-black text-green-600 italic uppercase tracking-tighter">¡Meta Lograda!</p>`) : ''
+                    }
+                </div>
+            </div>`;
+        }
+
+        function renderGeneralConsolidated(period) {
+            const [m, a] = period.split(' ');
+            const d = db.filter(r => r.MES === m && r.AÑO === a);
+            renderDetailedReport("TULANCINGO GLOBAL", period, d, d.reduce((acc, r) => acc + n(r['IMPORTE NETO']), 0), true);
+        }
+
         function renderSellers(z, period) {
             const [m, a] = period.split(' ');
             const sellers = db.filter(r => r.ZONA === z && r.MES === m && r.AÑO === a);
-            let html = `<button onclick="selectMonth('${period}')" class="mb-4 text-[10px] font-black text-blue-900 uppercase">← VOLVER</button>`;
+            let html = `<button onclick="selectMonth('${period}')" class="glass-btn mb-6 text-[10px] font-black text-blue-900 bg-white px-6 py-2 rounded-full border shadow-sm uppercase">← VOLVER A ZONAS</button>`;
             sellers.forEach(s => {
-                html += `<div onclick="renderReport('${s.VENDEDOR}', '${period}')" class="bg-white p-4 rounded-xl mb-2 cursor-pointer flex justify-between items-center border-l-8 border-blue-900 shadow-sm">
-                    <p class="font-black text-slate-700 uppercase text-xs italic">${s.VENDEDOR}</p>
-                    <i class="fas fa-chevron-right text-slate-200"></i>
+                html += `<div onclick="renderReport('${s.VENDEDOR}', '${period}')" class="glass-btn bg-white p-5 rounded-2xl mb-3 flex justify-between items-center border-l-8 border-blue-950 shadow-md">
+                    <p class="font-black text-blue-950 uppercase text-sm italic tracking-tight">${s.VENDEDOR}</p>
+                    <i class="fas fa-chevron-right text-slate-300"></i>
                 </div>`;
             });
             document.getElementById('content-area').innerHTML = html;
@@ -179,93 +215,38 @@
         function renderReport(v, period) {
             const [m, a] = period.split(' ');
             const d = db.find(r => r.VENDEDOR === v && r.MES === m && r.AÑO === a);
-            const cats = [
-                {n:'Premium', o:'OBJ PREMIUM', r:'REAL PREMIUM', color: '#1e3a8a'},
-                {n:'AGM', o:'OBJ AGM', r:'REAL AGM', color: '#1d4ed8'},
-                {n:'Estándar', o:'OBJ ESTANDAR', r:'REAL ESTANDAR', color: '#3b82f6'},
-                {n:'TOTAL ACUMULADORES', o:'OBJ ACUMULADORES', r:'REAL ACUMULADORES', color: '#0f172a', main: true},
-                {n:'Lubricantes', o:'OBJ LUBRICANTES', r:'REAL LUBRICANTES', color: '#f97316'},
-                {n:'Motobaterías', o:'OBJ MOTOBATERIAS', r:'REAL MOTOBATERIAS', color: '#ef4444'},
-                {n:'Filtros', o:'OBJ FILTROS', r:'REAL FILTROS', color: '#16a34a'},
-                {n:'Alcalinas', o:'OBJ ALCALINAS', r:'REAL ALCALINA', color: '#9333ea'},
-                {n:'Recolecciones', o:'OBJ RECOLECCIONES', r:'REAL RECOLECCIONES', color: '#64748b'}
-            ];
+            renderDetailedReport(v, period, [d], n(d['IMPORTE NETO']), false, d.ZONA);
+        }
 
+        function renderDetailedReport(titulo, period, dataArr, totalImporte, isGlobal, zonaNombre = "") {
             let html = `
-            <div class="flex justify-between items-center mb-6 no-print">
-                <button onclick="renderSellers('${d.ZONA}', '${period}')" class="text-[10px] font-black text-slate-500 uppercase">← SALIR</button>
-                <button onclick="downloadPDF('${d.VENDEDOR}', '${period}')" class="bg-blue-900 text-yellow-400 px-4 py-2 rounded-lg text-[10px] font-black shadow-lg uppercase">Generar PDF</button>
+            <div class="flex justify-between items-center mb-6">
+                <button onclick="${isGlobal ? `selectMonth('${period}')` : `renderSellers('${zonaNombre}', '${period}')`}" class="text-[10px] font-black text-slate-500 uppercase">← REGRESAR</button>
+                <button onclick="downloadPDF('${titulo}')" class="bg-blue-900 text-yellow-400 px-5 py-2 rounded-xl text-[10px] font-black shadow-lg uppercase tracking-widest">Descargar PDF</button>
             </div>
-            
             <div id="pdf-container">
-                <div class="confidencial-bar">INFORMACIÓN PRIVADA - LLANTERAMA</div>
-                <div class="bg-[#001529] p-8 rounded-b-[40px] text-white mb-6 border-b-4 border-yellow-400">
-                    <p class="text-yellow-400 font-black text-[8px] uppercase tracking-widest mb-2">${period} | ${d.ZONA}</p>
-                    <h2 class="text-3xl font-black italic uppercase tracking-tighter leading-tight mb-8">${d.VENDEDOR}</h2>
-                    <div class="bg-white/10 p-4 rounded-2xl text-center border border-white/10">
-                        <p class="text-[8px] font-bold text-slate-400 uppercase mb-1">Total Facturado</p>
-                        <p class="text-4xl font-black text-white">$${f(n(d['IMPORTE NETO']))}</p>
+                <div class="bg-[#001529] p-8 rounded-t-[2.5rem] text-center border-b-4 border-yellow-400">
+                    <p class="text-yellow-400 font-black text-[10px] uppercase tracking-[0.3em] mb-3">${period} ${isGlobal ? '' : '| ' + zonaNombre}</p>
+                    <h2 class="text-3xl font-black italic uppercase text-white font-orbitron leading-none mb-6">${titulo}</h2>
+                    <div class="bg-white/10 p-5 rounded-3xl border border-white/5 shadow-inner">
+                        <p class="text-[10px] font-bold text-slate-400 uppercase mb-1">Importe Neto Facturado</p>
+                        <p class="text-4xl font-black text-white tracking-tighter">$${f(totalImporte)}</p>
                     </div>
                 </div>
-
-                <div class="space-y-4 px-1">`;
-
-            cats.forEach(c => {
-                const obj = Math.round(n(d[c.o]));
-                const real = Math.round(n(d[c.r]));
-                const perc = obj > 0 ? (real / obj) * 100 : (real > 0 ? 100 : 0);
-                const falta = obj - real;
-
-                html += `
-                <div class="pdf-card ${c.main ? 'border-2 border-blue-900' : ''}">
-                    <div class="flex justify-between items-start mb-4">
-                        <div class="max-w-[70%]">
-                            <h4 class="kpi-title-text text-lg font-black italic uppercase text-blue-950 leading-none">${c.n}</h4>
-                            ${c.main ? '<span class="bg-blue-950 text-yellow-400 text-[7px] font-black px-1.5 py-0.5 rounded mt-1 inline-block">CONSOLIDADO</span>' : ''}
-                        </div>
-                        <div class="bg-blue-950 text-yellow-400 px-3 py-1 rounded-xl font-black text-sm shadow-md">${Math.round(perc)}%</div>
-                    </div>
-
-                    <div class="grid grid-cols-2 gap-2 mb-4">
-                        <div class="bg-slate-50 p-3 rounded-2xl text-center border border-slate-100">
-                            <p class="text-[7px] font-black text-slate-400 uppercase mb-1">Vendido</p>
-                            <p class="number-big text-blue-950 leading-none">${real}</p>
-                        </div>
-                        <div class="bg-blue-950 p-3 rounded-2xl text-center shadow-lg">
-                            <p class="text-[7px] font-black text-yellow-500 uppercase mb-1">Meta</p>
-                            <p class="number-big text-yellow-400 leading-none">${obj}</p>
-                        </div>
-                    </div>
-
-                    <div class="h-2 bg-slate-100 rounded-full overflow-hidden mb-3">
-                        <div style="width: ${Math.min(perc, 100)}%; background: ${c.color}" class="h-full rounded-full"></div>
-                    </div>
-
-                    <div class="text-center">
-                        ${falta > 0 ? 
-                            `<p class="text-[10px] font-black text-red-500 italic uppercase">Faltan ${falta} pz</p>` : 
-                            `<p class="text-[10px] font-black text-green-600 italic uppercase">¡Logrado!</p>`
-                        }
-                    </div>
-                </div>`;
-            });
-            html += `<p class="text-center confidential-tag mt-6 mb-4 opacity-40">Fin del Informe Confidencial</p>`;
-            document.getElementById('content-area').innerHTML = html + `</div></div>`;
+                <div class="bg-slate-50 p-4 space-y-4 rounded-b-[2.5rem]">
+                    ${cats.map(c => renderProgressItem(dataArr, c)).join('')}
+                    <p class="text-center text-[10px] font-bold text-slate-400 uppercase mt-8 pb-10 tracking-[0.4em]">Llanterama Tulancingo - Inteligencia</p>
+                </div>
+            </div>`;
+            document.getElementById('content-area').innerHTML = html;
             window.scrollTo(0,0);
         }
 
-        function downloadPDF(nombre, fecha) {
+        function sum(dataArr, field) { if(!field) return 0; return dataArr.reduce((acc, r) => acc + Math.round(n(r[field])), 0); }
+        function downloadPDF(nombre) { 
             const element = document.getElementById('pdf-container');
-            const opt = {
-                margin: [5, 2, 5, 2],
-                filename: `REPORTE_${nombre}.pdf`,
-                image: { type: 'jpeg', quality: 0.98 },
-                html2canvas: { scale: 2, useCORS: true },
-                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-            };
-            html2pdf().set(opt).from(element).save();
+            html2pdf().set({ margin: [10, 5, 10, 5], filename: `LL_TUL_${nombre}.pdf`, html2canvas: { scale: 2 }, jsPDF: { unit: 'mm', format: 'a4' } }).from(element).save();
         }
-
         function n(v) { return parseFloat(String(v || "0").replace(/[^0-9.-]+/g,"")) || 0; }
         function f(v) { return Math.round(v).toLocaleString('es-MX'); }
         start();
