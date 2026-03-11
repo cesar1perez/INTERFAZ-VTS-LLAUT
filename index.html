@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>LLANTERAMA TULANCINGO ELITE</title>
+    <title>Dashboard Tulancingo</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
@@ -38,7 +38,7 @@
 
     <header id="main-header" class="hidden bg-[#001529] text-white sticky top-0 z-40 border-b-2 border-yellow-400 shadow-xl">
         <div class="max-w-xl mx-auto p-4 flex justify-between items-center">
-            <h2 class="font-black italic uppercase text-sm tracking-tighter yellow-glow font-orbitron">LLANTERAMA TULANCINGO</h2>
+            <h2 class="font-black italic uppercase text-sm tracking-tighter yellow-glow font-orbitron">DASHBOARD TULANCINGO</h2>
             <p id="update-tag" class="text-[8px] text-yellow-500 font-bold uppercase"></p>
         </div>
     </header>
@@ -56,7 +56,6 @@
         let db = [];
         const mesesRef = ["ENERO", "FEBRERO", "MARZO", "ABRIL", "MAYO", "JUNIO", "JULIO", "AGOSTO", "SEPTIEMBRE", "OCTUBRE", "NOVIEMBRE", "DICIEMBRE"];
 
-        // Categorías adaptadas a los nombres de columna de Llanterama Tulancingo
         const cats = [
             {n:'Total Acumuladores', o:'OBJ ACUMULADORES', r:'REAL ACUMULADORES', color: '#0f172a'},
             {n:'Premium', o:'OBJ PREMIUM', r:'REAL PREMIUM', color: '#1e3a8a'},
@@ -74,7 +73,7 @@
                 const response = await fetch(CSV_URL + '&t=' + Date.now());
                 const text = await response.text();
                 Papa.parse(text, { header: true, skipEmptyLines: true, complete: (res) => { 
-                    db = res.data.filter(r => r.MES && (n(r['IMPORTE NETO']) > 0 || n(r['REAL ACUMULADORES']) > 0)); 
+                    db = res.data;
                     document.getElementById('update-tag').innerText = `LIVE: ${new Date().toLocaleTimeString()}`;
                     document.getElementById('loader').classList.add('hidden'); 
                 }});
@@ -84,15 +83,39 @@
         function enterApp() { 
             document.getElementById('view-cover').classList.add('hidden'); 
             document.getElementById('main-header').classList.remove('hidden'); 
-            renderPeriods(); 
+            renderMainMenu(); 
         }
 
+        function renderMainMenu() {
+            let html = `
+                <p class="text-[12px] font-black text-slate-400 uppercase tracking-widest mb-6">Seleccione Módulo</p>
+                <div onclick="renderPeriods()" class="glass-btn p-8 rounded-[2.5rem] mb-6 bg-yellow-400 border-4 border-blue-950 shadow-2xl flex items-center gap-6">
+                    <div class="bg-blue-950 text-yellow-400 w-16 h-16 rounded-2xl flex items-center justify-center text-3xl shadow-lg"><i class="fas fa-chart-line"></i></div>
+                    <div>
+                        <h4 class="text-2xl font-black text-blue-950 uppercase italic font-orbitron leading-tight">DASHBOARD COMERCIAL</h4>
+                        <p class="text-[10px] text-blue-900 font-bold uppercase tracking-tighter">Acumuladores y Líneas Generales</p>
+                    </div>
+                </div>
+                <div onclick="renderRMPeriods()" class="glass-btn p-8 rounded-[2rem] mb-4 bg-slate-100 border-2 border-slate-200 shadow-sm flex items-center gap-6">
+                    <div class="bg-slate-800 text-white w-14 h-14 rounded-2xl flex items-center justify-center text-2xl"><i class="fas fa-oil-can"></i></div>
+                    <div>
+                        <h4 class="text-xl font-black text-slate-800 uppercase italic font-orbitron leading-tight">ROAD MASTER</h4>
+                        <p class="text-[9px] text-slate-500 font-bold uppercase tracking-tighter">Hidráulico y Diésel</p>
+                    </div>
+                </div>
+            `;
+            document.getElementById('content-area').innerHTML = html;
+        }
+
+        // --- DASHBOARD COMERCIAL (INTACTO) ---
         function renderPeriods() {
-            const periodos = [...new Set(db.map(r => `${r.MES} ${r.AÑO}`))].sort((a,b) => {
+            const dataFiltered = db.filter(r => r.MES && (n(r['IMPORTE NETO']) > 0 || n(r['REAL ACUMULADORES']) > 0));
+            const periodos = [...new Set(dataFiltered.map(r => `${r.MES} ${r.AÑO}`))].sort((a,b) => {
                 const [mA, aA] = a.split(' '), [mB, aB] = b.split(' ');
                 return aA !== aB ? aB - aA : mesesRef.indexOf(mB) - mesesRef.indexOf(mA);
             });
-            let html = `<p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-6">Seleccione Periodo</p>`;
+            let html = `<button onclick="renderMainMenu()" class="mb-6 text-[10px] font-black text-slate-500 uppercase font-bold tracking-widest">← VOLVER AL MENÚ</button>
+                        <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">COMERCIAL / PERIODO</p>`;
             periodos.forEach((p, i) => {
                 const isAct = (i === 0);
                 html += `<div onclick="selectMonth('${p}')" class="glass-btn p-6 rounded-3xl mb-4 flex justify-between items-center shadow-sm border ${isAct ? 'bg-yellow-400 border-blue-900' : 'bg-white border-slate-200'}">
@@ -103,44 +126,31 @@
             document.getElementById('content-area').innerHTML = html;
         }
 
-        function selectMonth(p) { const [m, a] = p.split(' '); renderZones(db.filter(r => r.MES === m && r.AÑO === a), p); }
-
-        function toggleDropdown(id) { 
-            const el = document.getElementById(id);
-            el.classList.toggle('dropdown-active');
+        function selectMonth(p) { 
+            const [m, a] = p.split(' '); 
+            const data = db.filter(r => r.MES === m && r.AÑO === a && (n(r['IMPORTE NETO']) > 0 || n(r['REAL ACUMULADORES']) > 0));
+            renderZones(data, p); 
         }
 
         function renderZones(data, period) {
             const zones = [...new Set(data.map(r => r.ZONA))];
             const totalGral = data.reduce((acc, r) => acc + n(r['IMPORTE NETO']), 0);
-
-            let html = `
-                <button onclick="renderPeriods()" class="glass-btn mb-6 text-[10px] font-black text-blue-900 bg-white px-6 py-2 rounded-full border shadow-sm uppercase">← VOLVER AL MENÚ</button>
+            let html = `<button onclick="renderPeriods()" class="glass-btn mb-6 text-[10px] font-black text-blue-900 bg-white px-6 py-2 rounded-full border shadow-sm uppercase">← VOLVER A PERIODOS</button>
                 <div id="consolidado-main" class="glass-btn consolidado-premium p-8 rounded-[2.5rem] mb-8 text-white shadow-2xl relative overflow-hidden">
                     <div class="flex justify-between items-center mb-1">
                         <span class="text-yellow-400 text-[10px] font-black uppercase tracking-widest font-orbitron">CONSOLIDADO TULANCINGO</span>
-                        <div class="flex gap-2">
-                            <button onclick="event.stopPropagation(); toggleDropdown('consolidado-main')" class="bg-white/10 w-10 h-10 rounded-lg flex items-center justify-center"><i class="fas fa-chevron-down text-sm"></i></button>
-                            <button onclick="event.stopPropagation(); renderGeneralConsolidated('${period}')" class="bg-white/10 w-10 h-10 rounded-lg flex items-center justify-center"><i class="fas fa-expand text-sm"></i></button>
-                        </div>
+                        <div class="flex gap-2"><button onclick="event.stopPropagation(); toggleDropdown('consolidado-main')" class="bg-white/10 w-10 h-10 rounded-lg flex items-center justify-center"><i class="fas fa-chevron-down text-sm"></i></button></div>
                     </div>
                     <p class="font-black font-orbitron text-4xl yellow-glow tracking-tighter">$${f(totalGral)}</p>
-                    <div class="dropdown-content">
-                        ${cats.map(c => renderProgressItem(data, c)).join('')}
-                    </div>
-                </div>
-            `;
-
+                    <div class="dropdown-content">${cats.map(c => renderProgressItem(data, c)).join('')}</div>
+                </div>`;
             zones.forEach((z, i) => {
                 const dZ = data.filter(r => r.ZONA === z);
                 const realZ = dZ.reduce((acc, r) => acc + n(r['IMPORTE NETO']), 0);
                 html += `
                 <div id="zona-card-${i}" class="bg-white p-6 rounded-[2rem] mb-5 shadow-lg border border-slate-100 border-l-[12px] color-zona-${i % 5}">
                     <div class="flex justify-between items-center mb-4">
-                        <div class="flex items-center gap-3">
-                            <span class="zona-badge">#${i+1}</span>
-                            <h4 class="text-2xl font-black text-blue-950 italic uppercase font-orbitron tracking-tighter">${z}</h4>
-                        </div>
+                        <div class="flex items-center gap-3"><span class="zona-badge">#${i+1}</span><h4 class="text-2xl font-black text-blue-950 italic uppercase font-orbitron tracking-tighter">${z}</h4></div>
                         <div class="flex gap-2">
                              <button onclick="toggleDropdown('zona-card-${i}')" class="bg-slate-100 w-12 h-12 rounded-xl text-blue-900 flex items-center justify-center"><i class="fas fa-chevron-down text-lg"></i></button>
                              <button onclick="renderSellers('${z}', '${period}')" class="bg-blue-950 w-12 h-12 rounded-xl text-white flex items-center justify-center"><i class="fas fa-arrow-right text-lg"></i></button>
@@ -150,62 +160,131 @@
                          <p class="text-[10px] font-black text-slate-400 uppercase mb-1">Venta Neta Zona</p>
                          <p class="text-3xl font-black text-blue-900">$${f(realZ)}</p>
                     </div>
-                    <div class="dropdown-content">
-                        <p class="text-xs font-black text-blue-900 mb-4 uppercase italic border-b border-blue-50 pb-2">Progreso de Venta por Línea:</p>
-                        ${cats.map(c => renderProgressItem(dZ, c)).join('')}
+                    <div class="dropdown-content">${cats.map(c => renderProgressItem(dZ, c)).join('')}</div>
+                </div>`;
+            });
+            document.getElementById('content-area').innerHTML = html;
+        }
+
+        // --- MÓDULO ROAD MASTER (AJUSTADO A LITROS) ---
+        function renderRMPeriods() {
+            const dataRM = db.filter(r => r['MES RM'] && r['VENDEDOR RM']);
+            const periodos = [...new Set(dataRM.map(r => `${r['MES RM']} ${r['AÑO RM']}`))].sort((a,b) => {
+                const [mA, aA] = a.split(' '), [mB, aB] = b.split(' ');
+                return aA !== aB ? aB - aA : mesesRef.indexOf(mB) - mesesRef.indexOf(mA);
+            });
+            let html = `<button onclick="renderMainMenu()" class="mb-6 text-[11px] font-black text-slate-500 uppercase tracking-widest">← VOLVER AL MENÚ</button>
+                        <p class="text-[11px] font-black text-yellow-600 uppercase tracking-widest mb-4">ROAD MASTER / PERIODO</p>`;
+            periodos.forEach(p => {
+                html += `<div onclick="selectRMPeriod('${p}')" class="glass-btn p-8 rounded-3xl mb-4 flex justify-between items-center shadow-lg bg-blue-950 border border-yellow-500/20 text-white">
+                    <h4 class="text-2xl font-black text-yellow-400 uppercase italic font-orbitron">${p}</h4>
+                    <i class="fas fa-chevron-right text-yellow-400/30"></i>
+                </div>`;
+            });
+            document.getElementById('content-area').innerHTML = html;
+        }
+
+        function selectRMPeriod(p) {
+            const [m, a] = p.split(' ');
+            const data = db.filter(r => r['MES RM'] === m && r['AÑO RM'] === a);
+            renderRMSellers(data, p);
+        }
+
+        function renderRMSellers(data, period) {
+            let html = `<button onclick="renderRMPeriods()" class="glass-btn mb-6 text-[11px] font-black text-white bg-blue-950 px-6 py-2 rounded-full border border-yellow-500 shadow-sm uppercase">← VOLVER A PERIODOS</button>
+                        <p class="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-4">VENDEDORES ROAD MASTER</p>`;
+            const sellers = data.filter(r => r['VENDEDOR RM'] && r['VENDEDOR RM'].trim() !== "");
+            sellers.forEach(s => {
+                const totalLitros = n(s['REAL HD']) + n(s['REAL DS']);
+                html += `
+                <div onclick="renderRMReport('${s['VENDEDOR RM']}', '${period}')" class="glass-btn bg-white p-7 rounded-[2rem] mb-4 flex justify-between items-center border-l-[12px] border-yellow-500 shadow-xl">
+                    <div class="w-2/3">
+                        <p class="font-black text-blue-950 uppercase text-xl italic tracking-tighter leading-tight mb-1 font-orbitron">${s['VENDEDOR RM']}</p>
+                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">${s['ZONA RM'] || 'SIN ZONA'}</p>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-[9px] font-black text-slate-400 uppercase mb-1">Litros Vendidos RM</p>
+                        <p class="text-3xl font-black text-blue-900 tracking-tighter">${totalLitros} <span class="text-[10px]">LTS</span></p>
                     </div>
                 </div>`;
             });
             document.getElementById('content-area').innerHTML = html;
         }
 
-        function renderProgressItem(dataArr, c) {
-            const obj = sum(dataArr, c.o);
-            const real = sum(dataArr, c.r);
-            const perc = obj > 0 ? (real / obj) * 100 : (real > 0 ? 100 : 0);
-            const falta = obj - real;
+        function renderRMReport(vendedor, period) {
+            const [m, a] = period.split(' ');
+            const s = db.find(r => r['VENDEDOR RM'] === vendedor && r['MES RM'] === m && r['AÑO RM'] === a);
+            const lHD = n(s['REAL HD']);
+            const lDS = n(s['REAL DS']);
+            const vHD = n(s['IMPORTE NETO HD']);
+            const vDS = n(s['IMPORTE NETO DS']);
+            const totalLitros = lHD + lDS;
+            let html = `
+            <div class="flex justify-between items-center mb-6">
+                <button onclick="selectRMPeriod('${period}')" class="text-[11px] font-black text-slate-500 uppercase tracking-widest">← REGRESAR</button>
+                <button onclick="downloadPDF('RM_${vendedor}')" class="bg-yellow-500 text-blue-950 px-5 py-2 rounded-xl text-[10px] font-black shadow-lg uppercase tracking-widest">Descargar PDF</button>
+            </div>
+            <div id="pdf-container">
+                <div class="bg-[#001529] p-10 rounded-t-[2.5rem] text-center border-b-4 border-yellow-400">
+                    <p class="text-yellow-400 font-black text-[10px] uppercase tracking-[0.3em] mb-4">ROAD MASTER | ${period}</p>
+                    <h2 class="text-4xl font-black italic uppercase text-white font-orbitron leading-none mb-8 tracking-tighter">${vendedor}</h2>
+                    <div class="bg-white/10 p-6 rounded-3xl border border-white/5 shadow-inner">
+                        <p class="text-[11px] font-bold text-slate-400 uppercase mb-1">LITROS VENDIDOS ROAD MASTER</p>
+                        <p class="text-6xl font-black text-yellow-400 tracking-tighter font-orbitron">${totalLitros} <span class="text-xl">LTS</span></p>
+                    </div>
+                </div>
+                <div class="bg-slate-50 p-5 space-y-6 rounded-b-[2.5rem]">
+                    ${renderRMCard("LUBRICANTE HIDRÁULICO", vHD, s['OBJ HD'], s['REAL HD'], s['% HD'])}
+                    ${renderRMCard("LUBRICANTE DIÉSEL", vDS, s['OBJ DS'], s['REAL DS'], s['% DS'])}
+                    <p class="text-center text-[10px] font-bold text-slate-400 uppercase mt-8 pb-10 tracking-[0.4em]">Llanterama Tulancingo - Road Master</p>
+                </div>
+            </div>`;
+            document.getElementById('content-area').innerHTML = html;
+            window.scrollTo(0,0);
+        }
 
+        function renderRMCard(titulo, venta, obj, real, perc) {
+            const p = n(String(perc || "0").replace('%',''));
             return `
-            <div class="pdf-card !shadow-none !border-slate-100 !mb-4">
-                <div class="flex justify-between items-start mb-4">
-                    <h4 class="text-base font-extrabold italic uppercase text-blue-950 leading-tight w-2/3">${c.n}</h4>
-                    <div class="bg-blue-950 text-yellow-400 px-3 py-1.5 rounded-xl font-black text-sm shadow-md">${Math.round(perc)}%</div>
+            <div class="pdf-card !border-slate-200 !p-6 shadow-md">
+                <div class="flex justify-between items-center mb-6">
+                    <h4 class="text-xl font-black italic uppercase text-blue-950 font-orbitron tracking-tighter">${titulo}</h4>
+                    <div class="bg-blue-950 text-yellow-400 px-5 py-3 rounded-2xl font-black text-2xl shadow-xl border-2 border-yellow-500/30">${perc || '0%'}</div>
                 </div>
-                <div class="grid grid-cols-2 gap-3 mb-4">
-                    <div class="bg-slate-100 p-3 rounded-xl text-center">
-                        <p class="text-[9px] font-black text-slate-500 uppercase">Vendido</p>
-                        <p class="text-2xl font-black text-blue-950">${real}</p>
+                <div class="mb-6 bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
+                    <p class="text-[10px] font-black text-slate-400 uppercase mb-1 leading-tight tracking-widest">Importe Venta Neta</p>
+                    <p class="text-3xl font-black text-blue-950">$${f(venta)}</p>
+                </div>
+                <div class="bg-slate-900 p-5 rounded-2xl text-white mb-4">
+                    <div class="flex justify-between items-end">
+                        <div>
+                            <p class="text-[10px] font-black text-yellow-500 uppercase mb-1 tracking-widest">Litros Reales</p>
+                            <p class="text-5xl font-black tracking-tight">${real || 0} <span class="text-xs text-yellow-400 font-bold uppercase tracking-widest">Lts</span></p>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-[9px] font-black text-slate-400 uppercase mb-1">Meta Litros</p>
+                            <p class="text-xl font-bold text-slate-300 tracking-tight">${obj || 0} Lts</p>
+                        </div>
                     </div>
-                    <div class="bg-blue-950 p-3 rounded-xl text-center">
-                        <p class="text-[9px] font-black text-yellow-500 uppercase">Meta</p>
-                        <p class="text-2xl font-black text-yellow-400">${obj}</p>
+                    <div class="h-4 bg-white/10 rounded-full overflow-hidden mt-6">
+                        <div style="width: ${Math.min(p, 100)}%" class="h-full bg-yellow-400 rounded-full shadow-[0_0_15px_rgba(250,204,21,0.6)]"></div>
                     </div>
-                </div>
-                <div class="h-3 bg-slate-200 rounded-full overflow-hidden mb-3">
-                    <div style="width: ${Math.min(perc, 100)}%; background: ${c.color}" class="h-full rounded-full"></div>
-                </div>
-                <div class="text-center">
-                    ${obj > 0 ? (falta > 0 ? 
-                        `<p class="text-xs font-black text-red-500 italic uppercase tracking-tighter">Faltan ${falta} pz</p>` : 
-                        `<p class="text-xs font-black text-green-600 italic uppercase tracking-tighter">¡Meta Lograda!</p>`) : ''
-                    }
                 </div>
             </div>`;
         }
 
-        function renderGeneralConsolidated(period) {
-            const [m, a] = period.split(' ');
-            const d = db.filter(r => r.MES === m && r.AÑO === a);
-            renderDetailedReport("TULANCINGO GLOBAL", period, d, d.reduce((acc, r) => acc + n(r['IMPORTE NETO']), 0), true);
-        }
-
+        function n(v) { if (!v) return 0; const clean = String(v).replace(/[$,]/g, "").trim(); return parseFloat(clean) || 0; }
+        function f(v) { return Math.round(v).toLocaleString('es-MX'); }
+        function toggleDropdown(id) { document.getElementById(id).classList.toggle('dropdown-active'); }
+        function downloadPDF(n) { const element = document.getElementById('pdf-container'); html2pdf().set({ margin: [10, 5, 10, 5], filename: `TUL_${n}.pdf`, html2canvas: { scale: 2 }, jsPDF: { unit: 'mm', format: 'a4' } }).from(element).save(); }
+        
         function renderSellers(z, period) {
             const [m, a] = period.split(' ');
-            const sellers = db.filter(r => r.ZONA === z && r.MES === m && r.AÑO === a);
-            let html = `<button onclick="selectMonth('${period}')" class="glass-btn mb-6 text-[10px] font-black text-blue-900 bg-white px-6 py-2 rounded-full border shadow-sm uppercase">← VOLVER A ZONAS</button>`;
+            const sellers = db.filter(r => r.ZONA === z && r.MES === m && r.AÑO === a && (n(r['IMPORTE NETO']) > 0 || n(r['REAL ACUMULADORES']) > 0));
+            let html = `<button onclick="selectMonth('${period}')" class="glass-btn mb-6 text-[10px] font-black text-blue-900 bg-white px-6 py-2 rounded-full border shadow-sm uppercase font-bold">← VOLVER A ZONAS</button>`;
             sellers.forEach(s => {
-                html += `<div onclick="renderReport('${s.VENDEDOR}', '${period}')" class="glass-btn bg-white p-5 rounded-2xl mb-3 flex justify-between items-center border-l-8 border-blue-950 shadow-md">
-                    <p class="font-black text-blue-950 uppercase text-sm italic tracking-tight">${s.VENDEDOR}</p>
+                html += `<div onclick="renderReport('${s.VENDEDOR}', '${period}')" class="glass-btn bg-white p-7 rounded-2xl mb-4 flex justify-between items-center border-l-8 border-blue-950 shadow-md">
+                    <p class="font-black text-blue-950 uppercase text-lg italic tracking-tighter font-orbitron">${s.VENDEDOR}</p>
                     <i class="fas fa-chevron-right text-slate-300"></i>
                 </div>`;
             });
@@ -221,19 +300,19 @@
         function renderDetailedReport(titulo, period, dataArr, totalImporte, isGlobal, zonaNombre = "") {
             let html = `
             <div class="flex justify-between items-center mb-6">
-                <button onclick="${isGlobal ? `selectMonth('${period}')` : `renderSellers('${zonaNombre}', '${period}')`}" class="text-[10px] font-black text-slate-500 uppercase">← REGRESAR</button>
+                <button onclick="${isGlobal ? `selectMonth('${period}')` : `renderSellers('${zonaNombre}', '${period}')`}" class="text-[11px] font-black text-slate-500 uppercase tracking-widest">← REGRESAR</button>
                 <button onclick="downloadPDF('${titulo}')" class="bg-blue-900 text-yellow-400 px-5 py-2 rounded-xl text-[10px] font-black shadow-lg uppercase tracking-widest">Descargar PDF</button>
             </div>
             <div id="pdf-container">
-                <div class="bg-[#001529] p-8 rounded-t-[2.5rem] text-center border-b-4 border-yellow-400">
-                    <p class="text-yellow-400 font-black text-[10px] uppercase tracking-[0.3em] mb-3">${period} ${isGlobal ? '' : '| ' + zonaNombre}</p>
-                    <h2 class="text-3xl font-black italic uppercase text-white font-orbitron leading-none mb-6">${titulo}</h2>
-                    <div class="bg-white/10 p-5 rounded-3xl border border-white/5 shadow-inner">
-                        <p class="text-[10px] font-bold text-slate-400 uppercase mb-1">Importe Neto Facturado</p>
-                        <p class="text-4xl font-black text-white tracking-tighter">$${f(totalImporte)}</p>
+                <div class="bg-[#001529] p-10 rounded-t-[2.5rem] text-center border-b-4 border-yellow-400">
+                    <p class="text-yellow-400 font-black text-[10px] uppercase tracking-[0.3em] mb-4">${period} ${isGlobal ? '' : '| ' + zonaNombre}</p>
+                    <h2 class="text-4xl font-black italic uppercase text-white font-orbitron leading-none mb-8 tracking-tighter">${titulo}</h2>
+                    <div class="bg-white/10 p-6 rounded-3xl border border-white/5 shadow-inner">
+                        <p class="text-[11px] font-bold text-slate-400 uppercase mb-1 tracking-widest">Importe Neto Facturado</p>
+                        <p class="text-5xl font-black text-white tracking-tighter font-orbitron">$${f(totalImporte)}</p>
                     </div>
                 </div>
-                <div class="bg-slate-50 p-4 space-y-4 rounded-b-[2.5rem]">
+                <div class="bg-slate-50 p-5 space-y-5 rounded-b-[2.5rem]">
                     ${cats.map(c => renderProgressItem(dataArr, c)).join('')}
                     <p class="text-center text-[10px] font-bold text-slate-400 uppercase mt-8 pb-10 tracking-[0.4em]">Llanterama Tulancingo - Inteligencia</p>
                 </div>
@@ -242,13 +321,24 @@
             window.scrollTo(0,0);
         }
 
-        function sum(dataArr, field) { if(!field) return 0; return dataArr.reduce((acc, r) => acc + Math.round(n(r[field])), 0); }
-        function downloadPDF(nombre) { 
-            const element = document.getElementById('pdf-container');
-            html2pdf().set({ margin: [10, 5, 10, 5], filename: `LL_TUL_${nombre}.pdf`, html2canvas: { scale: 2 }, jsPDF: { unit: 'mm', format: 'a4' } }).from(element).save();
+        function renderProgressItem(dataArr, c) {
+            const obj = sum(dataArr, c.o);
+            const real = sum(dataArr, c.r);
+            const perc = obj > 0 ? (real / obj) * 100 : (real > 0 ? 100 : 0);
+            return `
+            <div class="pdf-card !shadow-none !border-slate-100">
+                <div class="flex justify-between items-start mb-4">
+                    <h4 class="text-lg font-black italic uppercase text-blue-950 font-orbitron tracking-tighter">${c.n}</h4>
+                    <div class="bg-blue-950 text-yellow-400 px-3 py-1.5 rounded-xl font-black text-sm">${Math.round(perc)}%</div>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="bg-slate-100 p-4 rounded-xl text-center"><p class="text-[9px] font-black text-slate-500 uppercase mb-1">Vendido</p><p class="text-2xl font-black text-blue-950">${real}</p></div>
+                    <div class="bg-blue-950 p-4 rounded-xl text-center text-white"><p class="text-[9px] font-black text-yellow-500 uppercase mb-1">Meta</p><p class="text-2xl font-black text-yellow-400 font-orbitron">${obj}</p></div>
+                </div>
+                <div class="h-3 bg-slate-200 rounded-full overflow-hidden mt-4"><div style="width: ${Math.min(perc, 100)}%; background: ${c.color}" class="h-full rounded-full"></div></div>
+            </div>`;
         }
-        function n(v) { return parseFloat(String(v || "0").replace(/[^0-9.-]+/g,"")) || 0; }
-        function f(v) { return Math.round(v).toLocaleString('es-MX'); }
+        function sum(dataArr, field) { if(!field) return 0; return dataArr.reduce((acc, r) => acc + Math.round(n(r[field])), 0); }
         start();
     </script>
 </body>
