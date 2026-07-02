@@ -69,14 +69,14 @@
     </div>
 
     <header id="main-header" class="hidden navy text-white sticky top-0 z-40 shadow-xl" style="border-bottom:2px solid var(--accent)">
-        <div class="max-w-xl mx-auto p-4 flex justify-between items-center">
-            <h2 class="font-extrabold uppercase text-sm tracking-tight" style="color:var(--accent)">DASHBOARD TULANCINGO</h2>
-            <div class="flex items-center gap-3">
-                <p id="update-tag" class="text-[8px] font-bold uppercase" style="color:var(--accent)"></p>
+        <div class="max-w-xl mx-auto px-4 py-3">
+            <div class="flex justify-between items-center">
+                <h2 class="font-extrabold uppercase text-sm tracking-tight" style="color:var(--accent)">DASHBOARD TULANCINGO</h2>
                 <button onclick="toggleTheme()" class="w-9 h-9 rounded-xl flex items-center justify-center" style="background:rgba(255,255,255,.1)">
                     <i id="theme-icon" class="fas fa-moon text-sm" style="color:var(--accent)"></i>
                 </button>
             </div>
+            <p id="update-tag" class="text-[10px] font-bold mt-1" style="color:var(--accent)"></p>
         </div>
     </header>
 
@@ -91,6 +91,8 @@
     <script>
         const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRA2Ijt1TI5_APzSJNjdlGF1_Jex0-n3iTiy8R996VR6PNx6V7tM8xO8u3sFKwp2A/pub?gid=1217270027&single=true&output=csv';
         const RDV_URL = 'https://cesar1perez.github.io/RDV/';
+        const FORM_LLANTAS = 'https://docs.google.com/forms/d/e/1FAIpQLScb-nqtNToCZvcCkCxaLM6AgRRlz1U1ph0q736pj3QD4LnCrQ/viewform?usp=sharing&ouid=105872250861317126673';
+        const FORM_LTH = 'https://docs.google.com/forms/d/e/1FAIpQLSehQdNkm-c_AGAvxMcNZuOINyBn8wU0pwI8XolluIvwCl4rvA/viewform?usp=sharing&ouid=105872250861317126673';
         let db = [];
         const mesesRef = ["ENERO","FEBRERO","MARZO","ABRIL","MAYO","JUNIO","JULIO","AGOSTO","SEPTIEMBRE","OCTUBRE","NOVIEMBRE","DICIEMBRE"];
 
@@ -120,9 +122,16 @@
             try {
                 const response = await fetch(CSV_URL + '&t=' + Date.now());
                 const text = await response.text();
+                // Fecha de última actualización: intenta el header del Sheet; si no, la hora de sincronización
+                let stamp;
+                const lm = response.headers.get('last-modified');
+                stamp = lm ? new Date(lm) : new Date();
                 Papa.parse(text, { header:true, skipEmptyLines:true, complete:(res)=>{
-                    db = res.data;
-                    document.getElementById('update-tag').innerText = `LIVE: ${new Date().toLocaleTimeString()}`;
+                    // Normaliza texto clave (quita espacios/espacios raros) para que empaten los meses/vendedores
+                    const keys = ['MES','AÑO','VENDEDOR','ZONA','SUPERVISOR','TIPO DE VENTA'];
+                    db = res.data.map(r=>{ keys.forEach(k=>{ if(k in r) r[k]=norm(r[k]); }); return r; });
+                    const fstr = stamp.toLocaleString('es-MX',{weekday:'short',day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
+                    document.getElementById('update-tag').innerHTML = `<i class="fas fa-rotate mr-1"></i>Última actualización: ${fstr}`;
                     document.getElementById('loader').classList.add('hidden');
                 }});
             } catch (e) { alert("Error de Sincronización Tulancingo"); }
@@ -161,6 +170,28 @@
                     <div>
                         <h4 class="text-2xl font-black uppercase leading-tight txt">Reporte Diario de Visitas</h4>
                         <p class="text-[10px] font-bold muted uppercase tracking-tight flex items-center gap-1">Abrir plataforma RDV <i class="fas fa-arrow-up-right-from-square text-[8px]"></i></p>
+                    </div>
+                </div>
+                </a>
+
+                <p class="text-[12px] font-extrabold muted uppercase tracking-widest mt-8 mb-4">Prospección</p>
+
+                <a href="${FORM_LLANTAS}" target="_blank" rel="noopener" class="block no-underline">
+                <div class="glass-btn surface p-6 rounded-[1.75rem] mb-4 flex items-center gap-4" style="border-left:6px solid #16a34a">
+                    <div class="w-14 h-14 rounded-2xl flex items-center justify-center text-2xl text-white shadow-lg" style="background:#16a34a"><i class="fas fa-file-lines"></i></div>
+                    <div>
+                        <h4 class="text-lg font-black uppercase leading-tight txt">Form. Prospecto de Llantas</h4>
+                        <p class="text-[10px] font-bold muted uppercase tracking-tight flex items-center gap-1">Abrir formulario <i class="fas fa-arrow-up-right-from-square text-[8px]"></i></p>
+                    </div>
+                </div>
+                </a>
+
+                <a href="${FORM_LTH}" target="_blank" rel="noopener" class="block no-underline">
+                <div class="glass-btn surface p-6 rounded-[1.75rem] mb-4 flex items-center gap-4" style="border-left:6px solid #dc2626">
+                    <div class="w-14 h-14 rounded-2xl flex items-center justify-center text-2xl text-white shadow-lg" style="background:#dc2626"><i class="fas fa-file-lines"></i></div>
+                    <div>
+                        <h4 class="text-lg font-black uppercase leading-tight txt">Form. Prospecto Clientes LTH</h4>
+                        <p class="text-[10px] font-bold muted uppercase tracking-tight flex items-center gap-1">Abrir formulario <i class="fas fa-arrow-up-right-from-square text-[8px]"></i></p>
                     </div>
                 </div>
                 </a>
@@ -366,8 +397,9 @@
         }
 
         function getRow(v, periodStr){
-            const [m,a] = periodStr.split(' ');
-            return db.find(r => r.VENDEDOR===v && r.MES===m && r.AÑO===a) || {};
+            const i = periodStr.lastIndexOf(' ');
+            const m = norm(periodStr.slice(0,i)), a = norm(periodStr.slice(i+1));
+            return db.find(r => norm(r.VENDEDOR)===norm(v) && norm(r.MES)===m && norm(r.AÑO)===a) || {};
         }
 
         function updateCmp(v){
@@ -527,6 +559,7 @@
 
         /* ===================== HELPERS ===================== */
         function n(v){ if(!v) return 0; const clean=String(v).replace(/[$,]/g,"").trim(); return parseFloat(clean)||0; }
+        function norm(x){ return String(x==null?'':x).replace(/\u00A0/g,' ').replace(/\s+/g,' ').trim(); }
         function f(v){ return Math.round(v).toLocaleString('es-MX'); }
         function esc(s){ return String(s).replace(/'/g,"\\'"); }
         function sum(dataArr, field){ if(!field) return 0; return dataArr.reduce((acc,r)=>acc+Math.round(n(r[field])),0); }
