@@ -7,19 +7,20 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <style>
         /* ===== SISTEMA DE TEMAS (RDV style) ===== */
         :root, [data-theme="light"]{
             --bg:#eef2f7; --surface:#ffffff; --surface-2:#f1f5f9; --border:#e2e8f0;
-            --text:#0f172a; --muted:#64748b; --navy:#001529; --navy-2:#002d54;
+            --text:#0f172a; --muted:#64748b; --navy:#001529; --navy-2:#002d54; --brand:#002d54;
             --accent:#f5b700; --on-accent:#001529; --good:#16a34a; --bad:#dc2626;
             --shadow:0 1px 3px rgba(15,23,42,.08), 0 1px 2px rgba(15,23,42,.04);
         }
         [data-theme="dark"]{
             --bg:#070f1a; --surface:#0d1b2e; --surface-2:#12233b; --border:rgba(255,255,255,.09);
-            --text:#e6eef7; --muted:#8aa0b8; --navy:#001019; --navy-2:#00284c;
+            --text:#e6eef7; --muted:#8aa0b8; --navy:#001019; --navy-2:#00284c; --brand:#7db3ff;
             --accent:#f5b700; --on-accent:#001529; --good:#22c55e; --bad:#f87171;
             --shadow:0 1px 3px rgba(0,0,0,.45);
         }
@@ -57,6 +58,7 @@
         select.themed:focus{ outline:2px solid var(--accent); }
 
         .cmp-cell{ background:var(--surface); border:1px solid var(--border); border-radius:16px; }
+        #cmp-results td, #cmp-results th, #cmp-annual td, #cmp-annual th{ white-space:nowrap; }
         .cmp-hi{ box-shadow:0 0 0 2px var(--good) inset; }
         .cmp-lo{ box-shadow:0 0 0 2px var(--bad) inset; }
     </style>
@@ -116,6 +118,8 @@
             html.setAttribute('data-theme', dark ? 'light' : 'dark');
             const icon = document.getElementById('theme-icon');
             if(icon) icon.className = 'fas ' + (dark ? 'fa-moon' : 'fa-sun') + ' text-sm';
+            // Si estamos en Gráficas, redibuja para actualizar colores al tema
+            if(Object.keys(charts).length){ renderGraficas(); }
         }
 
         async function start() {
@@ -161,6 +165,14 @@
                     <div>
                         <h4 class="text-2xl font-black uppercase leading-tight txt">Comparativo</h4>
                         <p class="text-[10px] font-bold muted uppercase tracking-tight">Vendedor · Mes vs Mes · Año vs Año</p>
+                    </div>
+                </div>
+
+                <div onclick="renderGraficas()" class="glass-btn surface p-7 rounded-[2rem] mb-5 flex items-center gap-5">
+                    <div class="navy-grad w-16 h-16 rounded-2xl flex items-center justify-center text-3xl shadow-lg" style="color:var(--accent)"><i class="fas fa-chart-pie"></i></div>
+                    <div>
+                        <h4 class="text-2xl font-black uppercase leading-tight txt">Gráficas & Tendencias</h4>
+                        <p class="text-[10px] font-bold muted uppercase tracking-tight">Análisis Visual 2024 · 2025 · 2026</p>
                     </div>
                 </div>
 
@@ -250,7 +262,7 @@
                     </div>
                     <div class="surface-2 p-4 rounded-2xl bd border">
                          <p class="text-[10px] font-black muted uppercase mb-1">Venta Neta Zona</p>
-                         <p class="text-3xl font-black accent" style="color:var(--navy-2)">$${f(realZ)}</p>
+                         <p class="text-3xl font-black" style="color:var(--brand)">$${f(realZ)}</p>
                     </div>
                     <div class="dropdown-content">${cats.map(c=>renderProgressItem(dZ,c)).join('')}</div>
                 </div>`;
@@ -320,15 +332,21 @@
         }
 
         /* ===================== MÓDULO COMPARATIVO ===================== */
+        // Solo estos vendedores aparecen en el comparativo
+        const CMP_VENDEDORES = [
+            'CS CD SAHAGUN MAYOREO','CS MAYOREO','CS RIO MAYOREO','TIZAYUCA (CELENE)',
+            'CARLOS CALDERON','MIGUEL LOZADA','RUBEN LEON'
+        ].map(norm);
+
         function renderComparativo(){
-            // vendedores con al menos una fila con venta
-            const withData = db.filter(r => r.VENDEDOR && r.VENDEDOR.trim()!=='' && (n(r['IMPORTE NETO'])>0 || n(r['REAL ACUMULADORES'])>0));
+            // solo vendedores de la lista permitida, con al menos una fila con venta
+            const withData = db.filter(r => r.VENDEDOR && CMP_VENDEDORES.includes(norm(r.VENDEDOR)) && (n(r['IMPORTE NETO'])>0 || n(r['REAL ACUMULADORES'])>0));
             const byZona = {};
             withData.forEach(r=>{ (byZona[r.ZONA]=byZona[r.ZONA]||new Set()).add(r.VENDEDOR); });
             let html = `<button onclick="renderMainMenu()" class="mb-6 text-[10px] font-extrabold muted uppercase tracking-widest">← Volver al menú</button>
                         <p class="text-[10px] font-extrabold muted uppercase tracking-widest mb-4">Comparativo / Seleccione vendedor</p>`;
             Object.keys(byZona).sort().forEach(z=>{
-                html += `<p class="text-[11px] font-black uppercase tracking-widest mt-5 mb-2 accent" style="color:var(--navy-2)">${z}</p>`;
+                html += `<p class="text-[11px] font-black uppercase tracking-widest mt-5 mb-2" style="color:var(--brand)">${z}</p>`;
                 [...byZona[z]].sort().forEach(v=>{
                     html += `<div onclick="renderCmpVendedor('${esc(v)}')" class="glass-btn surface p-5 rounded-2xl mb-3 flex justify-between items-center" style="border-left:6px solid var(--accent)">
                         <p class="font-black uppercase text-base tracking-tight txt">${v}</p>
@@ -434,19 +452,19 @@
             const html = `
             <div class="surface rounded-2xl p-4 mb-4">
                 <p class="text-[10px] font-black muted uppercase tracking-widest mb-3 text-center">Importe Neto Total</p>
-                <div class="grid grid-cols-3 gap-2 items-stretch">
-                    <div class="text-center flex flex-col justify-center">
-                        <p class="text-[10px] font-black muted uppercase mb-1">${shortP(pa)}</p>
-                        <p class="text-2xl font-black leading-none" style="color:var(--navy-2)">$${f(impA)}</p>
+                <div class="grid grid-cols-2 gap-3 mb-3">
+                    <div class="surface-2 rounded-xl py-3 px-2 text-center min-w-0">
+                        <p class="text-[10px] font-black muted uppercase mb-1 truncate">${shortP(pa)}</p>
+                        <p class="text-lg sm:text-2xl font-black leading-tight whitespace-nowrap" style="color:var(--brand)">$${f(impA)}</p>
                     </div>
-                    <div class="text-center flex flex-col justify-center">
-                        <p class="text-[10px] font-black muted uppercase mb-1">${shortP(pb)}</p>
-                        <p class="text-2xl font-black leading-none" style="color:var(--navy-2)">$${f(impB)}</p>
+                    <div class="surface-2 rounded-xl py-3 px-2 text-center min-w-0">
+                        <p class="text-[10px] font-black muted uppercase mb-1 truncate">${shortP(pb)}</p>
+                        <p class="text-lg sm:text-2xl font-black leading-tight whitespace-nowrap" style="color:var(--brand)">$${f(impB)}</p>
                     </div>
-                    <div class="text-center rounded-xl py-3 flex flex-col justify-center" style="background:${impBg}">
-                        <p class="text-[9px] font-black uppercase mb-1" style="color:${impCol}">${impLbl}</p>
-                        <p class="text-xl font-black leading-none" style="color:${impCol}">${impD>0?'+':''}$${f(impD)}</p>
-                    </div>
+                </div>
+                <div class="rounded-xl py-3 px-3 flex items-center justify-between" style="background:${impBg}">
+                    <p class="text-[11px] font-black uppercase" style="color:${impCol}"><i class="fas fa-${impD>0?'arrow-trend-up':(impD<0?'arrow-trend-down':'minus')} mr-1"></i>${impLbl}</p>
+                    <p class="text-xl sm:text-2xl font-black leading-none whitespace-nowrap" style="color:${impCol}">${impD>0?'+':''}$${f(impD)}</p>
                 </div>
             </div>
 
@@ -555,6 +573,176 @@
                 <i class="fas fa-star c-good"></i> Mejor mes &nbsp;·&nbsp; <i class="fas fa-triangle-exclamation c-bad"></i> Mes más bajo
             </p>`;
             document.getElementById('cmp-annual').innerHTML = html;
+        }
+
+        /* ===================== MÓDULO GRÁFICAS ===================== */
+        let charts = {};
+        const grafState = { metric:'imp', year:null };
+        const familias = [
+            {name:'Acumuladores', r:'REAL ACUMULADORES', color:'#1d4ed8'},
+            {name:'Lubricantes',  r:'REAL LUBRICANTES',  color:'#f97316'},
+            {name:'Motobaterías', r:'REAL MOTOBATERIAS', color:'#ef4444'},
+            {name:'Filtros',      r:'REAL FILTROS',      color:'#16a34a'},
+            {name:'Alcalinas',    r:'REAL ALCALINA',     color:'#9333ea'},
+            {name:'Recolecciones',r:'REAL RECOLECCIONES',color:'#64748b'}
+        ];
+        const yearColor = { '2024':'#94a3b8', '2025':'#1d4ed8', '2026':'#f5b700' };
+
+        function yearsInData(){
+            return [...new Set(db.filter(r=>r.MES && (n(r['IMPORTE NETO'])>0||n(r['REAL ACUMULADORES'])>0)).map(r=>norm(r.AÑO)))].filter(Boolean).sort();
+        }
+        function monthlySeries(field){
+            const out={};
+            yearsInData().forEach(y=>{
+                out[y]=mesesRef.map(m=>db.filter(r=>norm(r.AÑO)===y && norm(r.MES)===m).reduce((s,r)=>s+n(r[field]),0));
+            });
+            return out;
+        }
+        function familyTotals(year){
+            return familias.map(fm=>({ name:fm.name, color:fm.color, val:db.filter(r=>norm(r.AÑO)===year).reduce((s,r)=>s+n(r[fm.r]),0) }));
+        }
+        function vendorTotals(year, field){
+            const map={};
+            db.filter(r=>norm(r.AÑO)===year && r.VENDEDOR).forEach(r=>{ const v=norm(r.VENDEDOR); map[v]=(map[v]||0)+n(r[field]); });
+            return Object.entries(map).map(([name,val])=>({name,val})).filter(x=>x.val>0).sort((a,b)=>b.val-a.val).slice(0,10);
+        }
+        function destroyCharts(){ Object.values(charts).forEach(c=>{ try{c.destroy();}catch(e){} }); charts={}; }
+        function themeColors(){
+            const cs=getComputedStyle(document.documentElement);
+            return { txt:cs.getPropertyValue('--text').trim(), grid:cs.getPropertyValue('--border').trim(), muted:cs.getPropertyValue('--muted').trim() };
+        }
+
+        function setGrafMetric(m){ grafState.metric=m; renderGraficas(); }
+        function setGrafYear(y){ grafState.year=y; renderGraficas(); }
+
+        function renderGraficas(){
+            const years=yearsInData();
+            if(years.length===0){ document.getElementById('content-area').innerHTML='Sin datos'; return; }
+            if(!grafState.year || !years.includes(grafState.year)) grafState.year=years[years.length-1];
+            const isImp = grafState.metric==='imp';
+            const yr = grafState.year;
+
+            const yearOpts = years.slice().reverse().map(y=>`<option value="${y}" ${y===yr?'selected':''}>${y}</option>`).join('');
+
+            let html = `
+            <button onclick="backFromGraficas()" class="mb-5 text-[10px] font-extrabold muted uppercase tracking-widest">← Volver al menú</button>
+            <div class="navy p-6 rounded-[2rem] mb-5 text-center" style="border-bottom:4px solid var(--accent)">
+                <p class="text-[10px] font-black uppercase tracking-[0.3em] mb-1" style="color:var(--accent)">Inteligencia Comercial</p>
+                <h2 class="text-3xl font-black uppercase text-white tracking-tight leading-none">Gráficas & Tendencias</h2>
+            </div>
+
+            <!-- Ventas mensuales por año -->
+            <div class="surface rounded-2xl p-4 mb-5">
+                <div class="flex items-center justify-between mb-1 flex-wrap gap-2">
+                    <p class="text-[13px] font-black uppercase txt tracking-tight">Ventas por mes y año</p>
+                    <div class="flex gap-2">
+                        <button onclick="setGrafMetric('imp')" class="${isImp?'chip-accent':'surface-2 txt'} px-3 py-1.5 rounded-lg text-[10px] font-black uppercase">Pesos</button>
+                        <button onclick="setGrafMetric('acu')" class="${!isImp?'chip-accent':'surface-2 txt'} px-3 py-1.5 rounded-lg text-[10px] font-black uppercase">Unidades</button>
+                    </div>
+                </div>
+                <p class="text-[10px] muted font-bold mb-3">Compara el mismo mes entre años y detecta despuntes o caídas.</p>
+                <div style="position:relative;height:300px"><canvas id="chMonthly"></canvas></div>
+            </div>
+
+            <!-- Familias de producto por año -->
+            <div class="surface rounded-2xl p-4 mb-5">
+                <p class="text-[13px] font-black uppercase txt tracking-tight">Líneas de producto por año</p>
+                <p class="text-[10px] muted font-bold mb-3">Unidades reales acumuladas de cada línea, año contra año.</p>
+                <div style="position:relative;height:320px"><canvas id="chFamilies"></canvas></div>
+            </div>
+
+            <!-- Selector de año para pastel y vendedores -->
+            <div class="surface rounded-2xl p-4 mb-5 flex items-center justify-between">
+                <p class="text-[12px] font-black uppercase txt tracking-tight">Detalle del año</p>
+                <select onchange="setGrafYear(this.value)" class="themed p-2 rounded-xl font-black text-sm">${yearOpts}</select>
+            </div>
+
+            <!-- Mix de líneas (pastel) -->
+            <div class="surface rounded-2xl p-4 mb-5">
+                <p class="text-[13px] font-black uppercase txt tracking-tight">Mezcla de líneas · ${yr}</p>
+                <p class="text-[10px] muted font-bold mb-3">Participación de cada línea en las unidades vendidas.</p>
+                <div style="position:relative;height:300px"><canvas id="chPie"></canvas></div>
+            </div>
+
+            <!-- Top vendedores (barras horizontales) -->
+            <div class="surface rounded-2xl p-4 mb-8">
+                <p class="text-[13px] font-black uppercase txt tracking-tight">Top vendedores por importe · ${yr}</p>
+                <p class="text-[10px] muted font-bold mb-3">Los 10 mayores por venta neta facturada.</p>
+                <div style="position:relative;height:360px"><canvas id="chVendors"></canvas></div>
+            </div>`;
+            document.getElementById('content-area').innerHTML = html;
+            window.scrollTo(0,0);
+            destroyCharts();
+            buildCharts();
+        }
+
+        function backFromGraficas(){ destroyCharts(); renderMainMenu(); }
+
+        function buildCharts(){
+            const tc = themeColors();
+            const isImp = grafState.metric==='imp';
+            const yr = grafState.year;
+            const money = v => isImp ? '$'+f(v) : f(v);
+            Chart.defaults.font.family = "'Inter',sans-serif";
+            Chart.defaults.color = tc.txt;
+
+            // 1) Línea: ventas por mes y año
+            const field = isImp ? 'IMPORTE NETO' : 'REAL ACUMULADORES';
+            const ms = monthlySeries(field);
+            charts.monthly = new Chart(document.getElementById('chMonthly'), {
+                type:'line',
+                data:{
+                    labels: mesesRef.map(m=>m.slice(0,3)),
+                    datasets: Object.keys(ms).map(y=>({
+                        label:y, data:ms[y].map(v=>v||null),
+                        borderColor:yearColor[y]||'#0ea5e9', backgroundColor:(yearColor[y]||'#0ea5e9')+'22',
+                        borderWidth:3, tension:.35, pointRadius:3, pointHoverRadius:6, spanGaps:true, fill:false
+                    }))
+                },
+                options:{ responsive:true, maintainAspectRatio:false,
+                    plugins:{ legend:{labels:{font:{weight:'700'},usePointStyle:true}},
+                        tooltip:{callbacks:{label:c=>` ${c.dataset.label}: ${money(c.parsed.y)}`}} },
+                    scales:{ x:{grid:{color:tc.grid}}, y:{grid:{color:tc.grid}, ticks:{callback:v=>isImp?('$'+(v/1000000).toFixed(1)+'M'):f(v)}} } }
+            });
+
+            // 2) Barras agrupadas: familias por año (unidades)
+            const yrs = yearsInData();
+            charts.families = new Chart(document.getElementById('chFamilies'), {
+                type:'bar',
+                data:{
+                    labels: familias.map(f=>f.name),
+                    datasets: yrs.map(y=>{
+                        const tot=familyTotals(y);
+                        return { label:y, data:familias.map(fm=>tot.find(t=>t.name===fm.name).val),
+                                 backgroundColor:yearColor[y]||'#0ea5e9', borderRadius:6 };
+                    })
+                },
+                options:{ responsive:true, maintainAspectRatio:false,
+                    plugins:{ legend:{labels:{font:{weight:'700'},usePointStyle:true}},
+                        tooltip:{callbacks:{label:c=>` ${c.dataset.label}: ${f(c.parsed.y)} u`}} },
+                    scales:{ x:{grid:{display:false}, ticks:{font:{weight:'700'}}}, y:{grid:{color:tc.grid}} } }
+            });
+
+            // 3) Pastel: mezcla de líneas del año seleccionado (unidades)
+            const fam = familyTotals(yr).filter(x=>x.val>0);
+            charts.pie = new Chart(document.getElementById('chPie'), {
+                type:'doughnut',
+                data:{ labels:fam.map(x=>x.name), datasets:[{ data:fam.map(x=>x.val), backgroundColor:fam.map(x=>x.color), borderColor:tc.grid, borderWidth:2 }] },
+                options:{ responsive:true, maintainAspectRatio:false, cutout:'55%',
+                    plugins:{ legend:{position:'bottom', labels:{font:{weight:'700'},usePointStyle:true,padding:14}},
+                        tooltip:{callbacks:{label:c=>{ const t=c.dataset.data.reduce((a,b)=>a+b,0); const p=t?Math.round(c.parsed/t*100):0; return ` ${c.label}: ${f(c.parsed)} u (${p}%)`; }}} } }
+            });
+
+            // 4) Barras horizontales: top vendedores por importe del año
+            const vt = vendorTotals(yr,'IMPORTE NETO');
+            charts.vendors = new Chart(document.getElementById('chVendors'), {
+                type:'bar',
+                data:{ labels:vt.map(x=>x.name), datasets:[{ label:'Importe', data:vt.map(x=>x.val),
+                        backgroundColor: getComputedStyle(document.documentElement).getPropertyValue('--accent').trim(), borderRadius:6 }] },
+                options:{ indexAxis:'y', responsive:true, maintainAspectRatio:false,
+                    plugins:{ legend:{display:false}, tooltip:{callbacks:{label:c=>' $'+f(c.parsed.x)}} },
+                    scales:{ x:{grid:{color:tc.grid}, ticks:{callback:v=>'$'+(v/1000000).toFixed(1)+'M'}}, y:{grid:{display:false}, ticks:{font:{weight:'700',size:10}}} } }
+            });
         }
 
         /* ===================== HELPERS ===================== */
