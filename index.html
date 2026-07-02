@@ -186,11 +186,11 @@
                 </div>
 
                 <a href="${RDV_URL}" target="_blank" rel="noopener" class="block no-underline">
-                <div class="glass-btn surface p-7 rounded-[2rem] mb-5 flex items-center gap-5" style="border-left:6px solid var(--accent)">
-                    <div class="navy w-16 h-16 rounded-2xl flex items-center justify-center text-3xl shadow-lg text-white"><i class="fas fa-map-location-dot"></i></div>
+                <div class="glass-btn p-7 rounded-[2rem] mb-5 flex items-center gap-5 shadow-2xl" style="background:linear-gradient(135deg,#022c22 0%,#065f46 50%,#0d9488 100%);border:2px solid #2dd4bf">
+                    <div class="w-16 h-16 rounded-2xl flex items-center justify-center text-3xl shadow-lg shrink-0" style="background:rgba(0,0,0,.3);color:#5eead4"><i class="fas fa-map-location-dot"></i></div>
                     <div>
-                        <h4 class="text-2xl font-black uppercase leading-tight txt">Reporte Diario de Visitas</h4>
-                        <p class="text-[10px] font-bold muted uppercase tracking-tight flex items-center gap-1">Abrir plataforma RDV <i class="fas fa-arrow-up-right-from-square text-[8px]"></i></p>
+                        <h4 class="text-2xl font-black uppercase leading-tight text-white">Reporte Diario de Visitas</h4>
+                        <p class="text-[10px] font-bold uppercase tracking-tight flex items-center gap-1" style="color:#99f6e4">Abrir plataforma RDV <i class="fas fa-arrow-up-right-from-square text-[8px]"></i></p>
                     </div>
                 </div>
                 </a>
@@ -341,17 +341,27 @@
         }
 
         /* ===================== MÓDULO COMPARATIVO ===================== */
-        // Solo estos vendedores aparecen en el comparativo
+        // Alias globales: mismo vendedor con distintos nombres de captura en la hoja
+        const VEND_ALIASES = {
+            'MIGUEL':          ['MIGUEL','MIGUEL LOZADA'],
+            'RUBEN':           ['RUBEN','RUBEN LEON'],
+            'CARLOS CALDERON': ['CARLOS CALDERON','ONESIMO']
+        };
+        function displayOf(v){ const nv=norm(v); for(const [d,al] of Object.entries(VEND_ALIASES)){ if(al.some(a=>norm(a)===nv)) return d; } return nv; }
+        function aliasesOf(v){ const nv=norm(v); for(const al of Object.values(VEND_ALIASES)){ if(al.some(a=>norm(a)===nv)) return al.map(norm); } return [nv]; }
+        function rowsOf(v, mes, anio){ const als=aliasesOf(v); return db.filter(r=>als.includes(norm(r.VENDEDOR)) && norm(r.MES)===mes && norm(r.AÑO)===anio); }
+
+        // Solo estos vendedores aparecen en el comparativo (nombres unificados)
         const CMP_VENDEDORES = [
             'CS CD SAHAGUN MAYOREO','CS MAYOREO','CS RIO MAYOREO','TIZAYUCA (CELENE)',
-            'CARLOS CALDERON','MIGUEL LOZADA','RUBEN LEON'
+            'CARLOS CALDERON','MIGUEL','RUBEN'
         ].map(norm);
 
         function renderComparativo(){
-            // solo vendedores de la lista permitida, con al menos una fila con venta
-            const withData = db.filter(r => r.VENDEDOR && CMP_VENDEDORES.includes(norm(r.VENDEDOR)) && (n(r['IMPORTE NETO'])>0 || n(r['REAL ACUMULADORES'])>0));
+            // solo vendedores de la lista permitida, con al menos una fila con venta (agrupados por nombre unificado)
+            const withData = db.filter(r => r.VENDEDOR && CMP_VENDEDORES.includes(displayOf(r.VENDEDOR)) && (n(r['IMPORTE NETO'])>0 || n(r['REAL ACUMULADORES'])>0));
             const byZona = {};
-            withData.forEach(r=>{ (byZona[r.ZONA]=byZona[r.ZONA]||new Set()).add(r.VENDEDOR); });
+            withData.forEach(r=>{ (byZona[r.ZONA]=byZona[r.ZONA]||new Set()).add(displayOf(r.VENDEDOR)); });
             let html = `<button onclick="renderMainMenu()" class="mb-6 text-[10px] font-extrabold muted uppercase tracking-widest">← Volver al menú</button>
                         <p class="text-[10px] font-extrabold muted uppercase tracking-widest mb-4">Comparativo / Seleccione vendedor</p>`;
             Object.keys(byZona).sort().forEach(z=>{
@@ -426,7 +436,14 @@
         function getRow(v, periodStr){
             const i = periodStr.lastIndexOf(' ');
             const m = norm(periodStr.slice(0,i)), a = norm(periodStr.slice(i+1));
-            return db.find(r => norm(r.VENDEDOR)===norm(v) && norm(r.MES)===m && norm(r.AÑO)===a) || {};
+            const rs = rowsOf(v, m, a);
+            if(rs.length===0) return {};
+            if(rs.length===1) return rs[0];
+            // varios renglones (alias): fusiona sumando numéricos
+            const merged = {};
+            const numFields = ['IMPORTE NETO', ...cats.map(c=>c.o), ...cats.map(c=>c.r)];
+            numFields.forEach(f2=>{ merged[f2] = rs.reduce((s,r)=>s+n(r[f2]),0); });
+            return merged;
         }
 
         function updateCmp(v){
@@ -504,21 +521,39 @@
         }
 
         let annualMetric = 'imp';
+        let annualLine = 'REAL ACUMULADORES';
+        const uLineas = [
+            {k:'REAL ACUMULADORES', o:'OBJ ACUMULADORES', lbl:'Acumuladores'},
+            {k:'REAL LUBRICANTES',  o:'OBJ LUBRICANTES',  lbl:'Lubricantes'},
+            {k:'REAL MOTOBATERIAS', o:'OBJ MOTOBATERIAS', lbl:'Motobat.'},
+            {k:'REAL FILTROS',      o:'OBJ FILTROS',      lbl:'Filtros'}
+        ];
         function setAnnualMetric(v, metric){
             annualMetric = metric;
             document.getElementById('am-imp').className = (metric==='imp'?'chip-accent':'surface txt')+' px-3 py-1.5 rounded-lg text-[10px] font-black uppercase';
             document.getElementById('am-acu').className = (metric==='acu'?'chip-accent':'surface txt')+' px-3 py-1.5 rounded-lg text-[10px] font-black uppercase';
             renderAnnual(v);
         }
+        function setAnnualLine(v, key){ annualLine = key; renderAnnual(v); }
 
         function renderAnnual(v){
-            const years = [...new Set(db.filter(r=>r.VENDEDOR===v && r.MES).map(r=>r.AÑO))].sort((a,b)=>b-a);
+            const als = aliasesOf(v);
+            const mine = db.filter(r=>als.includes(norm(r.VENDEDOR)) && r.MES);
+            const years = [...new Set(mine.map(r=>norm(r.AÑO)))].sort((a,b)=>b-a);
             const curr = years[0], prev = years[1];
             const isImp = annualMetric==='imp';
-            const field = isImp ? 'IMPORTE NETO' : 'REAL ACUMULADORES';
-            const val = (mes,anio)=>{ const row = db.find(r=>r.VENDEDOR===v && r.MES===mes && r.AÑO===anio); return row?n(row[field]):0; };
-            const objV = (mes,anio)=>{ const row = db.find(r=>r.VENDEDOR===v && r.MES===mes && r.AÑO===anio); return row?n(row['OBJ ACUMULADORES']):0; };
+            const linea = uLineas.find(l=>l.k===annualLine) || uLineas[0];
+            const field = isImp ? 'IMPORTE NETO' : linea.k;
+            const objField = linea.o;
+            const val = (mes,anio)=> mine.filter(r=>norm(r.MES)===mes && norm(r.AÑO)===anio).reduce((s,r)=>s+n(r[field]),0);
+            const objV = (mes,anio)=> mine.filter(r=>norm(r.MES)===mes && norm(r.AÑO)===anio).reduce((s,r)=>s+n(r[objField]),0);
             const fmt = x => isImp ? '$'+f(x) : f(x);
+
+            // chips de línea (solo en modo unidades)
+            const lineChips = isImp ? '' : `
+            <div class="flex flex-wrap gap-2 mb-3">
+                ${uLineas.map(l=>`<button onclick="setAnnualLine('${esc(v)}','${l.k}')" class="${l.k===annualLine?'chip-navy':'surface-2 txt'} px-3 py-1.5 rounded-lg text-[10px] font-black uppercase">${l.lbl}</button>`).join('')}
+            </div>`;
 
             const rowsData = mesesRef.map(m=>({m, c:val(m,curr), p:prev?val(m,prev):0, o:objV(m,curr)})).filter(x=>x.c>0 || x.p>0);
             const activos = rowsData.filter(x=>x.c>0);
@@ -552,9 +587,10 @@
             }).join('');
 
             const html = `
+            ${lineChips}
             <div class="navy-grad p-6 rounded-[2rem] mb-4 text-white">
                 <div class="flex justify-between items-center mb-2">
-                    <p class="text-[10px] font-black uppercase tracking-widest" style="color:var(--accent)">Acumulado ${curr}${prev?' vs '+prev:''}</p>
+                    <p class="text-[10px] font-black uppercase tracking-widest" style="color:var(--accent)">Acumulado ${curr}${prev?' vs '+prev:''}${isImp?'':' · '+linea.lbl}</p>
                     <span class="px-3 py-1 rounded-lg text-[12px] font-black" style="background:${good?'var(--good)':'var(--bad)'};color:#fff">${ytdPct>0?'+':''}${Math.round(ytdPct)}%</span>
                 </div>
                 <p class="text-4xl font-black tracking-tight" style="color:var(--accent)">${fmt(ytdC)}</p>
@@ -586,7 +622,14 @@
 
         /* ===================== MÓDULO GRÁFICAS ===================== */
         let charts = {};
-        const grafState = { metric:'imp', year:null };
+        const grafState = { metric:'imp', year:null, uLine:'REAL ACUMULADORES', vMetric:'imp' };
+        const grafLineas = [
+            {k:'REAL ACUMULADORES', lbl:'Acumuladores'},
+            {k:'REAL LUBRICANTES',  lbl:'Lubricantes'},
+            {k:'REAL MOTOBATERIAS', lbl:'Motobat.'},
+            {k:'REAL FILTROS',      lbl:'Filtros'}
+        ];
+        const ZONAS_GRAF = ['TULANCINGO','CS RIO DE LAS AVENIDAS','CS COLOSIO','CS TIZAYUCA','CD SAHAGUN'];
         const familias = [
             {name:'Acumuladores', r:'REAL ACUMULADORES', color:'#1d4ed8'},
             {name:'Lubricantes',  r:'REAL LUBRICANTES',  color:'#f97316'},
@@ -612,8 +655,16 @@
         }
         function vendorTotals(year, field){
             const map={};
-            db.filter(r=>norm(r.AÑO)===year && r.VENDEDOR).forEach(r=>{ const v=norm(r.VENDEDOR); map[v]=(map[v]||0)+n(r[field]); });
+            db.filter(r=>norm(r.AÑO)===year && r.VENDEDOR).forEach(r=>{ const v=displayOf(r.VENDEDOR); map[v]=(map[v]||0)+n(r[field]); });
             return Object.entries(map).map(([name,val])=>({name,val})).filter(x=>x.val>0).sort((a,b)=>b.val-a.val).slice(0,10);
+        }
+        function zonaSeries(){
+            // importe neto anual por zona, para cada año
+            const out={};
+            yearsInData().forEach(y=>{
+                out[y]=ZONAS_GRAF.map(z=>db.filter(r=>norm(r.AÑO)===y && norm(r.ZONA)===z).reduce((s,r)=>s+n(r['IMPORTE NETO']),0));
+            });
+            return out;
         }
         function destroyCharts(){ Object.values(charts).forEach(c=>{ try{c.destroy();}catch(e){} }); charts={}; }
         function themeColors(){
@@ -623,6 +674,8 @@
 
         function setGrafMetric(m){ grafState.metric=m; renderGraficas(); }
         function setGrafYear(y){ grafState.year=y; renderGraficas(); }
+        function setGrafULine(k){ grafState.uLine=k; renderGraficas(); }
+        function setGrafVMetric(k){ grafState.vMetric=k; renderGraficas(); }
 
         function renderGraficas(){
             const years=yearsInData();
@@ -630,8 +683,20 @@
             if(!grafState.year || !years.includes(grafState.year)) grafState.year=years[years.length-1];
             const isImp = grafState.metric==='imp';
             const yr = grafState.year;
+            const uLbl = (grafLineas.find(l=>l.k===grafState.uLine)||grafLineas[0]).lbl;
+            const vIsImp = grafState.vMetric==='imp';
+            const vLbl = vIsImp ? 'Importe' : (grafLineas.find(l=>l.k===grafState.vMetric)||{}).lbl;
 
             const yearOpts = years.slice().reverse().map(y=>`<option value="${y}" ${y===yr?'selected':''}>${y}</option>`).join('');
+            const uChips = isImp ? '' : `
+                <div class="flex flex-wrap gap-2 mb-2">
+                    ${grafLineas.map(l=>`<button onclick="setGrafULine('${l.k}')" class="${l.k===grafState.uLine?'chip-navy':'surface-2 txt'} px-3 py-1.5 rounded-lg text-[10px] font-black uppercase">${l.lbl}</button>`).join('')}
+                </div>`;
+            const vChips = `
+                <div class="flex flex-wrap gap-2 mb-2">
+                    <button onclick="setGrafVMetric('imp')" class="${vIsImp?'chip-accent':'surface-2 txt'} px-3 py-1.5 rounded-lg text-[10px] font-black uppercase">Importe $</button>
+                    ${grafLineas.map(l=>`<button onclick="setGrafVMetric('${l.k}')" class="${l.k===grafState.vMetric?'chip-navy':'surface-2 txt'} px-3 py-1.5 rounded-lg text-[10px] font-black uppercase">${l.lbl}</button>`).join('')}
+                </div>`;
 
             let html = `
             <button onclick="backFromGraficas()" class="mb-5 text-[10px] font-extrabold muted uppercase tracking-widest">← Volver al menú</button>
@@ -643,14 +708,22 @@
             <!-- Ventas mensuales por año -->
             <div class="surface rounded-2xl p-4 mb-5">
                 <div class="flex items-center justify-between mb-1 flex-wrap gap-2">
-                    <p class="text-[13px] font-black uppercase txt tracking-tight">Ventas por mes y año</p>
+                    <p class="text-[13px] font-black uppercase txt tracking-tight">Ventas por mes y año${isImp?'':' · '+uLbl}</p>
                     <div class="flex gap-2">
                         <button onclick="setGrafMetric('imp')" class="${isImp?'chip-accent':'surface-2 txt'} px-3 py-1.5 rounded-lg text-[10px] font-black uppercase">Pesos</button>
                         <button onclick="setGrafMetric('acu')" class="${!isImp?'chip-accent':'surface-2 txt'} px-3 py-1.5 rounded-lg text-[10px] font-black uppercase">Unidades</button>
                     </div>
                 </div>
+                ${uChips}
                 <p class="text-[10px] muted font-bold mb-3">Compara el mismo mes entre años y detecta despuntes o caídas.</p>
                 <div style="position:relative;height:300px"><canvas id="chMonthly"></canvas></div>
+            </div>
+
+            <!-- Rendimiento entre zonas -->
+            <div class="surface rounded-2xl p-4 mb-5">
+                <p class="text-[13px] font-black uppercase txt tracking-tight">Rendimiento entre tiendas</p>
+                <p class="text-[10px] muted font-bold mb-3">Venta neta anual de cada zona, año contra año.</p>
+                <div style="position:relative;height:320px"><canvas id="chZonas"></canvas></div>
             </div>
 
             <!-- Familias de producto por año -->
@@ -675,8 +748,9 @@
 
             <!-- Top vendedores (barras horizontales) -->
             <div class="surface rounded-2xl p-4 mb-8">
-                <p class="text-[13px] font-black uppercase txt tracking-tight">Top vendedores por importe · ${yr}</p>
-                <p class="text-[10px] muted font-bold mb-3">Los 10 mayores por venta neta facturada.</p>
+                <p class="text-[13px] font-black uppercase txt tracking-tight">Top vendedores · ${vLbl} · ${yr}</p>
+                ${vChips}
+                <p class="text-[10px] muted font-bold mb-3">Los 10 mayores del año seleccionado.</p>
                 <div style="position:relative;height:360px"><canvas id="chVendors"></canvas></div>
             </div>`;
             document.getElementById('content-area').innerHTML = html;
@@ -695,8 +769,8 @@
             Chart.defaults.font.family = "'Inter',sans-serif";
             Chart.defaults.color = tc.txt;
 
-            // 1) Línea: ventas por mes y año
-            const field = isImp ? 'IMPORTE NETO' : 'REAL ACUMULADORES';
+            // 1) Línea: ventas por mes y año (con línea de producto seleccionable en unidades)
+            const field = isImp ? 'IMPORTE NETO' : grafState.uLine;
             const ms = monthlySeries(field);
             charts.monthly = new Chart(document.getElementById('chMonthly'), {
                 type:'line',
@@ -712,6 +786,20 @@
                     plugins:{ legend:{labels:{font:{weight:'700'},usePointStyle:true}},
                         tooltip:{callbacks:{label:c=>` ${c.dataset.label}: ${money(c.parsed.y)}`}} },
                     scales:{ x:{grid:{color:tc.grid}}, y:{grid:{color:tc.grid}, ticks:{callback:v=>isImp?('$'+(v/1000000).toFixed(1)+'M'):f(v)}} } }
+            });
+
+            // 1b) Barras agrupadas: rendimiento entre zonas (importe anual, año vs año)
+            const zs = zonaSeries();
+            charts.zonas = new Chart(document.getElementById('chZonas'), {
+                type:'bar',
+                data:{
+                    labels: ZONAS_GRAF.map(z=>z.replace('CS RIO DE LAS AVENIDAS','CS RIO').replace('CS ','CS ')),
+                    datasets: Object.keys(zs).map(y=>({ label:y, data:zs[y], backgroundColor:yearColor[y]||'#0ea5e9', borderRadius:6 }))
+                },
+                options:{ responsive:true, maintainAspectRatio:false,
+                    plugins:{ legend:{labels:{font:{weight:'700'},usePointStyle:true}},
+                        tooltip:{callbacks:{label:c=>` ${c.dataset.label}: $${f(c.parsed.y)}`}} },
+                    scales:{ x:{grid:{display:false}, ticks:{font:{weight:'700',size:9}}}, y:{grid:{color:tc.grid}, ticks:{callback:v=>'$'+(v/1000000).toFixed(0)+'M'}} } }
             });
 
             // 2) Barras agrupadas: familias por año (unidades)
@@ -742,26 +830,27 @@
                         tooltip:{callbacks:{label:c=>{ const t=c.dataset.data.reduce((a,b)=>a+b,0); const p=t?Math.round(c.parsed/t*100):0; return ` ${c.label}: ${f(c.parsed)} u (${p}%)`; }}} } }
             });
 
-            // 4) Barras horizontales: top vendedores por importe del año
-            const vt = vendorTotals(yr,'IMPORTE NETO');
+            // 4) Barras horizontales: top vendedores por métrica seleccionada
+            const vIsImp = grafState.vMetric==='imp';
+            const vField = vIsImp ? 'IMPORTE NETO' : grafState.vMetric;
+            const vt = vendorTotals(yr, vField);
             charts.vendors = new Chart(document.getElementById('chVendors'), {
                 type:'bar',
-                data:{ labels:vt.map(x=>x.name), datasets:[{ label:'Importe', data:vt.map(x=>x.val),
+                data:{ labels:vt.map(x=>x.name), datasets:[{ label:vIsImp?'Importe':'Unidades', data:vt.map(x=>x.val),
                         backgroundColor: getComputedStyle(document.documentElement).getPropertyValue('--accent').trim(), borderRadius:6 }] },
                 options:{ indexAxis:'y', responsive:true, maintainAspectRatio:false,
-                    plugins:{ legend:{display:false}, tooltip:{callbacks:{label:c=>' $'+f(c.parsed.x)}} },
-                    scales:{ x:{grid:{color:tc.grid}, ticks:{callback:v=>'$'+(v/1000000).toFixed(1)+'M'}}, y:{grid:{display:false}, ticks:{font:{weight:'700',size:10}}} } }
+                    plugins:{ legend:{display:false}, tooltip:{callbacks:{label:c=> vIsImp ? ' $'+f(c.parsed.x) : ' '+f(c.parsed.x)+' u'}} },
+                    scales:{ x:{grid:{color:tc.grid}, ticks:{callback:v=> vIsImp ? '$'+(v/1000000).toFixed(1)+'M' : f(v)}}, y:{grid:{display:false}, ticks:{font:{weight:'700',size:10}}} } }
             });
         }
 
         /* ===================== MÓDULO CONCURSO LUBRICANTES ===================== */
         // display: nombre a mostrar | aliases: variantes de VENDEDOR (col. F) que corresponden a la misma persona
         const CONCURSO_VEND = [
-            {display:'CARLOS CALDERON',      aliases:['CARLOS CALDERON']},
+            {display:'CARLOS CALDERON',      aliases:['CARLOS CALDERON','ONESIMO']},
             {display:'MIGUEL',               aliases:['MIGUEL','MIGUEL LOZADA']},
             {display:'RUBEN',                aliases:['RUBEN','RUBEN LEON']},
             {display:'CS RIO MAYOREO',       aliases:['CS RIO MAYOREO']},
-            {display:'CS MAYOREO',           aliases:['CS MAYOREO']},
             {display:'TIZAYUCA (CELENE)',    aliases:['TIZAYUCA (CELENE)']},
             {display:'CS CD SAHAGUN MAYOREO',aliases:['CS CD SAHAGUN MAYOREO']}
         ];
@@ -771,11 +860,20 @@
             if(rs.length===0) return {has:false, val:0};
             return {has:true, val:rs.reduce((s,r)=>s+n(r['REAL LUBRICANTES']),0)};
         }
+        function objLubActual(aliases){
+            // objetivo mensual de lubricante del mes más reciente capturado en 2026
+            for(let i=mesesRef.length-1;i>=0;i--){
+                const rs = db.filter(x=>aliases.some(a=>norm(x.VENDEDOR)===norm(a)) && norm(x.MES)===mesesRef[i] && norm(x.AÑO)==='2026');
+                if(rs.length){ const o=rs.reduce((s,r)=>s+n(r['OBJ LUBRICANTES']),0); if(o>0) return o; }
+            }
+            return 0;
+        }
         function concursoData(){
             const rows = CONCURSO_VEND.map(({display,aliases})=>{
                 const v=display;
                 const mar=lubOf(aliases,'MARZO'), abr=lubOf(aliases,'ABRIL');
                 const jul=lubOf(aliases,'JULIO'), ago=lubOf(aliases,'AGOSTO');
+                const objMes = objLubActual(aliases);
                 const baseM=[mar,abr].filter(x=>x.has);
                 const baseProm = baseM.length ? baseM.reduce((s,x)=>s+x.val,0)/baseM.length : 0;
                 const compM=[jul,ago].filter(x=>x.has);
@@ -783,7 +881,7 @@
                 const hasComp = jul.has || ago.has;
                 const crec = hasComp ? compProm - baseProm : null;
                 const crecPct = (hasComp && baseProm>0) ? (crec/baseProm*100) : null;
-                return {v,mar,abr,jul,ago,baseProm,compProm,hasComp,crec,crecPct};
+                return {v,mar,abr,jul,ago,objMes,baseProm,compProm,hasComp,crec,crecPct};
             });
             // ranking: primero los que ya tienen jul/ago, por mayor crecimiento
             const conComp = rows.filter(r=>r.hasComp).sort((a,b)=>b.crec-a.crec);
@@ -824,13 +922,17 @@
 
                 return `
                 <div class="surface rounded-2xl p-4 mb-3" ${r.pos===1?'style="border:2px solid #f5b700"':(r.pos===2?'style="border:2px solid #cbd5e1"':'')}>
-                    <div class="flex items-center justify-between gap-2 mb-3">
+                    <div class="flex items-center justify-between gap-2 mb-2">
                         <div class="flex items-center gap-2 min-w-0">
                             ${badge}
                             <p class="font-black uppercase text-[15px] tracking-tight txt truncate">${r.v}</p>
                         </div>
                         ${crecBadge}
                     </div>
+                    ${r.objMes>0?`<div class="flex items-center gap-2 mb-3 rounded-xl px-3 py-2" style="background:rgba(245,183,0,.12);border:1px dashed var(--accent)">
+                        <i class="fas fa-bullseye text-sm" style="color:#b45309"></i>
+                        <p class="text-[11px] font-black uppercase" style="color:#b45309">Objetivo mensual lubricante: <span class="text-[13px]">${f(r.objMes)} lts</span></p>
+                    </div>`:''}
                     <p class="text-[9px] font-black uppercase tracking-widest mb-1" style="color:var(--brand)">Base · Marzo–Abril</p>
                     <div class="grid grid-cols-3 gap-2 mb-3">
                         ${miniCell('Mar-26', cel(r.mar))}
