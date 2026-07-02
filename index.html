@@ -308,13 +308,19 @@
             document.getElementById('content-area').innerHTML = html;
         }
 
-        function vendorPeriods(v){
-            return [...new Set(db.filter(r=>r.VENDEDOR===v && r.MES && (n(r['IMPORTE NETO'])>0 || n(r['REAL ACUMULADORES'])>0)).map(r=>`${r.MES} ${r.AÑO}`))]
+        // TODOS los periodos que existen en la data (no por vendedor) -> siempre aparecen ene-jun 2026
+        function allPeriods(){
+            return [...new Set(db.filter(r=>r.MES && String(r.MES).trim()!=='' && (n(r['IMPORTE NETO'])>0 || n(r['REAL ACUMULADORES'])>0)).map(r=>`${r.MES} ${r.AÑO}`))]
                 .sort((a,b)=>{ const [mA,aA]=a.split(' '),[mB,aB]=b.split(' '); return aA!==aB?aB-aA:mesesRef.indexOf(mB)-mesesRef.indexOf(mA); });
         }
+        function shortP(p){ const [m,a]=p.split(' '); return m.slice(0,3)+' '+a; }
+        const lineaCorta = {
+            'Total Acumuladores':'Acumuladores','Premium':'Premium','AGM':'AGM','Estándar':'Estándar','Value':'Value',
+            'Lubricantes':'Lubricantes','Motobaterías':'Motobat.','Filtros':'Filtros','Alcalinas':'Alcalinas','Recolecciones':'Recolec.'
+        };
 
         function renderCmpVendedor(v){
-            const periods = vendorPeriods(v);
+            const periods = allPeriods();
             if(periods.length===0){ document.getElementById('content-area').innerHTML='Sin datos'; return; }
             const defA = periods[0];
             const defB = periods[1] || periods[0];
@@ -323,14 +329,14 @@
 
             let html = `
             <button onclick="renderComparativo()" class="mb-5 text-[10px] font-extrabold muted uppercase tracking-widest">← Cambiar vendedor</button>
-            <div class="navy p-8 rounded-[2rem] mb-6 text-center" style="border-bottom:4px solid var(--accent)">
+            <div class="navy p-7 rounded-[2rem] mb-5 text-center" style="border-bottom:4px solid var(--accent)">
                 <p class="text-[10px] font-black uppercase tracking-[0.3em] mb-2" style="color:var(--accent)">Comparativo de desempeño</p>
                 <h2 class="text-3xl font-black uppercase text-white tracking-tight leading-none">${v}</h2>
             </div>
 
-            <div class="surface p-5 rounded-[2rem] mb-6">
-                <p class="text-[11px] font-black muted uppercase tracking-widest mb-3">Comparar mes contra mes</p>
-                <div class="grid grid-cols-2 gap-3 mb-2">
+            <div class="surface p-4 rounded-2xl mb-5">
+                <p class="text-[11px] font-black muted uppercase tracking-widest mb-3">Selecciona los meses a comparar</p>
+                <div class="grid grid-cols-2 gap-3">
                     <div>
                         <label class="text-[9px] font-black muted uppercase">Mes A</label>
                         <select id="cmp-a" onchange="updateCmp('${esc(v)}')" class="themed w-full mt-1 p-3 rounded-xl font-black text-sm">${optsA}</select>
@@ -344,11 +350,11 @@
 
             <div id="cmp-results"></div>
 
-            <div class="flex items-center justify-between mt-8 mb-3">
-                <p class="text-[11px] font-black muted uppercase tracking-widest">Rendimiento anual</p>
+            <div class="flex items-center justify-between mt-9 mb-3">
+                <p class="text-[11px] font-black muted uppercase tracking-widest">Rendimiento por mes / año</p>
                 <div class="flex gap-2">
-                    <button id="am-imp" onclick="setAnnualMetric('${esc(v)}','imp')" class="chip-accent px-3 py-1.5 rounded-lg text-[10px] font-black uppercase">Importe</button>
-                    <button id="am-acu" onclick="setAnnualMetric('${esc(v)}','acu')" class="surface px-3 py-1.5 rounded-lg text-[10px] font-black uppercase txt">Acumuladores</button>
+                    <button id="am-imp" onclick="setAnnualMetric('${esc(v)}','imp')" class="chip-accent px-3 py-1.5 rounded-lg text-[10px] font-black uppercase">Importe $</button>
+                    <button id="am-acu" onclick="setAnnualMetric('${esc(v)}','acu')" class="surface txt px-3 py-1.5 rounded-lg text-[10px] font-black uppercase">Unidades</button>
                 </div>
             </div>
             <div id="cmp-annual"></div>`;
@@ -369,45 +375,73 @@
             const pb = document.getElementById('cmp-b').value;
             const ra = getRow(v,pa), rb = getRow(v,pb);
             const impA = n(ra['IMPORTE NETO']), impB = n(rb['IMPORTE NETO']);
+            const impD = impA - impB;
+            const impCol = impD>0?'var(--good)':(impD<0?'var(--bad)':'var(--muted)');
+            const impBg  = impD>0?'rgba(22,163,74,.12)':(impD<0?'rgba(220,38,38,.12)':'var(--surface-2)');
+            const impLbl = impD>0?'SUPERÁVIT':(impD<0?'DÉFICIT':'IGUAL');
 
-            let rows = deltaBlock('Importe Neto', impA, impB, true);
-            cats.forEach(c=>{ rows += deltaBlock(c.n, n(ra[c.r]), n(rb[c.r]), false); });
+            let filas = cats.map((c,i)=>{
+                const obj = n(ra[c.o]);
+                const rA  = n(ra[c.r]);
+                const rB  = n(rb[c.r]);
+                const d   = rA - rB;
+                const dCol = d>0?'var(--good)':(d<0?'var(--bad)':'var(--muted)');
+                const rACol = obj>0 ? (rA>=obj?'var(--good)':'var(--bad)') : 'var(--text)';
+                const cumpl = obj>0 ? Math.round(rA/obj*100) : null;
+                const bg = i%2===0 ? 'var(--surface)' : 'var(--surface-2)';
+                return `
+                <tr style="background:${bg}">
+                    <td class="px-3 py-3 text-[13px] font-black uppercase txt">${lineaCorta[c.n]||c.n}</td>
+                    <td class="px-2 py-3 text-center text-sm font-bold muted">${obj||'—'}</td>
+                    <td class="px-2 py-3 text-center text-base font-black" style="color:${rACol}">${rA}${cumpl!==null?`<span class="block text-[9px] font-bold" style="color:${rACol}">${cumpl}%</span>`:''}</td>
+                    <td class="px-2 py-3 text-center text-base font-black txt">${rB}</td>
+                    <td class="px-2 py-3 text-center text-base font-black" style="color:${dCol}">${d>0?'+':''}${d}</td>
+                </tr>`;
+            }).join('');
 
             const html = `
-            <div class="surface p-5 rounded-[2rem]">
-                <div class="grid grid-cols-2 gap-3 mb-5">
-                    <div class="cmp-cell p-4 text-center">
-                        <p class="text-[9px] font-black muted uppercase mb-1">Mes A</p>
-                        <p class="text-sm font-black txt">${pa}</p>
-                        <p class="text-2xl font-black mt-2" style="color:var(--navy-2)">$${f(impA)}</p>
+            <div class="surface rounded-2xl p-4 mb-4">
+                <p class="text-[10px] font-black muted uppercase tracking-widest mb-3 text-center">Importe Neto Total</p>
+                <div class="grid grid-cols-3 gap-2 items-stretch">
+                    <div class="text-center flex flex-col justify-center">
+                        <p class="text-[10px] font-black muted uppercase mb-1">${shortP(pa)}</p>
+                        <p class="text-2xl font-black leading-none" style="color:var(--navy-2)">$${f(impA)}</p>
                     </div>
-                    <div class="cmp-cell p-4 text-center">
-                        <p class="text-[9px] font-black muted uppercase mb-1">Mes B</p>
-                        <p class="text-sm font-black txt">${pb}</p>
-                        <p class="text-2xl font-black mt-2" style="color:var(--navy-2)">$${f(impB)}</p>
+                    <div class="text-center flex flex-col justify-center">
+                        <p class="text-[10px] font-black muted uppercase mb-1">${shortP(pb)}</p>
+                        <p class="text-2xl font-black leading-none" style="color:var(--navy-2)">$${f(impB)}</p>
+                    </div>
+                    <div class="text-center rounded-xl py-3 flex flex-col justify-center" style="background:${impBg}">
+                        <p class="text-[9px] font-black uppercase mb-1" style="color:${impCol}">${impLbl}</p>
+                        <p class="text-xl font-black leading-none" style="color:${impCol}">${impD>0?'+':''}$${f(impD)}</p>
                     </div>
                 </div>
-                ${rows}
+            </div>
+
+            <div class="surface rounded-2xl overflow-hidden">
+                <div class="px-4 pt-4 pb-2 flex items-center justify-between">
+                    <p class="text-[11px] font-black txt uppercase tracking-widest">Unidades por línea</p>
+                    <p class="text-[9px] font-bold muted uppercase">Real vs Objetivo</p>
+                </div>
+                <div class="overflow-x-auto">
+                <table class="w-full" style="border-collapse:collapse">
+                    <thead>
+                        <tr class="chip-navy">
+                            <th class="px-3 py-2 text-left text-[10px] font-black uppercase">Línea</th>
+                            <th class="px-2 py-2 text-center text-[10px] font-black uppercase">Obj</th>
+                            <th class="px-2 py-2 text-center text-[10px] font-black uppercase">${shortP(pa)}</th>
+                            <th class="px-2 py-2 text-center text-[10px] font-black uppercase">${shortP(pb)}</th>
+                            <th class="px-2 py-2 text-center text-[10px] font-black uppercase">A−B</th>
+                        </tr>
+                    </thead>
+                    <tbody>${filas}</tbody>
+                </table>
+                </div>
+                <p class="px-4 py-3 text-[10px] font-bold muted leading-snug" style="border-top:1px solid var(--border)">
+                    <span class="c-good">Verde</span> = ${shortP(pa)} vendió más (superávit) · <span class="c-bad">rojo</span> = vendió menos (déficit). El % bajo el real es el cumplimiento vs objetivo.
+                </p>
             </div>`;
             document.getElementById('cmp-results').innerHTML = html;
-        }
-
-        function deltaBlock(label, a, b, money){
-            const diff = a-b;
-            const pct = b!==0 ? (diff/Math.abs(b))*100 : (a!==0?100:0);
-            const up = diff>0, flat = diff===0;
-            const col = flat?'var(--muted)':(up?'var(--good)':'var(--bad)');
-            const ico = flat?'fa-minus':(up?'fa-arrow-trend-up':'fa-arrow-trend-down');
-            const fmt = x => money ? '$'+f(x) : f(x);
-            return `
-            <div class="flex items-center justify-between py-3" style="border-top:1px solid var(--border)">
-                <div class="w-1/3"><p class="text-[13px] font-black uppercase txt leading-tight">${label}</p></div>
-                <div class="w-1/3 text-center"><p class="text-lg font-black txt">${fmt(a)}</p><p class="text-[10px] muted font-bold">vs ${fmt(b)}</p></div>
-                <div class="w-1/3 text-right">
-                    <p class="text-base font-black" style="color:${col}"><i class="fas ${ico} text-xs mr-1"></i>${diff>0?'+':''}${f(diff)}</p>
-                    <p class="text-[11px] font-black" style="color:${col}">${pct>0?'+':''}${Math.round(pct)}%</p>
-                </div>
-            </div>`;
         }
 
         let annualMetric = 'imp';
@@ -421,52 +455,71 @@
         function renderAnnual(v){
             const years = [...new Set(db.filter(r=>r.VENDEDOR===v && r.MES).map(r=>r.AÑO))].sort((a,b)=>b-a);
             const curr = years[0], prev = years[1];
-            const field = annualMetric==='imp' ? 'IMPORTE NETO' : 'REAL ACUMULADORES';
-            const money = annualMetric==='imp';
+            const isImp = annualMetric==='imp';
+            const field = isImp ? 'IMPORTE NETO' : 'REAL ACUMULADORES';
             const val = (mes,anio)=>{ const row = db.find(r=>r.VENDEDOR===v && r.MES===mes && r.AÑO===anio); return row?n(row[field]):0; };
+            const objV = (mes,anio)=>{ const row = db.find(r=>r.VENDEDOR===v && r.MES===mes && r.AÑO===anio); return row?n(row['OBJ ACUMULADORES']):0; };
+            const fmt = x => isImp ? '$'+f(x) : f(x);
 
-            // meses del año actual con dato
-            const currVals = mesesRef.map(m=>({m, c:val(m,curr), p:prev?val(m,prev):0})).filter(x=>x.c>0 || x.p>0);
-            const activos = currVals.filter(x=>x.c>0);
-            const maxV = activos.length ? Math.max(...activos.map(x=>x.c)) : 0;
-            const minV = activos.length ? Math.min(...activos.map(x=>x.c)) : 0;
+            const rowsData = mesesRef.map(m=>({m, c:val(m,curr), p:prev?val(m,prev):0, o:objV(m,curr)})).filter(x=>x.c>0 || x.p>0);
+            const activos = rowsData.filter(x=>x.c>0);
+            const maxV = activos.length ? Math.max(...activos.map(x=>x.c)) : -1;
+            const minV = activos.length ? Math.min(...activos.map(x=>x.c)) : -1;
 
-            const ytdC = currVals.reduce((s,x)=>s+x.c,0);
-            const ytdP = currVals.reduce((s,x)=>s+x.p,0);
+            const ytdC = rowsData.reduce((s,x)=>s+x.c,0);
+            const ytdP = rowsData.reduce((s,x)=>s+x.p,0);
+            const ytdO = rowsData.reduce((s,x)=>s+x.o,0);
             const ytdDiff = ytdC-ytdP;
             const ytdPct = ytdP!==0 ? (ytdDiff/Math.abs(ytdP))*100 : (ytdC!==0?100:0);
-            const fmt = x => money ? '$'+f(x) : f(x);
             const good = ytdDiff>=0;
+            const cumplYTD = (!isImp && ytdO>0) ? Math.round(ytdC/ytdO*100) : null;
 
-            let cells = currVals.map(x=>{
+            const filas = rowsData.map(x=>{
                 const isHi = x.c===maxV && x.c>0;
                 const isLo = x.c===minV && x.c>0 && activos.length>1;
                 const d = x.c-x.p;
+                const pct = x.p!==0 ? Math.round(d/Math.abs(x.p)*100) : (x.c!==0?100:0);
                 const dcol = d>=0?'var(--good)':'var(--bad)';
+                const rowbg = isHi?'rgba(22,163,74,.12)':(isLo?'rgba(220,38,38,.10)':'transparent');
+                const tag = isHi?'<i class="fas fa-star c-good ml-1"></i>':(isLo?'<i class="fas fa-triangle-exclamation c-bad ml-1"></i>':'');
                 return `
-                <div class="cmp-cell p-3 ${isHi?'cmp-hi':''} ${isLo&&!isHi?'cmp-lo':''}">
-                    <div class="flex justify-between items-center mb-1">
-                        <p class="text-[10px] font-black muted uppercase">${x.m.slice(0,3)}</p>
-                        ${isHi?'<span class="text-[8px] font-black uppercase c-good"><i class="fas fa-star"></i> Alto</span>':''}
-                        ${isLo&&!isHi?'<span class="text-[8px] font-black uppercase c-bad"><i class="fas fa-triangle-exclamation"></i> Bajo</span>':''}
-                    </div>
-                    <p class="text-lg font-black txt leading-tight">${fmt(x.c)}</p>
-                    <p class="text-[10px] font-bold muted">${prev||''} ${prev?fmt(x.p):''}</p>
-                    ${prev?`<p class="text-[10px] font-black" style="color:${dcol}">${d>=0?'+':''}${f(d)}</p>`:''}
-                </div>`;
+                <tr style="background:${rowbg};border-top:1px solid var(--border)">
+                    <td class="px-3 py-3 text-[13px] font-black uppercase txt">${x.m.slice(0,3)}${tag}</td>
+                    <td class="px-2 py-3 text-center text-base font-black txt">${fmt(x.c)}</td>
+                    ${prev?`<td class="px-2 py-3 text-center text-sm font-bold muted">${fmt(x.p)}</td>`:''}
+                    <td class="px-2 py-3 text-center text-sm font-black" style="color:${dcol}">${d>=0?'+':''}${f(d)}</td>
+                    <td class="px-2 py-3 text-center text-[13px] font-black" style="color:${dcol}">${pct>0?'+':''}${pct}%</td>
+                </tr>`;
             }).join('');
 
             const html = `
             <div class="navy-grad p-6 rounded-[2rem] mb-4 text-white">
                 <div class="flex justify-between items-center mb-2">
                     <p class="text-[10px] font-black uppercase tracking-widest" style="color:var(--accent)">Acumulado ${curr}${prev?' vs '+prev:''}</p>
-                    <span class="px-3 py-1 rounded-lg text-[11px] font-black" style="background:${good?'var(--good)':'var(--bad)'};color:#fff">${ytdPct>0?'+':''}${Math.round(ytdPct)}%</span>
+                    <span class="px-3 py-1 rounded-lg text-[12px] font-black" style="background:${good?'var(--good)':'var(--bad)'};color:#fff">${ytdPct>0?'+':''}${Math.round(ytdPct)}%</span>
                 </div>
                 <p class="text-4xl font-black tracking-tight" style="color:var(--accent)">${fmt(ytdC)}</p>
                 ${prev?`<p class="text-[12px] font-bold mt-1" style="color:#94a3b8">${prev}: ${fmt(ytdP)} · Diferencia ${ytdDiff>=0?'+':''}${fmt(ytdDiff)}</p>`:''}
+                ${cumplYTD!==null?`<p class="text-[12px] font-black mt-1" style="color:var(--accent)">Cumplimiento vs objetivo: ${cumplYTD}% · ${f(ytdC)} de ${f(ytdO)} pzas</p>`:''}
             </div>
-            <div class="grid grid-cols-2 gap-3 mb-4">${cells}</div>
-            <p class="text-center text-[9px] font-bold muted uppercase mb-10 tracking-[0.3em]">
+
+            <div class="surface rounded-2xl overflow-hidden mb-4">
+                <div class="overflow-x-auto">
+                <table class="w-full" style="border-collapse:collapse">
+                    <thead>
+                        <tr class="chip-navy">
+                            <th class="px-3 py-2 text-left text-[10px] font-black uppercase">Mes</th>
+                            <th class="px-2 py-2 text-center text-[10px] font-black uppercase">${curr}</th>
+                            ${prev?`<th class="px-2 py-2 text-center text-[10px] font-black uppercase">${prev}</th>`:''}
+                            <th class="px-2 py-2 text-center text-[10px] font-black uppercase">Dif</th>
+                            <th class="px-2 py-2 text-center text-[10px] font-black uppercase">%</th>
+                        </tr>
+                    </thead>
+                    <tbody>${filas}</tbody>
+                </table>
+                </div>
+            </div>
+            <p class="text-center text-[10px] font-bold muted uppercase mb-10 tracking-[0.2em]">
                 <i class="fas fa-star c-good"></i> Mejor mes &nbsp;·&nbsp; <i class="fas fa-triangle-exclamation c-bad"></i> Mes más bajo
             </p>`;
             document.getElementById('cmp-annual').innerHTML = html;
