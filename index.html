@@ -150,6 +150,15 @@
         /* ===================== MENÚ PRINCIPAL ===================== */
         function renderMainMenu(){
             let html = `
+                <div onclick="renderConcurso()" class="glass-btn p-6 rounded-[2rem] mb-6 shadow-2xl flex items-center gap-4 relative overflow-hidden" style="background:linear-gradient(135deg,#5c2d0c 0%,#b45309 45%,#f59e0b 100%);border:2px solid #fbbf24">
+                    <div class="w-16 h-16 rounded-2xl flex items-center justify-center text-3xl shadow-lg shrink-0" style="background:rgba(0,0,0,.35);color:#fbbf24"><i class="fas fa-trophy"></i></div>
+                    <div class="min-w-0">
+                        <p class="text-[9px] font-black uppercase tracking-[0.25em] mb-0.5" style="color:#fde68a">Concurso LTH Lubricantes</p>
+                        <h4 class="text-xl font-black uppercase leading-tight text-white">Crecimiento en Litros</h4>
+                        <p class="text-[11px] font-black uppercase tracking-tight" style="color:#fde68a">Julio – Agosto 2026 · Premios Amazon</p>
+                    </div>
+                </div>
+
                 <p class="text-[12px] font-extrabold muted uppercase tracking-widest mb-6">Seleccione Módulo</p>
 
                 <div onclick="renderPeriods()" class="glass-btn p-7 rounded-[2rem] mb-5 chip-accent shadow-2xl flex items-center gap-5">
@@ -743,6 +752,157 @@
                     plugins:{ legend:{display:false}, tooltip:{callbacks:{label:c=>' $'+f(c.parsed.x)}} },
                     scales:{ x:{grid:{color:tc.grid}, ticks:{callback:v=>'$'+(v/1000000).toFixed(1)+'M'}}, y:{grid:{display:false}, ticks:{font:{weight:'700',size:10}}} } }
             });
+        }
+
+        /* ===================== MÓDULO CONCURSO LUBRICANTES ===================== */
+        // display: nombre a mostrar | aliases: variantes de VENDEDOR (col. F) que corresponden a la misma persona
+        const CONCURSO_VEND = [
+            {display:'CARLOS CALDERON',      aliases:['CARLOS CALDERON']},
+            {display:'MIGUEL',               aliases:['MIGUEL','MIGUEL LOZADA']},
+            {display:'RUBEN',                aliases:['RUBEN','RUBEN LEON']},
+            {display:'CS RIO MAYOREO',       aliases:['CS RIO MAYOREO']},
+            {display:'CS MAYOREO',           aliases:['CS MAYOREO']},
+            {display:'TIZAYUCA (CELENE)',    aliases:['TIZAYUCA (CELENE)']},
+            {display:'CS CD SAHAGUN MAYOREO',aliases:['CS CD SAHAGUN MAYOREO']}
+        ];
+
+        function lubOf(aliases, mes){
+            const rs = db.filter(x=>aliases.some(a=>norm(x.VENDEDOR)===norm(a)) && norm(x.MES)===mes && norm(x.AÑO)==='2026');
+            if(rs.length===0) return {has:false, val:0};
+            return {has:true, val:rs.reduce((s,r)=>s+n(r['REAL LUBRICANTES']),0)};
+        }
+        function concursoData(){
+            const rows = CONCURSO_VEND.map(({display,aliases})=>{
+                const v=display;
+                const mar=lubOf(aliases,'MARZO'), abr=lubOf(aliases,'ABRIL');
+                const jul=lubOf(aliases,'JULIO'), ago=lubOf(aliases,'AGOSTO');
+                const baseM=[mar,abr].filter(x=>x.has);
+                const baseProm = baseM.length ? baseM.reduce((s,x)=>s+x.val,0)/baseM.length : 0;
+                const compM=[jul,ago].filter(x=>x.has);
+                const compProm = compM.length ? compM.reduce((s,x)=>s+x.val,0)/compM.length : 0;
+                const hasComp = jul.has || ago.has;
+                const crec = hasComp ? compProm - baseProm : null;
+                const crecPct = (hasComp && baseProm>0) ? (crec/baseProm*100) : null;
+                return {v,mar,abr,jul,ago,baseProm,compProm,hasComp,crec,crecPct};
+            });
+            // ranking: primero los que ya tienen jul/ago, por mayor crecimiento
+            const conComp = rows.filter(r=>r.hasComp).sort((a,b)=>b.crec-a.crec);
+            conComp.forEach((r,i)=>r.pos=i+1);
+            return rows;
+        }
+
+        function renderConcurso(){
+            const data = concursoData();
+            const activo = data.some(r=>r.hasComp);
+            const lider = data.filter(r=>r.hasComp).sort((a,b)=>b.crec-a.crec)[0];
+
+            const cel = (o) => o.has ? f(o.val) : '—';
+
+            const cards = data.slice().sort((a,b)=>{
+                if(a.hasComp && b.hasComp) return b.crec-a.crec;
+                if(a.hasComp) return -1; if(b.hasComp) return 1;
+                return b.baseProm-a.baseProm;
+            }).map(r=>{
+                let badge = '<div class="w-9 h-9 rounded-full flex items-center justify-center font-black text-xs chip-navy shrink-0"><i class="fas fa-user"></i></div>';
+                if(r.pos===1) badge = '<div class="w-9 h-9 rounded-full flex items-center justify-center font-black text-sm shrink-0" style="background:#f5b700;color:#3a2500"><i class="fas fa-trophy"></i></div>';
+                else if(r.pos===2) badge = '<div class="w-9 h-9 rounded-full flex items-center justify-center font-black text-sm shrink-0" style="background:#cbd5e1;color:#1e293b"><i class="fas fa-medal"></i></div>';
+
+                let crecBadge;
+                if(r.hasComp){
+                    const col = r.crec>=0?'var(--good)':'var(--bad)';
+                    const bg  = r.crec>=0?'rgba(22,163,74,.14)':'rgba(220,38,38,.14)';
+                    crecBadge = `<div class="text-right rounded-xl px-3 py-1.5" style="background:${bg}">
+                        <p class="text-[8px] font-black uppercase" style="color:${col}">Crecimiento</p>
+                        <p class="text-base font-black leading-none" style="color:${col}">${r.crec>=0?'+':''}${f(r.crec)} <span class="text-[10px]">lts</span></p>
+                        ${r.crecPct!==null?`<p class="text-[10px] font-black" style="color:${col}">${r.crecPct>=0?'+':''}${Math.round(r.crecPct)}%</p>`:''}
+                    </div>`;
+                } else {
+                    crecBadge = `<div class="text-right rounded-xl px-3 py-1.5 surface-2"><p class="text-[9px] font-black muted uppercase leading-tight">En espera<br>de captura</p></div>`;
+                }
+
+                const miniCell = (lbl,val,accent)=>`<div class="rounded-lg py-2 text-center" style="background:${accent?'var(--surface)':'var(--surface-2)'}"><p class="text-[8px] font-black muted uppercase mb-0.5">${lbl}</p><p class="text-sm font-black txt">${val}</p></div>`;
+
+                return `
+                <div class="surface rounded-2xl p-4 mb-3" ${r.pos===1?'style="border:2px solid #f5b700"':(r.pos===2?'style="border:2px solid #cbd5e1"':'')}>
+                    <div class="flex items-center justify-between gap-2 mb-3">
+                        <div class="flex items-center gap-2 min-w-0">
+                            ${badge}
+                            <p class="font-black uppercase text-[15px] tracking-tight txt truncate">${r.v}</p>
+                        </div>
+                        ${crecBadge}
+                    </div>
+                    <p class="text-[9px] font-black uppercase tracking-widest mb-1" style="color:var(--brand)">Base · Marzo–Abril</p>
+                    <div class="grid grid-cols-3 gap-2 mb-3">
+                        ${miniCell('Mar-26', cel(r.mar))}
+                        ${miniCell('Abr-26', cel(r.abr))}
+                        ${miniCell('Promedio', r.baseProm?f(r.baseProm):'—', true)}
+                    </div>
+                    <p class="text-[9px] font-black uppercase tracking-widest mb-1" style="color:#b45309">Concurso · Julio–Agosto</p>
+                    <div class="grid grid-cols-3 gap-2">
+                        ${miniCell('Jul-26', r.jul.has?f(r.jul.val):'Pend.')}
+                        ${miniCell('Ago-26', r.ago.has?f(r.ago.val):'Pend.')}
+                        ${miniCell('Promedio', r.hasComp?f(r.compProm):'—', true)}
+                    </div>
+                </div>`;
+            }).join('');
+
+            let html = `
+            <button onclick="renderMainMenu()" class="mb-5 text-[10px] font-extrabold muted uppercase tracking-widest">← Volver al menú</button>
+
+            <div class="rounded-[2rem] p-7 mb-5 text-center relative overflow-hidden" style="background:linear-gradient(135deg,#3a1d08 0%,#7c3d0a 50%,#b45309 100%);border-bottom:4px solid #fbbf24">
+                <i class="fas fa-trophy text-4xl mb-3" style="color:#fbbf24"></i>
+                <p class="text-[10px] font-black uppercase tracking-[0.3em] mb-1" style="color:#fde68a">Concurso LTH Lubricantes</p>
+                <h2 class="text-3xl font-black uppercase text-white tracking-tight leading-none">Crecimiento en Volumen</h2>
+                <p class="text-[12px] font-black uppercase mt-2" style="color:#fde68a">Julio – Agosto 2026</p>
+            </div>
+
+            <div class="surface rounded-2xl p-5 mb-5">
+                <p class="text-[13px] font-black uppercase txt mb-2 tracking-tight">Estimado equipo de ventas</p>
+                <p class="text-[13px] muted leading-relaxed mb-3">Llanterama Tulancingo fue seleccionada dentro del <b class="txt">Top 10 de distribuidores</b> con mayor volumen de ventas de Lubricantes LTH — un reconocimiento a nuestro compromiso y desempeño comercial.</p>
+                <p class="text-[13px] muted leading-relaxed">Para celebrarlo, LTH lanza un concurso que <b class="txt">premia el crecimiento en litros</b> de toda la familia de lubricantes. ¡Es tu oportunidad de ganar!</p>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3 mb-5">
+                <div class="rounded-2xl p-5 text-center" style="background:#0f1826;border:2px solid #f5b700">
+                    <div class="flex items-center justify-center gap-1 mb-1"><i class="fas fa-trophy" style="color:#f5b700"></i><p class="text-[11px] font-black uppercase" style="color:#f5b700">1° Lugar</p></div>
+                    <p class="text-[10px] font-bold uppercase mb-1" style="color:#94a3b8">Tarjeta Amazon</p>
+                    <p class="text-3xl font-black text-white leading-none">$10,000</p>
+                </div>
+                <div class="rounded-2xl p-5 text-center" style="background:#0f1826;border:2px solid #cbd5e1">
+                    <div class="flex items-center justify-center gap-1 mb-1"><i class="fas fa-medal" style="color:#cbd5e1"></i><p class="text-[11px] font-black uppercase" style="color:#cbd5e1">2° Lugar</p></div>
+                    <p class="text-[10px] font-bold uppercase mb-1" style="color:#94a3b8">Tarjeta Amazon</p>
+                    <p class="text-3xl font-black text-white leading-none">$5,000</p>
+                </div>
+            </div>
+
+            <div class="surface rounded-2xl p-5 mb-5">
+                <p class="text-[13px] font-black uppercase txt mb-3 tracking-tight"><i class="fas fa-list-check mr-2" style="color:var(--accent)"></i>Mecánica del concurso</p>
+                <ul class="space-y-2 text-[13px] muted leading-snug">
+                    <li>• Individual por distribución; participan <b class="txt">todos los vendedores</b>.</li>
+                    <li>• Se acumula el <b class="txt">volumen de litros</b> de toda la familia de lubricantes por vendedor.</li>
+                    <li>• <b class="txt">Base:</b> promedio vendido en <b class="txt">marzo y abril 2026</b>.</li>
+                    <li>• <b class="txt">Reto:</b> incrementar los litros en <b class="txt">julio y agosto</b> respecto a esa base.</li>
+                    <li>• Gana quien logre el <b class="txt">mayor crecimiento en litros</b> al cierre.</li>
+                </ul>
+            </div>
+
+            ${activo ? `
+            <div class="rounded-2xl p-5 mb-5 text-white" style="background:linear-gradient(135deg,#065f46,#16a34a)">
+                <p class="text-[10px] font-black uppercase tracking-widest mb-1" style="color:#bbf7d0">Puntero actual</p>
+                <p class="text-2xl font-black uppercase leading-none">${lider.v}</p>
+                <p class="text-[13px] font-bold mt-1" style="color:#bbf7d0">+${f(lider.crec)} lts de crecimiento sobre su base</p>
+            </div>` : `
+            <div class="surface rounded-2xl p-4 mb-5 flex items-center gap-3" style="border-left:6px solid #b45309">
+                <i class="fas fa-hourglass-half text-xl" style="color:#b45309"></i>
+                <p class="text-[12px] muted leading-snug"><b class="txt">El concurso arranca con la base de marzo–abril.</b> Los litros de julio y agosto aparecerán automáticamente aquí conforme se capturen en el sistema.</p>
+            </div>`}
+
+            <p class="text-[11px] font-black muted uppercase tracking-widest mb-3">Registro de progreso · Litros de lubricante</p>
+            ${cards}
+
+            <p class="text-center text-[10px] font-bold muted mt-4 mb-10 leading-snug">Los litros de Julio y Agosto se actualizan solos al capturarlos en el Google Sheet.<br>Llanterama Tulancingo · Concurso LTH Lubricantes</p>`;
+            document.getElementById('content-area').innerHTML = html;
+            window.scrollTo(0,0);
         }
 
         /* ===================== HELPERS ===================== */
