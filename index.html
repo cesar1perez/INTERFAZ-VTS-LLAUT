@@ -868,53 +868,62 @@
             }
             return 0;
         }
+        function objLubDe(aliases, mes){
+            const rs = db.filter(x=>aliases.some(a=>norm(x.VENDEDOR)===norm(a)) && norm(x.MES)===mes && norm(x.AÑO)==='2026');
+            if(rs.length===0) return {has:false, val:0};
+            return {has:true, val:rs.reduce((s,r)=>s+n(r['OBJ LUBRICANTES']),0)};
+        }
         function concursoData(){
             const rows = CONCURSO_VEND.map(({display,aliases})=>{
                 const v=display;
                 const mar=lubOf(aliases,'MARZO'), abr=lubOf(aliases,'ABRIL');
                 const jul=lubOf(aliases,'JULIO'), ago=lubOf(aliases,'AGOSTO');
+                const oMar=objLubDe(aliases,'MARZO'), oAbr=objLubDe(aliases,'ABRIL');
+                const oJul=objLubDe(aliases,'JULIO'), oAgo=objLubDe(aliases,'AGOSTO');
                 const objMes = objLubActual(aliases);
-                const baseM=[mar,abr].filter(x=>x.has);
-                const baseProm = baseM.length ? baseM.reduce((s,x)=>s+x.val,0)/baseM.length : 0;
-                const baseTot = baseM.reduce((s,x)=>s+x.val,0);
-                const compM=[jul,ago].filter(x=>x.has);
-                const compProm = compM.length ? compM.reduce((s,x)=>s+x.val,0)/compM.length : 0;
-                const compTot = compM.reduce((s,x)=>s+x.val,0);
+                // BASE: total litros mar+abr vs suma de objetivos mar+abr
+                const baseTot = [mar,abr].filter(x=>x.has).reduce((s,x)=>s+x.val,0);
+                const baseObj = [oMar,oAbr].filter(x=>x.has).reduce((s,x)=>s+x.val,0);
+                const pctBase = baseObj>0 ? (baseTot/baseObj*100) : 0;
+                // CONCURSO: total litros jul+ago vs suma de objetivos jul+ago
+                const compTot = [jul,ago].filter(x=>x.has).reduce((s,x)=>s+x.val,0);
+                const compObj = [oJul,oAgo].filter(x=>x.has).reduce((s,x)=>s+x.val,0);
                 const hasComp = jul.has || ago.has;
-                const crec = hasComp ? compProm - baseProm : null;
-                const crecPct = (hasComp && baseProm>0) ? (crec/baseProm*100) : null;
-                return {v,mar,abr,jul,ago,objMes,baseProm,baseTot,compProm,compTot,hasComp,crec,crecPct};
+                const pctComp = (hasComp && compObj>0) ? (compTot/compObj*100) : null;
+                // GANADOR: avance en puntos porcentuales de cumplimiento (concurso - base)
+                const crecPts = (pctComp!==null) ? (pctComp - pctBase) : null;
+                return {v,mar,abr,jul,ago,objMes,baseTot,baseObj,pctBase,compTot,compObj,pctComp,hasComp,crecPts};
             });
-            // ranking: primero los que ya tienen jul/ago, por mayor crecimiento
-            const conComp = rows.filter(r=>r.hasComp).sort((a,b)=>b.crec-a.crec);
+            // ranking: primero los que ya tienen jul/ago, por mayor avance en puntos de cumplimiento
+            const conComp = rows.filter(r=>r.crecPts!==null).sort((a,b)=>b.crecPts-a.crecPts);
             conComp.forEach((r,i)=>r.pos=i+1);
             return rows;
         }
 
         function renderConcurso(){
             const data = concursoData();
-            const activo = data.some(r=>r.hasComp);
-            const lider = data.filter(r=>r.hasComp).sort((a,b)=>b.crec-a.crec)[0];
+            const activo = data.some(r=>r.crecPts!==null);
+            const lider = data.filter(r=>r.crecPts!==null).sort((a,b)=>b.crecPts-a.crecPts)[0];
 
             const cel = (o) => o.has ? f(o.val) : '—';
 
             const cards = data.slice().sort((a,b)=>{
-                if(a.hasComp && b.hasComp) return b.crec-a.crec;
-                if(a.hasComp) return -1; if(b.hasComp) return 1;
-                return b.baseProm-a.baseProm;
+                if(a.crecPts!==null && b.crecPts!==null) return b.crecPts-a.crecPts;
+                if(a.crecPts!==null) return -1; if(b.crecPts!==null) return 1;
+                return b.pctBase-a.pctBase;
             }).map(r=>{
                 let badge = '<div class="w-9 h-9 rounded-full flex items-center justify-center font-black text-xs chip-navy shrink-0"><i class="fas fa-user"></i></div>';
                 if(r.pos===1) badge = '<div class="w-9 h-9 rounded-full flex items-center justify-center font-black text-sm shrink-0" style="background:#f5b700;color:#3a2500"><i class="fas fa-trophy"></i></div>';
                 else if(r.pos===2) badge = '<div class="w-9 h-9 rounded-full flex items-center justify-center font-black text-sm shrink-0" style="background:#cbd5e1;color:#1e293b"><i class="fas fa-medal"></i></div>';
 
                 let crecBadge;
-                if(r.hasComp){
-                    const col = r.crec>=0?'var(--good)':'var(--bad)';
-                    const bg  = r.crec>=0?'rgba(22,163,74,.14)':'rgba(220,38,38,.14)';
+                if(r.crecPts!==null){
+                    const col = r.crecPts>=0?'var(--good)':'var(--bad)';
+                    const bg  = r.crecPts>=0?'rgba(22,163,74,.14)':'rgba(220,38,38,.14)';
                     crecBadge = `<div class="text-right rounded-xl px-3 py-1.5" style="background:${bg}">
-                        <p class="text-[8px] font-black uppercase" style="color:${col}">Crecimiento</p>
-                        <p class="text-base font-black leading-none" style="color:${col}">${r.crec>=0?'+':''}${f(r.crec)} <span class="text-[10px]">lts</span></p>
-                        ${r.crecPct!==null?`<p class="text-[10px] font-black" style="color:${col}">${r.crecPct>=0?'+':''}${Math.round(r.crecPct)}%</p>`:''}
+                        <p class="text-[8px] font-black uppercase" style="color:${col}">Avance vs base</p>
+                        <p class="text-base font-black leading-none" style="color:${col}">${r.crecPts>=0?'+':''}${r.crecPts.toFixed(1)} <span class="text-[10px]">pts</span></p>
+                        <p class="text-[10px] font-black" style="color:${col}">${Math.round(r.pctBase)}% → ${Math.round(r.pctComp)}%</p>
                     </div>`;
                 } else {
                     crecBadge = `<div class="text-right rounded-xl px-3 py-1.5 surface-2"><p class="text-[9px] font-black muted uppercase leading-tight">En espera<br>de captura</p></div>`;
@@ -935,26 +944,35 @@
                         <i class="fas fa-bullseye text-sm" style="color:#b45309"></i>
                         <p class="text-[11px] font-black uppercase" style="color:#b45309">Objetivo mensual lubricante: <span class="text-[13px]">${f(r.objMes)} lts</span></p>
                     </div>`:''}
-                    <p class="text-[9px] font-black uppercase tracking-widest mb-1" style="color:var(--brand)">Base · Marzo–Abril</p>
+                    <p class="text-[9px] font-black uppercase tracking-widest mb-1" style="color:var(--brand)">Base · Marzo–Abril · Real vs Objetivo</p>
                     <div class="grid grid-cols-3 gap-2 mb-2">
                         ${miniCell('Mar-26', cel(r.mar))}
                         ${miniCell('Abr-26', cel(r.abr))}
-                        ${miniCell('Promedio', r.baseProm?f(r.baseProm):'—', true)}
+                        ${miniCell('Obj M+A', r.baseObj?f(r.baseObj):'—')}
                     </div>
-                    <div class="flex items-center justify-between rounded-xl px-4 py-2.5 mb-3 navy-grad">
-                        <p class="text-[10px] font-black uppercase tracking-widest text-white"><i class="fas fa-droplet mr-1" style="color:var(--accent)"></i>Total litros base</p>
-                        <p class="text-xl font-black leading-none" style="color:var(--accent)">${f(r.baseTot)} <span class="text-[10px]">LTS</span></p>
+                    <div class="flex items-center justify-between rounded-xl px-4 py-2.5 mb-1 navy-grad">
+                        <div>
+                            <p class="text-[10px] font-black uppercase tracking-widest text-white"><i class="fas fa-droplet mr-1" style="color:var(--accent)"></i>Vendido: ${f(r.baseTot)} lts</p>
+                            <p class="text-[9px] font-bold uppercase" style="color:#94a3b8">de ${f(r.baseObj)} lts de objetivo</p>
+                        </div>
+                        <p class="text-2xl font-black leading-none" style="color:var(--accent)">${Math.round(r.pctBase)}%</p>
                     </div>
-                    <p class="text-[9px] font-black uppercase tracking-widest mb-1" style="color:#b45309">Concurso · Julio–Agosto</p>
+                    <div class="h-2 rounded-full overflow-hidden mb-3" style="background:var(--surface-2)"><div style="width:${Math.min(r.pctBase,100)}%;background:var(--accent)" class="h-full rounded-full"></div></div>
+
+                    <p class="text-[9px] font-black uppercase tracking-widest mb-1" style="color:#b45309">Concurso · Julio–Agosto · Real vs Objetivo</p>
                     <div class="grid grid-cols-3 gap-2 mb-2">
                         ${miniCell('Jul-26', r.jul.has?f(r.jul.val):'Pend.')}
                         ${miniCell('Ago-26', r.ago.has?f(r.ago.val):'Pend.')}
-                        ${miniCell('Promedio', r.hasComp?f(r.compProm):'—', true)}
+                        ${miniCell('Obj J+A', r.compObj?f(r.compObj):'Pend.')}
                     </div>
-                    <div class="flex items-center justify-between rounded-xl px-4 py-2.5" style="background:linear-gradient(135deg,#7c3d0a,#b45309)">
-                        <p class="text-[10px] font-black uppercase tracking-widest text-white"><i class="fas fa-fire mr-1" style="color:#fde68a"></i>Litros del concurso</p>
-                        <p class="text-xl font-black leading-none" style="color:#fde68a">${r.hasComp?f(r.compTot):'—'} <span class="text-[10px]">LTS</span></p>
+                    <div class="flex items-center justify-between rounded-xl px-4 py-2.5 mb-1" style="background:linear-gradient(135deg,#7c3d0a,#b45309)">
+                        <div>
+                            <p class="text-[10px] font-black uppercase tracking-widest text-white"><i class="fas fa-fire mr-1" style="color:#fde68a"></i>Vendido: ${r.hasComp?f(r.compTot)+' lts':'—'}</p>
+                            <p class="text-[9px] font-bold uppercase" style="color:#fcd9a8">${r.compObj?('de '+f(r.compObj)+' lts de objetivo'):'objetivo por capturar'}</p>
+                        </div>
+                        <p class="text-2xl font-black leading-none" style="color:#fde68a">${r.pctComp!==null?Math.round(r.pctComp)+'%':'—'}</p>
                     </div>
+                    <div class="h-2 rounded-full overflow-hidden" style="background:var(--surface-2)"><div style="width:${r.pctComp!==null?Math.min(r.pctComp,100):0}%;background:#f59e0b" class="h-full rounded-full"></div></div>
                 </div>`;
             }).join('');
 
@@ -971,7 +989,7 @@
             <div class="surface rounded-2xl p-5 mb-5">
                 <p class="text-[13px] font-black uppercase txt mb-2 tracking-tight">Estimado equipo de ventas</p>
                 <p class="text-[13px] muted leading-relaxed mb-3">Llanterama Tulancingo fue seleccionada dentro del <b class="txt">Top 10 de distribuidores</b> con mayor volumen de ventas de Lubricantes LTH — un reconocimiento a nuestro compromiso y desempeño comercial.</p>
-                <p class="text-[13px] muted leading-relaxed">Para celebrarlo, LTH lanza un concurso que <b class="txt">premia el crecimiento en litros</b> de toda la familia de lubricantes. ¡Es tu oportunidad de ganar!</p>
+                <p class="text-[13px] muted leading-relaxed">Para celebrarlo, lanzamos un concurso que premia el <b class="txt">avance en el cumplimiento de tu objetivo de lubricantes</b>. Cada quien compite contra su propia meta, en igualdad de condiciones. ¡Es tu oportunidad de ganar!</p>
             </div>
 
             <div class="grid grid-cols-2 gap-3 mb-5">
@@ -990,23 +1008,27 @@
             <div class="surface rounded-2xl p-5 mb-5">
                 <p class="text-[13px] font-black uppercase txt mb-3 tracking-tight"><i class="fas fa-list-check mr-2" style="color:var(--accent)"></i>Mecánica del concurso</p>
                 <ul class="space-y-2 text-[13px] muted leading-snug">
-                    <li>• Individual por distribución; participan <b class="txt">todos los vendedores</b>.</li>
-                    <li>• Se acumula el <b class="txt">volumen de litros</b> de toda la familia de lubricantes por vendedor.</li>
-                    <li>• <b class="txt">Base:</b> promedio vendido en <b class="txt">marzo y abril 2026</b>.</li>
-                    <li>• <b class="txt">Reto:</b> incrementar los litros en <b class="txt">julio y agosto</b> respecto a esa base.</li>
-                    <li>• Gana quien logre el <b class="txt">mayor crecimiento en litros</b> al cierre.</li>
+                    <li>• El concurso es <b class="txt">individual</b>; participan todos los vendedores de la distribución.</li>
+                    <li>• Se acumula el <b class="txt">volumen total de litros facturados</b> de toda la familia de lubricantes LTH por vendedor.</li>
+                    <li>• <b class="txt">Periodo base:</b> los litros vendidos en <b class="txt">marzo + abril 2026</b> se miden contra la suma del <b class="txt">objetivo mensual</b> de ambos meses, obteniendo el <b class="txt">% de cumplimiento base</b>.</li>
+                    <li>• <b class="txt">Periodo de concurso:</b> los litros de <b class="txt">julio + agosto 2026</b> se miden contra la suma de sus objetivos, obteniendo el <b class="txt">% de cumplimiento del concurso</b>.</li>
+                    <li>• <b class="txt">Ganador:</b> obtiene el primer lugar quien logre el <b class="txt">mayor avance en puntos porcentuales</b> entre su cumplimiento base y su cumplimiento del concurso.</li>
+                    <li>• Cada participante compite <b class="txt">contra su propio objetivo</b>: la medición es equitativa sin importar el tamaño de su cartera o territorio.</li>
                 </ul>
+                <div class="rounded-xl px-4 py-3 mt-3 surface-2" style="border-left:4px solid var(--accent)">
+                    <p class="text-[11px] font-bold muted leading-snug"><b class="txt">Ejemplo:</b> si en marzo–abril cumpliste al 63% de tu objetivo y en julio–agosto llegas al 90%, tu avance es de <b class="txt">+27 puntos</b>. Ese número es el que compite.</p>
+                </div>
             </div>
 
             ${activo ? `
             <div class="rounded-2xl p-5 mb-5 text-white" style="background:linear-gradient(135deg,#065f46,#16a34a)">
                 <p class="text-[10px] font-black uppercase tracking-widest mb-1" style="color:#bbf7d0">Puntero actual</p>
                 <p class="text-2xl font-black uppercase leading-none">${lider.v}</p>
-                <p class="text-[13px] font-bold mt-1" style="color:#bbf7d0">+${f(lider.crec)} lts de crecimiento sobre su base</p>
+                <p class="text-[13px] font-bold mt-1" style="color:#bbf7d0">${lider.crecPts>=0?'+':''}${lider.crecPts.toFixed(1)} pts de avance · ${Math.round(lider.pctBase)}% base → ${Math.round(lider.pctComp)}% concurso</p>
             </div>` : `
             <div class="surface rounded-2xl p-4 mb-5 flex items-center gap-3" style="border-left:6px solid #b45309">
                 <i class="fas fa-hourglass-half text-xl" style="color:#b45309"></i>
-                <p class="text-[12px] muted leading-snug"><b class="txt">El concurso arranca con la base de marzo–abril.</b> Los litros de julio y agosto aparecerán automáticamente aquí conforme se capturen en el sistema.</p>
+                <p class="text-[12px] muted leading-snug"><b class="txt">El concurso arranca con el % de cumplimiento base de marzo–abril.</b> Los litros y objetivos de julio y agosto aparecerán automáticamente aquí conforme se capturen en el sistema.</p>
             </div>`}
 
             <p class="text-[11px] font-black muted uppercase tracking-widest mb-3">Registro de progreso · Litros de lubricante</p>
