@@ -873,17 +873,6 @@
             if(rs.length===0) return {has:false, val:0};
             return {has:true, val:rs.reduce((s,r)=>s+n(r['OBJ LUBRICANTES']),0)};
         }
-        // Factor de prorrateo: si el mes está en curso, el objetivo cuenta por días transcurridos
-        function factorMes(mes){
-            const idx = mesesRef.indexOf(mes);
-            const hoy = new Date();
-            const anio = 2026;
-            const ultimoDia = new Date(anio, idx+1, 0).getDate();
-            const finMes = new Date(anio, idx, ultimoDia, 23, 59, 59);
-            const iniMes = new Date(anio, idx, 1);
-            if(hoy >= finMes || hoy < iniMes) return 1;           // mes cerrado (o futuro capturado): objetivo completo
-            return Math.max(hoy.getDate() / ultimoDia, 1/ultimoDia); // mes en curso: proporcional a días transcurridos
-        }
         function concursoData(){
             const rows = CONCURSO_VEND.map(({display,aliases})=>{
                 const v=display;
@@ -892,38 +881,34 @@
                 const oMar=objLubDe(aliases,'MARZO'), oAbr=objLubDe(aliases,'ABRIL');
                 const oJul=objLubDe(aliases,'JULIO'), oAgo=objLubDe(aliases,'AGOSTO');
                 const objMes = objLubActual(aliases);
-                // BASE: total litros mar+abr vs suma de objetivos mar+abr (meses cerrados)
+                // BASE (solo referencia informativa, NO participa en la premiación)
                 const baseTot = [mar,abr].filter(x=>x.has).reduce((s,x)=>s+x.val,0);
                 const baseObj = [oMar,oAbr].filter(x=>x.has).reduce((s,x)=>s+x.val,0);
                 const pctBase = baseObj>0 ? (baseTot/baseObj*100) : 0;
-                // CONCURSO: total litros jul+ago vs objetivos (prorrateados si el mes va en curso)
-                const partes = [{r:jul,o:oJul,m:'JULIO'},{r:ago,o:oAgo,m:'AGOSTO'}].filter(x=>x.r.has);
+                // CONCURSO: litros reales jul+ago vs OBJETIVO TOTAL de cada mes capturado
+                const partes = [{r:jul,o:oJul},{r:ago,o:oAgo}].filter(x=>x.r.has);
                 const compTot = partes.reduce((s,x)=>s+x.r.val,0);
-                const compObjFull = partes.reduce((s,x)=>s+x.o.val,0);
-                const compObj = partes.reduce((s,x)=>s+x.o.val*factorMes(x.m),0);
-                const prorrateado = compObj < compObjFull - 0.5;
+                const compObj = partes.reduce((s,x)=>s+x.o.val,0);
                 const hasComp = partes.length>0;
                 const pctComp = (hasComp && compObj>0) ? (compTot/compObj*100) : null;
-                // GANADOR: avance en puntos porcentuales de cumplimiento (concurso - base)
-                const crecPts = (pctComp!==null) ? (pctComp - pctBase) : null;
-                return {v,mar,abr,jul,ago,objMes,baseTot,baseObj,pctBase,compTot,compObj,compObjFull,prorrateado,pctComp,hasComp,crecPts};
+                return {v,mar,abr,jul,ago,objMes,baseTot,baseObj,pctBase,compTot,compObj,hasComp,pctComp};
             });
-            // ranking: primero los que ya tienen jul/ago, por mayor avance en puntos de cumplimiento
-            const conComp = rows.filter(r=>r.crecPts!==null).sort((a,b)=>b.crecPts-a.crecPts);
+            // ranking: mayor % de cumplimiento del objetivo en julio–agosto
+            const conComp = rows.filter(r=>r.pctComp!==null).sort((a,b)=>b.pctComp-a.pctComp);
             conComp.forEach((r,i)=>r.pos=i+1);
             return rows;
         }
 
         function renderConcurso(){
             const data = concursoData();
-            const activo = data.some(r=>r.crecPts!==null);
-            const lider = data.filter(r=>r.crecPts!==null).sort((a,b)=>b.crecPts-a.crecPts)[0];
+            const activo = data.some(r=>r.pctComp!==null);
+            const lider = data.filter(r=>r.pctComp!==null).sort((a,b)=>b.pctComp-a.pctComp)[0];
 
             const cel = (o) => o.has ? f(o.val) : '—';
 
             const cards = data.slice().sort((a,b)=>{
-                if(a.crecPts!==null && b.crecPts!==null) return b.crecPts-a.crecPts;
-                if(a.crecPts!==null) return -1; if(b.crecPts!==null) return 1;
+                if(a.pctComp!==null && b.pctComp!==null) return b.pctComp-a.pctComp;
+                if(a.pctComp!==null) return -1; if(b.pctComp!==null) return 1;
                 return b.pctBase-a.pctBase;
             }).map(r=>{
                 let badge = '<div class="w-9 h-9 rounded-full flex items-center justify-center font-black text-xs chip-navy shrink-0"><i class="fas fa-user"></i></div>';
@@ -931,13 +916,13 @@
                 else if(r.pos===2) badge = '<div class="w-9 h-9 rounded-full flex items-center justify-center font-black text-sm shrink-0" style="background:#cbd5e1;color:#1e293b"><i class="fas fa-medal"></i></div>';
 
                 let crecBadge;
-                if(r.crecPts!==null){
-                    const col = r.crecPts>=0?'var(--good)':'var(--bad)';
-                    const bg  = r.crecPts>=0?'rgba(22,163,74,.14)':'rgba(220,38,38,.14)';
+                if(r.pctComp!==null){
+                    const col = r.pctComp>=100?'var(--good)':(r.pctComp>=70?'#b45309':'var(--bad)');
+                    const bg  = r.pctComp>=100?'rgba(22,163,74,.14)':(r.pctComp>=70?'rgba(245,158,11,.14)':'rgba(220,38,38,.14)');
                     crecBadge = `<div class="text-right rounded-xl px-3 py-1.5" style="background:${bg}">
-                        <p class="text-[8px] font-black uppercase" style="color:${col}">Avance vs base</p>
-                        <p class="text-base font-black leading-none" style="color:${col}">${r.crecPts>=0?'+':''}${r.crecPts.toFixed(1)} <span class="text-[10px]">pts</span></p>
-                        <p class="text-[10px] font-black" style="color:${col}">${Math.round(r.pctBase)}% → ${Math.round(r.pctComp)}%</p>
+                        <p class="text-[8px] font-black uppercase" style="color:${col}">Cumplimiento</p>
+                        <p class="text-xl font-black leading-none" style="color:${col}">${Math.round(r.pctComp)}%</p>
+                        <p class="text-[9px] font-black uppercase" style="color:${col}">Jul–Ago vs objetivo</p>
                     </div>`;
                 } else {
                     crecBadge = `<div class="text-right rounded-xl px-3 py-1.5 surface-2"><p class="text-[9px] font-black muted uppercase leading-tight">En espera<br>de captura</p></div>`;
@@ -958,7 +943,7 @@
                         <i class="fas fa-bullseye text-sm" style="color:#b45309"></i>
                         <p class="text-[11px] font-black uppercase" style="color:#b45309">Objetivo mensual lubricante: <span class="text-[13px]">${f(r.objMes)} lts</span></p>
                     </div>`:''}
-                    <p class="text-[9px] font-black uppercase tracking-widest mb-1" style="color:var(--brand)">Base · Marzo–Abril · Real vs Objetivo</p>
+                    <p class="text-[9px] font-black uppercase tracking-widest mb-1" style="color:var(--brand)">Referencia · Marzo–Abril <span class="muted normal-case">(informativa, no participa)</span></p>
                     <div class="grid grid-cols-3 gap-2 mb-2">
                         ${miniCell('Mar-26', cel(r.mar))}
                         ${miniCell('Abr-26', cel(r.abr))}
@@ -973,16 +958,16 @@
                     </div>
                     <div class="h-2 rounded-full overflow-hidden mb-3" style="background:var(--surface-2)"><div style="width:${Math.min(r.pctBase,100)}%;background:var(--accent)" class="h-full rounded-full"></div></div>
 
-                    <p class="text-[9px] font-black uppercase tracking-widest mb-1" style="color:#b45309">Concurso · Julio–Agosto · Real vs Objetivo</p>
+                    <p class="text-[9px] font-black uppercase tracking-widest mb-1" style="color:#b45309">Concurso · Julio–Agosto · Real vs Objetivo Total</p>
                     <div class="grid grid-cols-3 gap-2 mb-2">
                         ${miniCell('Jul-26', r.jul.has?f(r.jul.val):'Pend.')}
                         ${miniCell('Ago-26', r.ago.has?f(r.ago.val):'Pend.')}
-                        ${miniCell('Obj J+A', r.compObjFull?f(r.compObjFull):'Pend.')}
+                        ${miniCell('Obj J+A', r.compObj?f(r.compObj):'Pend.')}
                     </div>
                     <div class="flex items-center justify-between rounded-xl px-4 py-2.5 mb-1" style="background:linear-gradient(135deg,#7c3d0a,#b45309)">
                         <div>
                             <p class="text-[10px] font-black uppercase tracking-widest text-white"><i class="fas fa-fire mr-1" style="color:#fde68a"></i>Vendido: ${r.hasComp?f(r.compTot)+' lts':'—'}</p>
-                            <p class="text-[9px] font-bold uppercase" style="color:#fcd9a8">${r.compObj?('de '+f(r.compObj)+' lts de objetivo'+(r.prorrateado?' al corte de hoy':'')):'objetivo por capturar'}</p>
+                            <p class="text-[9px] font-bold uppercase" style="color:#fcd9a8">${r.compObj?('de '+f(r.compObj)+' lts de objetivo total'):'objetivo por capturar'}</p>
                         </div>
                         <p class="text-2xl font-black leading-none" style="color:#fde68a">${r.pctComp!==null?Math.round(r.pctComp)+'%':'—'}</p>
                     </div>
@@ -1003,7 +988,7 @@
             <div class="surface rounded-2xl p-5 mb-5">
                 <p class="text-[13px] font-black uppercase txt mb-2 tracking-tight">Estimado equipo de ventas</p>
                 <p class="text-[13px] muted leading-relaxed mb-3">Llanterama Tulancingo fue seleccionada dentro del <b class="txt">Top 10 de distribuidores</b> con mayor volumen de ventas de Lubricantes LTH — un reconocimiento a nuestro compromiso y desempeño comercial.</p>
-                <p class="text-[13px] muted leading-relaxed">Para celebrarlo, lanzamos un concurso que premia el <b class="txt">avance en el cumplimiento de tu objetivo de lubricantes</b>. Cada quien compite contra su propia meta, en igualdad de condiciones. ¡Es tu oportunidad de ganar!</p>
+                <p class="text-[13px] muted leading-relaxed">Para celebrarlo, lanzamos un concurso que premia el <b class="txt">cumplimiento de tu objetivo de lubricantes en julio y agosto</b>. Cada quien compite contra su propia meta, en igualdad de condiciones. ¡Es tu oportunidad de ganar!</p>
             </div>
 
             <div class="grid grid-cols-2 gap-3 mb-5">
@@ -1024,14 +1009,13 @@
                 <ul class="space-y-2 text-[13px] muted leading-snug">
                     <li>• El concurso es <b class="txt">individual</b>; participan todos los vendedores de la distribución.</li>
                     <li>• Se acumula el <b class="txt">volumen total de litros facturados</b> de toda la familia de lubricantes LTH por vendedor.</li>
-                    <li>• <b class="txt">Periodo base:</b> los litros vendidos en <b class="txt">marzo + abril 2026</b> se miden contra la suma del <b class="txt">objetivo mensual</b> de ambos meses, obteniendo el <b class="txt">% de cumplimiento base</b>.</li>
-                    <li>• <b class="txt">Periodo de concurso:</b> los litros de <b class="txt">julio + agosto 2026</b> se miden contra la suma de sus objetivos, obteniendo el <b class="txt">% de cumplimiento del concurso</b>.</li>
-                    <li>• <b class="txt">Ganador:</b> obtiene el primer lugar quien logre el <b class="txt">mayor avance en puntos porcentuales</b> entre su cumplimiento base y su cumplimiento del concurso.</li>
+                    <li>• <b class="txt">Periodo del concurso:</b> los litros vendidos en <b class="txt">julio + agosto 2026</b> se miden contra la <b class="txt">suma del objetivo mensual completo</b> de ambos meses.</li>
+                    <li>• <b class="txt">Ganador:</b> obtiene el primer lugar quien alcance el <b class="txt">mayor porcentaje de cumplimiento</b> de su objetivo al cierre del concurso; el segundo lugar es el siguiente porcentaje más alto.</li>
                     <li>• Cada participante compite <b class="txt">contra su propio objetivo</b>: la medición es equitativa sin importar el tamaño de su cartera o territorio.</li>
-                    <li>• Mientras un mes está <b class="txt">en curso</b>, su objetivo se <b class="txt">prorratea por los días transcurridos</b>, para que el porcentaje sea justo y comparable en tiempo real. Al cierre del mes cuenta el objetivo completo.</li>
+                    <li>• Los resultados de <b class="txt">marzo–abril</b> se muestran únicamente como <b class="txt">referencia informativa</b> del desempeño previo; <b class="txt">no participan</b> en la premiación.</li>
                 </ul>
                 <div class="rounded-xl px-4 py-3 mt-3 surface-2" style="border-left:4px solid var(--accent)">
-                    <p class="text-[11px] font-bold muted leading-snug"><b class="txt">Ejemplo:</b> si en marzo–abril cumpliste al 63% de tu objetivo y en julio–agosto llegas al 90%, tu avance es de <b class="txt">+27 puntos</b>. Ese número es el que compite.</p>
+                    <p class="text-[11px] font-bold muted leading-snug"><b class="txt">Ejemplo:</b> si tu objetivo es 10,000 lts en julio y 10,000 lts en agosto (20,000 en total) y facturas 18,500 lts, tu cumplimiento es <b class="txt">92.5%</b>. Ese porcentaje es el que compite.</p>
                 </div>
             </div>
 
@@ -1039,11 +1023,11 @@
             <div class="rounded-2xl p-5 mb-5 text-white" style="background:linear-gradient(135deg,#065f46,#16a34a)">
                 <p class="text-[10px] font-black uppercase tracking-widest mb-1" style="color:#bbf7d0">Puntero actual</p>
                 <p class="text-2xl font-black uppercase leading-none">${lider.v}</p>
-                <p class="text-[13px] font-bold mt-1" style="color:#bbf7d0">${lider.crecPts>=0?'+':''}${lider.crecPts.toFixed(1)} pts de avance · ${Math.round(lider.pctBase)}% base → ${Math.round(lider.pctComp)}% concurso</p>
+                <p class="text-[13px] font-bold mt-1" style="color:#bbf7d0">${Math.round(lider.pctComp)}% de cumplimiento · ${f(lider.compTot)} de ${f(lider.compObj)} lts</p>
             </div>` : `
             <div class="surface rounded-2xl p-4 mb-5 flex items-center gap-3" style="border-left:6px solid #b45309">
                 <i class="fas fa-hourglass-half text-xl" style="color:#b45309"></i>
-                <p class="text-[12px] muted leading-snug"><b class="txt">El concurso arranca con el % de cumplimiento base de marzo–abril.</b> Los litros y objetivos de julio y agosto aparecerán automáticamente aquí conforme se capturen en el sistema.</p>
+                <p class="text-[12px] muted leading-snug"><b class="txt">El concurso se define por el % de cumplimiento del objetivo en julio–agosto.</b> Los litros y objetivos de esos meses aparecerán automáticamente aquí conforme se capturen en el sistema.</p>
             </div>`}
 
             <p class="text-[11px] font-black muted uppercase tracking-widest mb-3">Registro de progreso · Litros de lubricante</p>
