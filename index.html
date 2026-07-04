@@ -873,6 +873,17 @@
             if(rs.length===0) return {has:false, val:0};
             return {has:true, val:rs.reduce((s,r)=>s+n(r['OBJ LUBRICANTES']),0)};
         }
+        // Factor de prorrateo: si el mes está en curso, el objetivo cuenta por días transcurridos
+        function factorMes(mes){
+            const idx = mesesRef.indexOf(mes);
+            const hoy = new Date();
+            const anio = 2026;
+            const ultimoDia = new Date(anio, idx+1, 0).getDate();
+            const finMes = new Date(anio, idx, ultimoDia, 23, 59, 59);
+            const iniMes = new Date(anio, idx, 1);
+            if(hoy >= finMes || hoy < iniMes) return 1;           // mes cerrado (o futuro capturado): objetivo completo
+            return Math.max(hoy.getDate() / ultimoDia, 1/ultimoDia); // mes en curso: proporcional a días transcurridos
+        }
         function concursoData(){
             const rows = CONCURSO_VEND.map(({display,aliases})=>{
                 const v=display;
@@ -881,18 +892,21 @@
                 const oMar=objLubDe(aliases,'MARZO'), oAbr=objLubDe(aliases,'ABRIL');
                 const oJul=objLubDe(aliases,'JULIO'), oAgo=objLubDe(aliases,'AGOSTO');
                 const objMes = objLubActual(aliases);
-                // BASE: total litros mar+abr vs suma de objetivos mar+abr
+                // BASE: total litros mar+abr vs suma de objetivos mar+abr (meses cerrados)
                 const baseTot = [mar,abr].filter(x=>x.has).reduce((s,x)=>s+x.val,0);
                 const baseObj = [oMar,oAbr].filter(x=>x.has).reduce((s,x)=>s+x.val,0);
                 const pctBase = baseObj>0 ? (baseTot/baseObj*100) : 0;
-                // CONCURSO: total litros jul+ago vs suma de objetivos jul+ago
-                const compTot = [jul,ago].filter(x=>x.has).reduce((s,x)=>s+x.val,0);
-                const compObj = [oJul,oAgo].filter(x=>x.has).reduce((s,x)=>s+x.val,0);
-                const hasComp = jul.has || ago.has;
+                // CONCURSO: total litros jul+ago vs objetivos (prorrateados si el mes va en curso)
+                const partes = [{r:jul,o:oJul,m:'JULIO'},{r:ago,o:oAgo,m:'AGOSTO'}].filter(x=>x.r.has);
+                const compTot = partes.reduce((s,x)=>s+x.r.val,0);
+                const compObjFull = partes.reduce((s,x)=>s+x.o.val,0);
+                const compObj = partes.reduce((s,x)=>s+x.o.val*factorMes(x.m),0);
+                const prorrateado = compObj < compObjFull - 0.5;
+                const hasComp = partes.length>0;
                 const pctComp = (hasComp && compObj>0) ? (compTot/compObj*100) : null;
                 // GANADOR: avance en puntos porcentuales de cumplimiento (concurso - base)
                 const crecPts = (pctComp!==null) ? (pctComp - pctBase) : null;
-                return {v,mar,abr,jul,ago,objMes,baseTot,baseObj,pctBase,compTot,compObj,pctComp,hasComp,crecPts};
+                return {v,mar,abr,jul,ago,objMes,baseTot,baseObj,pctBase,compTot,compObj,compObjFull,prorrateado,pctComp,hasComp,crecPts};
             });
             // ranking: primero los que ya tienen jul/ago, por mayor avance en puntos de cumplimiento
             const conComp = rows.filter(r=>r.crecPts!==null).sort((a,b)=>b.crecPts-a.crecPts);
@@ -963,12 +977,12 @@
                     <div class="grid grid-cols-3 gap-2 mb-2">
                         ${miniCell('Jul-26', r.jul.has?f(r.jul.val):'Pend.')}
                         ${miniCell('Ago-26', r.ago.has?f(r.ago.val):'Pend.')}
-                        ${miniCell('Obj J+A', r.compObj?f(r.compObj):'Pend.')}
+                        ${miniCell('Obj J+A', r.compObjFull?f(r.compObjFull):'Pend.')}
                     </div>
                     <div class="flex items-center justify-between rounded-xl px-4 py-2.5 mb-1" style="background:linear-gradient(135deg,#7c3d0a,#b45309)">
                         <div>
                             <p class="text-[10px] font-black uppercase tracking-widest text-white"><i class="fas fa-fire mr-1" style="color:#fde68a"></i>Vendido: ${r.hasComp?f(r.compTot)+' lts':'—'}</p>
-                            <p class="text-[9px] font-bold uppercase" style="color:#fcd9a8">${r.compObj?('de '+f(r.compObj)+' lts de objetivo'):'objetivo por capturar'}</p>
+                            <p class="text-[9px] font-bold uppercase" style="color:#fcd9a8">${r.compObj?('de '+f(r.compObj)+' lts de objetivo'+(r.prorrateado?' al corte de hoy':'')):'objetivo por capturar'}</p>
                         </div>
                         <p class="text-2xl font-black leading-none" style="color:#fde68a">${r.pctComp!==null?Math.round(r.pctComp)+'%':'—'}</p>
                     </div>
@@ -1014,6 +1028,7 @@
                     <li>• <b class="txt">Periodo de concurso:</b> los litros de <b class="txt">julio + agosto 2026</b> se miden contra la suma de sus objetivos, obteniendo el <b class="txt">% de cumplimiento del concurso</b>.</li>
                     <li>• <b class="txt">Ganador:</b> obtiene el primer lugar quien logre el <b class="txt">mayor avance en puntos porcentuales</b> entre su cumplimiento base y su cumplimiento del concurso.</li>
                     <li>• Cada participante compite <b class="txt">contra su propio objetivo</b>: la medición es equitativa sin importar el tamaño de su cartera o territorio.</li>
+                    <li>• Mientras un mes está <b class="txt">en curso</b>, su objetivo se <b class="txt">prorratea por los días transcurridos</b>, para que el porcentaje sea justo y comparable en tiempo real. Al cierre del mes cuenta el objetivo completo.</li>
                 </ul>
                 <div class="rounded-xl px-4 py-3 mt-3 surface-2" style="border-left:4px solid var(--accent)">
                     <p class="text-[11px] font-bold muted leading-snug"><b class="txt">Ejemplo:</b> si en marzo–abril cumpliste al 63% de tu objetivo y en julio–agosto llegas al 90%, tu avance es de <b class="txt">+27 puntos</b>. Ese número es el que compite.</p>
