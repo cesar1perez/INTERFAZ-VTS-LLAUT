@@ -150,38 +150,25 @@
         /* ===================== MENÚ PRINCIPAL ===================== */
         function renderMainMenu(){
             let html = `
-                <div onclick="renderConcurso()" class="glass-btn p-6 rounded-[2rem] mb-6 shadow-2xl flex items-center gap-4 relative overflow-hidden" style="background:linear-gradient(135deg,#5c2d0c 0%,#b45309 45%,#f59e0b 100%);border:2px solid #fbbf24">
-                    <div class="w-16 h-16 rounded-2xl flex items-center justify-center text-3xl shadow-lg shrink-0" style="background:rgba(0,0,0,.35);color:#fbbf24"><i class="fas fa-trophy"></i></div>
-                    <div class="min-w-0">
-                        <p class="text-[9px] font-black uppercase tracking-[0.25em] mb-0.5" style="color:#fde68a">Concurso LTH Lubricantes</p>
-                        <h4 class="text-xl font-black uppercase leading-tight text-white">Crecimiento en Litros</h4>
-                        <p class="text-[11px] font-black uppercase tracking-tight" style="color:#fde68a">Julio – Agosto 2026 · Premios Amazon</p>
-                    </div>
-                </div>
-
                 <p class="text-[12px] font-extrabold muted uppercase tracking-widest mb-6">Seleccione Módulo</p>
 
-                <div onclick="renderPeriods()" class="glass-btn p-7 rounded-[2rem] mb-5 chip-accent shadow-2xl flex items-center gap-5">
-                    <div class="navy w-16 h-16 rounded-2xl flex items-center justify-center text-3xl shadow-lg" style="color:var(--accent)"><i class="fas fa-chart-line"></i></div>
-                    <div>
-                        <h4 class="text-2xl font-black uppercase leading-tight" style="color:var(--navy)">Dashboard Comercial</h4>
-                        <p class="text-[10px] font-bold uppercase tracking-tight" style="color:var(--navy-2)">Acumuladores y Líneas Generales</p>
+                <div class="p-7 pb-4 rounded-[2rem] mb-5 chip-accent shadow-2xl">
+                    <div onclick="renderPeriods()" class="glass-btn flex items-center gap-5 mb-4">
+                        <div class="navy w-16 h-16 rounded-2xl flex items-center justify-center text-3xl shadow-lg shrink-0" style="color:var(--accent)"><i class="fas fa-chart-line"></i></div>
+                        <div>
+                            <h4 class="text-2xl font-black uppercase leading-tight" style="color:var(--navy)">Dashboard Comercial</h4>
+                            <p class="text-[10px] font-bold uppercase tracking-tight" style="color:var(--navy-2)">Acumuladores y Líneas Generales</p>
+                        </div>
                     </div>
-                </div>
-
-                <div onclick="renderComparativo()" class="glass-btn surface p-7 rounded-[2rem] mb-5 flex items-center gap-5">
-                    <div class="navy-grad w-16 h-16 rounded-2xl flex items-center justify-center text-3xl shadow-lg" style="color:var(--accent)"><i class="fas fa-code-compare"></i></div>
-                    <div>
-                        <h4 class="text-2xl font-black uppercase leading-tight txt">Comparativo</h4>
-                        <p class="text-[10px] font-bold muted uppercase tracking-tight">Vendedor · Mes vs Mes · Año vs Año</p>
-                    </div>
-                </div>
-
-                <div onclick="renderGraficas()" class="glass-btn surface p-7 rounded-[2rem] mb-5 flex items-center gap-5">
-                    <div class="navy-grad w-16 h-16 rounded-2xl flex items-center justify-center text-3xl shadow-lg" style="color:var(--accent)"><i class="fas fa-chart-pie"></i></div>
-                    <div>
-                        <h4 class="text-2xl font-black uppercase leading-tight txt">Gráficas & Tendencias</h4>
-                        <p class="text-[10px] font-bold muted uppercase tracking-tight">Análisis Visual 2024 · 2025 · 2026</p>
+                    <div class="flex gap-2 pt-3" style="border-top:1px solid rgba(0,21,41,.18)">
+                        <div onclick="renderComparativo()" class="glass-btn flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl" style="background:rgba(0,21,41,.12)">
+                            <i class="fas fa-code-compare text-sm" style="color:var(--navy)"></i>
+                            <span class="text-[10px] font-black uppercase tracking-widest" style="color:var(--navy)">Comparativo</span>
+                        </div>
+                        <div onclick="renderGraficas()" class="glass-btn flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl" style="background:rgba(0,21,41,.12)">
+                            <i class="fas fa-chart-pie text-sm" style="color:var(--navy)"></i>
+                            <span class="text-[10px] font-black uppercase tracking-widest" style="color:var(--navy)">Gráficas</span>
+                        </div>
                     </div>
                 </div>
 
@@ -984,7 +971,7 @@
             }).join('');
 
             let html = `
-            ${backBtn("renderMainMenu()","Menú principal")}
+            ${backBtn("renderEstrategias()","Estrategias")}
 
             <div class="rounded-[2rem] p-7 mb-5 text-center relative overflow-hidden" style="background:linear-gradient(135deg,#3a1d08 0%,#7c3d0a 50%,#b45309 100%);border-bottom:4px solid #fbbf24">
                 <i class="fas fa-trophy text-4xl mb-3" style="color:#fbbf24"></i>
