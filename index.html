@@ -185,6 +185,14 @@
                     </div>
                 </div>
 
+                <div onclick="renderEstrategias()" class="glass-btn surface p-7 rounded-[2rem] mb-5 flex items-center gap-5" style="border-left:6px solid #7c3aed">
+                    <div class="w-16 h-16 rounded-2xl flex items-center justify-center text-3xl shadow-lg text-white" style="background:linear-gradient(135deg,#4c1d95,#7c3aed)"><i class="fas fa-chess-knight"></i></div>
+                    <div>
+                        <h4 class="text-2xl font-black uppercase leading-tight txt">Estrategias Comerciales</h4>
+                        <p class="text-[10px] font-bold muted uppercase tracking-tight">Campañas y planes de acción por producto</p>
+                    </div>
+                </div>
+
                 <a href="${RDV_URL}" target="_blank" rel="noopener" class="block no-underline">
                 <div class="glass-btn p-7 rounded-[2rem] mb-5 flex items-center gap-5 shadow-2xl" style="background:linear-gradient(135deg,#022c22 0%,#065f46 50%,#0d9488 100%);border:2px solid #2dd4bf">
                     <div class="w-16 h-16 rounded-2xl flex items-center justify-center text-3xl shadow-lg shrink-0" style="background:rgba(0,0,0,.3);color:#5eead4"><i class="fas fa-map-location-dot"></i></div>
@@ -1034,6 +1042,88 @@
             ${cards}
 
             <p class="text-center text-[10px] font-bold muted mt-4 mb-10 leading-snug">Los litros de Julio y Agosto se actualizan solos al capturarlos en el Google Sheet.<br>Llanterama Tulancingo · Concurso LTH Lubricantes</p>`;
+            document.getElementById('content-area').innerHTML = html;
+            window.scrollTo(0,0);
+        }
+
+        /* ===================== MÓDULO ESTRATEGIAS COMERCIALES ===================== */
+        // ➕ PARA AGREGAR UNA ESTRATEGIA NUEVA: copia un bloque {...}, pégalo abajo con su coma,
+        //    y cambia los textos. estado: 'ACTIVA' | 'PROXIMA' | 'CERRADA'
+        const ESTRATEGIAS = [
+            {
+                producto:'Acumuladores',
+                color:'#1d4ed8',
+                icono:'fa-car-battery',
+                titulo:'Recuperación de venta de Acumuladores',
+                estado:'ACTIVA',
+                periodo:'25 jun – 25 jul 2026',
+                descripcion:'Campaña de recuperación dirigida a clientes seleccionados con caída en su compra de acumuladores. Se otorga apoyo adicional por cliente y se da seguimiento diario al progreso contra un periodo de referencia.',
+                puntos:[
+                    'Clientes seleccionados por caída de compra vs su histórico',
+                    'Apoyo adicional otorgado por cliente para reactivar la compra',
+                    'Progreso por día y comparativo contra periodo de referencia',
+                    'Acceso libre para todo el equipo, sin contraseña'
+                ],
+                linkLabel:'Ver seguimiento en vivo · RDV',
+                link: RDV_URL
+            },
+            {
+                producto:'Lubricantes',
+                color:'#f97316',
+                icono:'fa-oil-can',
+                titulo:'Concurso LTH · Crecimiento en Volumen',
+                estado:'ACTIVA',
+                periodo:'Julio – Agosto 2026',
+                descripcion:'Concurso individual que premia el mayor porcentaje de cumplimiento del objetivo de litros de lubricantes LTH. Premios: 1° lugar tarjeta Amazon $10,000 · 2° lugar $5,000.',
+                puntos:[
+                    'Litros facturados jul + ago vs objetivo mensual completo',
+                    'Gana el mayor % de cumplimiento al cierre',
+                    'Cada vendedor compite contra su propio objetivo'
+                ],
+                linkLabel:'Ver tabla del concurso',
+                accion:'renderConcurso()'
+            }
+        ];
+
+        function renderEstrategias(){
+            const estadoChip = (e)=>{
+                if(e==='ACTIVA')  return '<span class="px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest" style="background:rgba(22,163,74,.15);color:var(--good)"><i class="fas fa-circle text-[6px] mr-1"></i>Activa</span>';
+                if(e==='PROXIMA') return '<span class="px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest" style="background:rgba(245,158,11,.15);color:#b45309"><i class="fas fa-clock text-[8px] mr-1"></i>Próxima</span>';
+                return '<span class="px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest surface-2 muted"><i class="fas fa-flag-checkered text-[8px] mr-1"></i>Cerrada</span>';
+            };
+            const cards = ESTRATEGIAS.map(s=>{
+                const cta = s.link
+                    ? `<a href="${s.link}" target="_blank" rel="noopener" class="block no-underline"><div class="glass-btn rounded-xl px-4 py-3 text-center font-black text-[11px] uppercase tracking-widest text-white" style="background:${s.color}">${s.linkLabel} <i class="fas fa-arrow-up-right-from-square text-[9px] ml-1"></i></div></a>`
+                    : `<div onclick="${s.accion}" class="glass-btn rounded-xl px-4 py-3 text-center font-black text-[11px] uppercase tracking-widest text-white" style="background:${s.color}">${s.linkLabel} <i class="fas fa-arrow-right text-[9px] ml-1"></i></div>`;
+                return `
+                <div class="surface rounded-[1.75rem] p-5 mb-5" style="border-top:6px solid ${s.color}">
+                    <div class="flex items-center justify-between gap-2 mb-3 flex-wrap">
+                        <div class="flex items-center gap-2">
+                            <div class="w-10 h-10 rounded-xl flex items-center justify-center text-lg text-white shrink-0" style="background:${s.color}"><i class="fas ${s.icono}"></i></div>
+                            <span class="text-[10px] font-black uppercase tracking-widest" style="color:${s.color}">${s.producto}</span>
+                        </div>
+                        ${estadoChip(s.estado)}
+                    </div>
+                    <h3 class="text-xl font-black uppercase txt tracking-tight leading-tight mb-1">${s.titulo}</h3>
+                    <p class="text-[11px] font-black muted uppercase tracking-widest mb-3"><i class="fas fa-calendar-days mr-1"></i>${s.periodo}</p>
+                    <p class="text-[13px] muted leading-relaxed mb-3">${s.descripcion}</p>
+                    <ul class="space-y-1.5 mb-4">
+                        ${s.puntos.map(p=>`<li class="text-[12px] muted leading-snug flex gap-2"><i class="fas fa-check mt-0.5" style="color:${s.color}"></i><span>${p}</span></li>`).join('')}
+                    </ul>
+                    ${cta}
+                </div>`;
+            }).join('');
+
+            let html = `
+            ${backBtn("renderMainMenu()","Menú principal")}
+            <div class="rounded-[2rem] p-7 mb-6 text-center text-white" style="background:linear-gradient(135deg,#2e1065,#4c1d95 50%,#7c3aed);border-bottom:4px solid #a78bfa">
+                <i class="fas fa-chess-knight text-4xl mb-3" style="color:#c4b5fd"></i>
+                <p class="text-[10px] font-black uppercase tracking-[0.3em] mb-1" style="color:#c4b5fd">Dirección Comercial</p>
+                <h2 class="text-3xl font-black uppercase tracking-tight leading-none">Estrategias Comerciales</h2>
+                <p class="text-[11px] font-bold uppercase mt-2" style="color:#c4b5fd">Campañas y planes de acción por línea de producto</p>
+            </div>
+            ${cards}
+            <p class="text-center text-[10px] font-bold muted mt-2 mb-10 leading-snug uppercase tracking-widest">Llanterama Tulancingo · Inteligencia Comercial</p>`;
             document.getElementById('content-area').innerHTML = html;
             window.scrollTo(0,0);
         }
