@@ -93,6 +93,8 @@
     <script>
         const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRA2Ijt1TI5_APzSJNjdlGF1_Jex0-n3iTiy8R996VR6PNx6V7tM8xO8u3sFKwp2A/pub?gid=1217270027&single=true&output=csv';
         const RDV_URL = 'https://cesar1perez.github.io/RDV/';
+        const CRM_LTH = 'https://cesar1perez.github.io/INTERFAZ-PROSPECTOS/';
+        const CRM_LLANTAS = 'https://cesar1perez.github.io/CRM-LLANTAS/';
         const FORM_LLANTAS = 'https://docs.google.com/forms/d/e/1FAIpQLScb-nqtNToCZvcCkCxaLM6AgRRlz1U1ph0q736pj3QD4LnCrQ/viewform?usp=sharing&ouid=105872250861317126673';
         const FORM_LTH = 'https://docs.google.com/forms/d/e/1FAIpQLSehQdNkm-c_AGAvxMcNZuOINyBn8wU0pwI8XolluIvwCl4rvA/viewform?usp=sharing&ouid=105872250861317126673';
         // ⬇️ PEGA AQUÍ la URL de tu Apps Script del RDV (la que termina en /exec) para activar la estrategia de acumuladores en vivo
@@ -238,6 +240,36 @@
                     </div>
                 </div>
                 </a>
+
+                <div class="p-6 pb-4 rounded-[2rem] mb-5 shadow-2xl" style="background:linear-gradient(135deg,#1e1b4b 0%,#312e81 50%,#4338ca 100%);border:2px solid #818cf8">
+                    <div class="flex items-center gap-4 mb-4">
+                        <div class="w-14 h-14 rounded-2xl flex items-center justify-center text-2xl shadow-lg shrink-0" style="background:rgba(0,0,0,.3);color:#c7d2fe"><i class="fas fa-users-gear"></i></div>
+                        <div>
+                            <h4 class="text-xl font-black uppercase leading-tight text-white">CRM Seguimiento de Prospectos</h4>
+                            <p class="text-[10px] font-bold uppercase tracking-tight" style="color:#c7d2fe">Prospección y control de clientes</p>
+                        </div>
+                    </div>
+                    <div class="flex gap-2 pt-3" style="border-top:1px solid rgba(199,210,254,.25)">
+                        <a href="${CRM_LTH}" target="_blank" rel="noopener" class="flex-1 no-underline">
+                            <div class="glass-btn flex items-center justify-center gap-2 py-3 rounded-xl" style="background:rgba(0,0,0,.28)">
+                                <i class="fas fa-car-battery text-sm" style="color:#c7d2fe"></i>
+                                <div class="text-left">
+                                    <p class="text-[10px] font-black uppercase tracking-widest leading-none text-white">Productos LTH</p>
+                                    <p class="text-[8px] font-bold uppercase leading-none mt-0.5" style="color:#a5b4fc">Prospección <i class="fas fa-arrow-up-right-from-square text-[7px] ml-0.5"></i></p>
+                                </div>
+                            </div>
+                        </a>
+                        <a href="${CRM_LLANTAS}" target="_blank" rel="noopener" class="flex-1 no-underline">
+                            <div class="glass-btn flex items-center justify-center gap-2 py-3 rounded-xl" style="background:rgba(0,0,0,.28)">
+                                <i class="fas fa-truck-monster text-sm" style="color:#c7d2fe"></i>
+                                <div class="text-left">
+                                    <p class="text-[10px] font-black uppercase tracking-widest leading-none text-white">Llantas</p>
+                                    <p class="text-[8px] font-bold uppercase leading-none mt-0.5" style="color:#a5b4fc">Control 2026 <i class="fas fa-arrow-up-right-from-square text-[7px] ml-0.5"></i></p>
+                                </div>
+                            </div>
+                        </a>
+                    </div>
+                </div>
 
                 <p class="text-[12px] font-extrabold muted uppercase tracking-widest mt-8 mb-4">Prospección</p>
 
