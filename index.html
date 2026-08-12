@@ -187,7 +187,7 @@
             'TUL': {
                 nombre:'TULANCINGO',
                 nombreLargo:'Llanterama Tulancingo',
-                csv:'https://docs.google.com/spreadsheets/d/e/2PACX-1vRA2Ijt1TI5_APzSJNjdlGF1_Jex0-n3iTiy8R996VR6PNx6V7tM8xO8u3sFKwp2A/pub?gid=1217270027&single=true&output=csv',
+                csv:'https://docs.google.com/spreadsheets/d/e/2PACX-1vSXDFzkon4Xxv9ydIrVdSW5ER9FweUPFbmE0GI55ca6rFzy-yrjFVmN8kgQ7X0s5oF6k1Wbf8XG4lmX/pub?gid=1217270027&single=true&output=csv',
                 cols:{ importe:'IMPORTE NETO' },
                 cats:[
                     {n:'Total Acumuladores', o:'OBJ ACUMULADORES', r:'REAL ACUMULADORES', color:'#0f172a'},
@@ -1705,13 +1705,9 @@
             return COD_LINEA_ACUM[c] || null;
         }
 
-        // ⬇️ CONFIGURACIÓN — URLs pendientes de César; clientes ya capturados
+        // ⬇️ CONFIGURACIÓN — pega aquí la URL del Apps Script (termina en /exec)
         const CAMPANIA_AGO_CONFIG = {
-            urls: {
-                'TULANCINGO': '',   // ← pegar aquí URL CSV pública de hoja "campallante"
-                'AUTO_ROMA':  '',   // ← pegar aquí URL CSV pública de hoja "campaauto"
-                'POZA_RICA':  ''    // ← pegar aquí URL CSV pública de hoja "campapoza"
-            },
+            apiUrl: '', // ← EJEMPLO: 'https://script.google.com/macros/s/AKfycb.../exec'
             clientes: [
                 // LLANTERAMA TULANCINGO
                 {codCliente:'007834', nombre:'TECNOLOGIA Y SERVICIOS AMBIENTALES S.A DE C.V', org:'TULANCINGO', obj:{PREMIUM:0, AGM:175, ESTANDAR:300, VALUE:0}},
@@ -1733,18 +1729,15 @@
         async function loadCampaniaAgo(){
             const cfg = CAMPANIA_AGO_CONFIG;
             campAgoState.byCli = {}; campAgoState.apoyo = {}; campAgoState.err = null;
-            const urls = [
-                ['TULANCINGO', cfg.urls.TULANCINGO],
-                ['AUTO_ROMA',  cfg.urls.AUTO_ROMA],
-                ['POZA_RICA',  cfg.urls.POZA_RICA]
-            ].filter(x=>x[1]);
-            if(urls.length===0) return false;
+            if(!cfg.apiUrl) return false;
             try{
-                for(const [orgLabel, url] of urls){
-                    const r = await fetchWithRetry(url + '&t=' + Date.now(), 3);
-                    const text = await r.text();
-                    const parsed = Papa.parse(text, {header:true, skipEmptyLines:true}).data;
-                    parsed.forEach(row=>{
+                const r = await fetchWithRetry(cfg.apiUrl + '?action=all&t=' + Date.now(), 3);
+                const json = await r.json();
+                if(!json.ok) throw new Error(json.error || 'Respuesta inválida del Apps Script');
+                // json.data = {TULANCINGO:[...filas...], AUTO_ROMA:[...], POZA_RICA:[...]}
+                for(const orgLabel in json.data){
+                    const filas = json.data[orgLabel] || [];
+                    filas.forEach(row=>{
                         const codCli = norm(row['Cod de cliente'] || row['COD DE CLIENTE'] || '');
                         if(!codCli) return;
                         const linea = lineaDeCodigo(row['Codigo'] || row['CODIGO']);
@@ -1762,7 +1755,7 @@
 
         function renderCampaniaAgo(){
             const cfg = CAMPANIA_AGO_CONFIG;
-            const hayUrls = !!(cfg.urls.TULANCINGO || cfg.urls.AUTO_ROMA || cfg.urls.POZA_RICA);
+            const hayApi = !!cfg.apiUrl;
 
             // Loader
             document.getElementById('content-area').innerHTML = `
@@ -1774,12 +1767,12 @@
             window.scrollTo(0,0);
 
             (async ()=>{
-                if(hayUrls) await loadCampaniaAgo();
-                pintarCampaniaAgo(hayUrls);
+                if(hayApi) await loadCampaniaAgo();
+                pintarCampaniaAgo(hayApi);
             })();
         }
 
-        function pintarCampaniaAgo(hayUrls){
+        function pintarCampaniaAgo(hayApi){
             const cli = CAMPANIA_AGO_CONFIG.clientes;
             const orgNombre = {'TULANCINGO':'Llanterama Tulancingo', 'AUTO_ROMA':'Autoeléctrica Roma', 'POZA_RICA':'Llanterama Poza Rica'};
 
@@ -1846,17 +1839,17 @@
                   <td class="ea-jul26-apo-c ea-jul26-tot-apo">$${totApoyo.toLocaleString('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2})}</td>
                 </tr>`;
 
-            // Aviso si aún no hay URLs
-            const avisoConfig = !hayUrls ? `
+            // Aviso si aún no hay URL del Apps Script
+            const avisoConfig = !hayApi ? `
                 <div class="surface rounded-2xl p-4 mb-4 flex items-center gap-3" style="border-left:6px solid #b45309">
                     <i class="fas fa-hourglass-half text-lg" style="color:#b45309"></i>
-                    <p class="text-[12px] muted leading-snug"><b class="txt">Datos reales pendientes:</b> los objetivos ya están cargados, pero falta pegar las URLs de <code style="color:#0891b2">campallante</code>, <code style="color:#0891b2">campaauto</code> y <code style="color:#0891b2">campapoza</code> en la configuración para que las cantidades reales y el apoyo se llenen solos.</p>
+                    <p class="text-[12px] muted leading-snug"><b class="txt">Datos reales pendientes:</b> los objetivos ya están cargados, pero falta pegar la URL del Apps Script (termina en <code style="color:#0891b2">/exec</code>) en la constante <code style="color:#0891b2">CAMPANIA_AGO_CONFIG.apiUrl</code> para que las cantidades reales y el apoyo se llenen solos.</p>
                 </div>` : '';
 
-            const avisoErr = (hayUrls && campAgoState.err) ? `
+            const avisoErr = (hayApi && campAgoState.err) ? `
                 <div class="surface rounded-2xl p-4 mb-4 flex items-center gap-3" style="border-left:6px solid var(--bad)">
                     <i class="fas fa-triangle-exclamation text-lg" style="color:var(--bad)"></i>
-                    <p class="text-[12px] muted leading-snug"><b class="txt">No se pudo leer una o más hojas.</b> Verifica que estén publicadas como CSV. ${String(campAgoState.err.message||campAgoState.err)}</p>
+                    <p class="text-[12px] muted leading-snug"><b class="txt">No se pudo leer del Apps Script.</b> Verifica que esté desplegado como Web App con acceso "Cualquier usuario". ${String(campAgoState.err.message||campAgoState.err)}</p>
                 </div>` : '';
 
             document.getElementById('content-area').innerHTML = `
