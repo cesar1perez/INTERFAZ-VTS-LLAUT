@@ -1315,6 +1315,19 @@
         const ESTRATEGIAS_POR_MES = {
             'AGOSTO 2026': [
                 {
+                    producto:'Acumuladores', color:'#3aa6ff', icono:'fa-car-battery',
+                    titulo:'Recuperación de venta de Acumuladores',
+                    estado:'ACTIVA', periodo:'Agosto 2026 · seguimiento en vivo',
+                    descripcion:'Nueva campaña de recuperación con seguimiento diario desde las hojas de campaña del Google Sheet (campallante, campaauto, campapoza). Progreso automático por cliente y línea de acumulador.',
+                    puntos:[
+                        'Clientes objetivo seleccionados por caída de compra',
+                        'Progreso en vivo desde base de datos del sistema',
+                        'Ranking por línea: Premium · AGM · Estándar · Value'
+                    ],
+                    linkLabel:'Ver seguimiento en vivo',
+                    accion:'renderCampaniaAgo()'
+                },
+                {
                     producto:'Lubricantes', color:'#f97316', icono:'fa-oil-can',
                     titulo:'Concurso LTH · Crecimiento en Volumen',
                     estado:'ACTIVA', periodo:'Julio – Agosto 2026',
@@ -1424,15 +1437,25 @@
                 entries = entries.filter(([mes])=>mes==='AGOSTO 2026').map(([mes,arr])=>[mes, arr.filter(s=>s.accion!=='renderConcurso()')]);
             }
             // Orden: agosto primero (más reciente), luego julio
-            const secciones = entries.map(([mes,arr])=>{
+            const secciones = entries.map(([mes,arr], idx)=>{
                 const esActual = mes === 'AGOSTO 2026';
+                const [mesN, anio] = mes.split(' ');
+                const separadorTop = idx>0 ? '<div style="height:32px"></div>' : '';
                 return `
-                <div class="mb-2 mt-6 flex items-center gap-3">
-                    <div class="flex-1" style="height:2px;background:linear-gradient(to right,var(--accent),transparent)"></div>
-                    <p class="text-[12px] font-black uppercase tracking-[0.3em]" style="color:var(--accent)">
-                        <i class="fas fa-calendar mr-1"></i>${mes}${esActual?' <span class="ml-1 px-2 py-0.5 rounded-full text-[8px]" style="background:var(--good);color:#fff">Actual</span>':''}
-                    </p>
-                    <div class="flex-1" style="height:2px;background:linear-gradient(to left,var(--accent),transparent)"></div>
+                ${separadorTop}
+                <div class="rounded-2xl p-5 mb-4 mt-2 shadow-lg" style="background:${esActual?'linear-gradient(135deg,var(--navy),var(--navy-2))':'linear-gradient(135deg,#334155,#475569)'};border:2px solid ${esActual?'var(--accent)':'#64748b'};position:relative;overflow:hidden">
+                    <div style="position:absolute;top:-30px;right:-20px;font-size:120px;font-weight:900;opacity:.08;color:var(--accent);line-height:1;pointer-events:none">${mesN.slice(0,3)}</div>
+                    <div class="flex items-center justify-between gap-2 relative" style="z-index:1">
+                        <div>
+                            <p class="text-[10px] font-black uppercase tracking-[0.35em] mb-1" style="color:${esActual?'var(--accent)':'#cbd5e1'}"><i class="fas fa-calendar mr-2"></i>Periodo</p>
+                            <h3 class="text-3xl font-black uppercase text-white leading-none tracking-tight">${mesN}</h3>
+                            <p class="text-[11px] font-bold uppercase tracking-widest mt-1" style="color:${esActual?'var(--accent)':'#cbd5e1'}">${anio}</p>
+                        </div>
+                        ${esActual
+                            ? '<span class="px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg" style="background:var(--good);color:#fff"><i class="fas fa-circle text-[6px] mr-1"></i>Mes actual</span>'
+                            : '<span class="px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest" style="background:rgba(255,255,255,.15);color:#e2e8f0"><i class="fas fa-flag-checkered text-[9px] mr-1"></i>Archivo</span>'
+                        }
+                    </div>
                 </div>
                 ${arr.map(cardOf).join('')}`;
             }).join('');
@@ -1657,6 +1680,244 @@
 
             <p class="text-center text-[11px] font-black muted uppercase tracking-widest mt-4 mb-10">Saludos cordiales · Fuerza de ventas</p>`;
             document.getElementById('content-area').innerHTML = html;
+            window.scrollTo(0,0);
+        }
+
+        /* ===================== CAMPAÑA ACUMULADORES AGOSTO 2026 (base de datos en vivo) ===================== */
+        // Mapeo de códigos → línea de acumulador (según lista dictada)
+        const COD_LINEA_ACUM = {
+            '021 001 01':'ESTANDAR',        // ESTANDAR LTH
+            '021 001 02':'ESTANDAR',        // ESTANDAR AM
+            '021 001 04':'ESTANDAR',        // ESTANDAR CALE
+            '021 001 05':'PREMIUM',         // PREMIUM HI TEC
+            '021 001 07':'PREMIUM',         // PREMIUM HEAVY DUTY
+            '021 001 08':'PREMIUM',         // PREMIUM SUV
+            '021 001 09':'PREMIUM',         // PREMIUM TAXI
+            '021 001 10':'PREMIUM',         // PREMIUM OPTIMA
+            '021 001 13':'PREMIUM',         // PREMIUM FULL POWER
+            '021 001 12':'AGM',             // AGM
+            '021 001 03':'VALUE',           // VALUE CRONOS
+            '021 001 06':'VALUE',           // VALUE DIENER
+            '021 001 11':'VALUE'            // VALUE DYNAMO
+        };
+        function lineaDeCodigo(cod){
+            const c = norm(String(cod||''));
+            return COD_LINEA_ACUM[c] || null;
+        }
+
+        // ⬇️ CONFIGURACIÓN — URLs pendientes de César; clientes ya capturados
+        const CAMPANIA_AGO_CONFIG = {
+            urls: {
+                'TULANCINGO': '',   // ← pegar aquí URL CSV pública de hoja "campallante"
+                'AUTO_ROMA':  '',   // ← pegar aquí URL CSV pública de hoja "campaauto"
+                'POZA_RICA':  ''    // ← pegar aquí URL CSV pública de hoja "campapoza"
+            },
+            clientes: [
+                // LLANTERAMA TULANCINGO
+                {codCliente:'007834', nombre:'TECNOLOGIA Y SERVICIOS AMBIENTALES S.A DE C.V', org:'TULANCINGO', obj:{PREMIUM:0, AGM:175, ESTANDAR:300, VALUE:0}},
+                {codCliente:'005955', nombre:'IRVING ARIEL GRANILLO GARRIDO',                 org:'TULANCINGO', obj:{PREMIUM:0, AGM:2,   ESTANDAR:170, VALUE:0}},
+                {codCliente:'009270', nombre:'PROVEEDORA DE LUBRICANTES',                     org:'TULANCINGO', obj:{PREMIUM:1, AGM:2,   ESTANDAR:37,  VALUE:0}},
+                {codCliente:'000762', nombre:'ANGEL URIEL MENDEZ DELGADO',                    org:'TULANCINGO', obj:{PREMIUM:0, AGM:0,   ESTANDAR:40,  VALUE:0}},
+                {codCliente:'009277', nombre:'EDUARDO ROMERO MORENO',                         org:'TULANCINGO', obj:{PREMIUM:0, AGM:0,   ESTANDAR:25,  VALUE:0}},
+                // AUTOELECTRICA ROMA
+                {codCliente:'002199', nombre:'XIMENA OROZCO GONZALEZ',                        org:'AUTO_ROMA',  obj:{PREMIUM:0, AGM:0,   ESTANDAR:230, VALUE:0}},
+                // POZA RICA
+                {codCliente:'000325', nombre:'URIEL SEPTIEN PEREZ',                           org:'POZA_RICA',  obj:{PREMIUM:0, AGM:0,   ESTANDAR:40,  VALUE:30}},
+                {codCliente:'P01760', nombre:'TAPIA LEON MARIA GUADALUPE',                    org:'POZA_RICA',  obj:{PREMIUM:0, AGM:0,   ESTANDAR:72,  VALUE:0}}
+            ]
+        };
+
+        // Estado global del módulo Agosto
+        const campAgoState = { rows:null, byCli:{}, apoyo:{}, stamp:null, err:null };
+
+        async function loadCampaniaAgo(){
+            const cfg = CAMPANIA_AGO_CONFIG;
+            campAgoState.byCli = {}; campAgoState.apoyo = {}; campAgoState.err = null;
+            const urls = [
+                ['TULANCINGO', cfg.urls.TULANCINGO],
+                ['AUTO_ROMA',  cfg.urls.AUTO_ROMA],
+                ['POZA_RICA',  cfg.urls.POZA_RICA]
+            ].filter(x=>x[1]);
+            if(urls.length===0) return false;
+            try{
+                for(const [orgLabel, url] of urls){
+                    const r = await fetchWithRetry(url + '&t=' + Date.now(), 3);
+                    const text = await r.text();
+                    const parsed = Papa.parse(text, {header:true, skipEmptyLines:true}).data;
+                    parsed.forEach(row=>{
+                        const codCli = norm(row['Cod de cliente'] || row['COD DE CLIENTE'] || '');
+                        if(!codCli) return;
+                        const linea = lineaDeCodigo(row['Codigo'] || row['CODIGO']);
+                        const cant = n(row['Cantidad'] || row['CANTIDAD']);
+                        const apoyo = n(row['MONTOAPOYO'] || row['MontoApoyo'] || row['MONTO APOYO']);
+                        if(!campAgoState.byCli[codCli]) campAgoState.byCli[codCli] = {PREMIUM:0, AGM:0, ESTANDAR:0, VALUE:0};
+                        if(linea) campAgoState.byCli[codCli][linea] += cant;
+                        campAgoState.apoyo[codCli] = (campAgoState.apoyo[codCli]||0) + apoyo;
+                    });
+                }
+                campAgoState.stamp = new Date();
+                return true;
+            }catch(e){ campAgoState.err = e; return false; }
+        }
+
+        function renderCampaniaAgo(){
+            const cfg = CAMPANIA_AGO_CONFIG;
+            const hayUrls = !!(cfg.urls.TULANCINGO || cfg.urls.AUTO_ROMA || cfg.urls.POZA_RICA);
+
+            // Loader
+            document.getElementById('content-area').innerHTML = `
+            ${backBtn("renderEstrategias()","Estrategias")}
+            <div class="surface rounded-2xl p-10 text-center">
+                <div class="w-10 h-10 border-4 rounded-full animate-spin mx-auto mb-4" style="border-color:#3aa6ff;border-top-color:transparent"></div>
+                <p class="text-[11px] font-black muted uppercase tracking-widest">Cargando seguimiento en vivo...</p>
+            </div>`;
+            window.scrollTo(0,0);
+
+            (async ()=>{
+                if(hayUrls) await loadCampaniaAgo();
+                pintarCampaniaAgo(hayUrls);
+            })();
+        }
+
+        function pintarCampaniaAgo(hayUrls){
+            const cli = CAMPANIA_AGO_CONFIG.clientes;
+            const orgNombre = {'TULANCINGO':'Llanterama Tulancingo', 'AUTO_ROMA':'Autoeléctrica Roma', 'POZA_RICA':'Llanterama Poza Rica'};
+
+            // Cálculos por cliente
+            const rows = cli.map(c=>{
+                const real = campAgoState.byCli[c.codCliente] || {PREMIUM:0, AGM:0, ESTANDAR:0, VALUE:0};
+                const apoyo = campAgoState.apoyo[c.codCliente] || 0;
+                const objTot = c.obj.PREMIUM + c.obj.AGM + c.obj.ESTANDAR + c.obj.VALUE;
+                const realTot = real.PREMIUM + real.AGM + real.ESTANDAR + real.VALUE;
+                return {...c, real, apoyo, objTot, realTot};
+            });
+
+            // Totales por org y global
+            const totObj = {PREMIUM:0, AGM:0, ESTANDAR:0, VALUE:0};
+            const totReal = {PREMIUM:0, AGM:0, ESTANDAR:0, VALUE:0};
+            let totApoyo = 0;
+            rows.forEach(r=>{
+                ['PREMIUM','AGM','ESTANDAR','VALUE'].forEach(l=>{
+                    totObj[l] += r.obj[l];
+                    totReal[l] += r.real[l];
+                });
+                totApoyo += r.apoyo;
+            });
+            const objTotG = totObj.PREMIUM + totObj.AGM + totObj.ESTANDAR + totObj.VALUE;
+            const realTotG = totReal.PREMIUM + totReal.AGM + totReal.ESTANDAR + totReal.VALUE;
+            const avancePct = objTotG>0 ? Math.round(realTotG/objTotG*100) : 0;
+            const faltante = objTotG - realTotG;
+
+            const pctCol = p=> p>=100?'ea-jul26-good' : (p>=70?'ea-jul26-mid':'ea-jul26-low');
+            const pctCell = (obj, real)=>{
+                if(obj===0 && real===0) return '<td class="ea-jul26-gs">—</td><td>—</td><td>—</td>';
+                if(obj===0) return `<td class="ea-jul26-gs">—</td><td>${real}</td><td>—</td>`;
+                const p = Math.round(real/obj*100);
+                return `<td class="ea-jul26-gs">${obj}</td><td>${real||'—'}</td><td class="ea-jul26-p ${pctCol(p)}">${p}%</td>`;
+            };
+
+            // Agrupar filas por organización
+            const orgs = ['TULANCINGO','AUTO_ROMA','POZA_RICA'];
+            const tbody = orgs.map(o=>{
+                const rowsOrg = rows.filter(r=>r.org===o);
+                if(!rowsOrg.length) return '';
+                const orgRow = `<tr><td colspan="15" style="background:linear-gradient(135deg,rgba(58,166,255,.15),rgba(58,166,255,.05));color:#7cc4ff;font-weight:900;text-transform:uppercase;letter-spacing:1.5px;font-size:10.5px;padding:8px 12px;text-align:left"><i class="fas fa-warehouse mr-2"></i>${orgNombre[o]}</td></tr>`;
+                return orgRow + rowsOrg.map(r=>{
+                    const pTot = r.objTot>0 ? Math.round(r.realTot/r.objTot*100) : 0;
+                    return `
+                    <tr>
+                      <td class="ea-jul26-name">${r.nombre}<br><span style="font-size:9px;color:#7cc4ff;letter-spacing:.5px">COD ${r.codCliente}</span></td>
+                      ${pctCell(r.obj.PREMIUM, r.real.PREMIUM)}
+                      ${pctCell(r.obj.AGM, r.real.AGM)}
+                      ${pctCell(r.obj.ESTANDAR, r.real.ESTANDAR)}
+                      ${pctCell(r.obj.VALUE, r.real.VALUE)}
+                      <td class="ea-jul26-apo-c">${r.apoyo>0? '$'+r.apoyo.toLocaleString('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2}) : '—'}</td>
+                    </tr>`;
+                }).join('');
+            }).join('');
+
+            const totRow = `
+                <tr class="ea-jul26-totrow">
+                  <td class="ea-jul26-name">Totales campaña</td>
+                  ${pctCell(totObj.PREMIUM, totReal.PREMIUM)}
+                  ${pctCell(totObj.AGM,     totReal.AGM)}
+                  ${pctCell(totObj.ESTANDAR,totReal.ESTANDAR)}
+                  ${pctCell(totObj.VALUE,   totReal.VALUE)}
+                  <td class="ea-jul26-apo-c ea-jul26-tot-apo">$${totApoyo.toLocaleString('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2})}</td>
+                </tr>`;
+
+            // Aviso si aún no hay URLs
+            const avisoConfig = !hayUrls ? `
+                <div class="surface rounded-2xl p-4 mb-4 flex items-center gap-3" style="border-left:6px solid #b45309">
+                    <i class="fas fa-hourglass-half text-lg" style="color:#b45309"></i>
+                    <p class="text-[12px] muted leading-snug"><b class="txt">Datos reales pendientes:</b> los objetivos ya están cargados, pero falta pegar las URLs de <code style="color:#0891b2">campallante</code>, <code style="color:#0891b2">campaauto</code> y <code style="color:#0891b2">campapoza</code> en la configuración para que las cantidades reales y el apoyo se llenen solos.</p>
+                </div>` : '';
+
+            const avisoErr = (hayUrls && campAgoState.err) ? `
+                <div class="surface rounded-2xl p-4 mb-4 flex items-center gap-3" style="border-left:6px solid var(--bad)">
+                    <i class="fas fa-triangle-exclamation text-lg" style="color:var(--bad)"></i>
+                    <p class="text-[12px] muted leading-snug"><b class="txt">No se pudo leer una o más hojas.</b> Verifica que estén publicadas como CSV. ${String(campAgoState.err.message||campAgoState.err)}</p>
+                </div>` : '';
+
+            document.getElementById('content-area').innerHTML = `
+            ${backBtn("renderEstrategias()","Estrategias")}
+            <section class="ea-jul26">
+              <div class="ea-jul26-badge"><span class="ea-jul26-dot"></span>Estrategia en curso · datos en vivo</div>
+              <header class="ea-jul26-head">
+                <div class="ea-jul26-tag">Estrategia especial · Agosto 2026</div>
+                <h2 class="ea-jul26-title">Recuperación de venta de <span>Acumuladores</span></h2>
+                <p class="ea-jul26-sub">Objetivo AGOSTO 2026 vs facturado · seguimiento en tiempo real · <b>Financia Clarios</b></p>
+              </header>
+              <div class="ea-jul26-kpis">
+                <div class="ea-jul26-kpi">
+                  <div class="ea-jul26-k-l">Acumuladores facturados</div>
+                  <div class="ea-jul26-k-v">${realTotG}</div>
+                  <div class="ea-jul26-k-s">agosto en curso</div>
+                </div>
+                <div class="ea-jul26-kpi ea-jul26-amber">
+                  <div class="ea-jul26-k-l">Objetivo total</div>
+                  <div class="ea-jul26-k-v">${objTotG}</div>
+                  <div class="ea-jul26-k-s">de objetivos · agosto 2026</div>
+                </div>
+                <div class="ea-jul26-kpi ea-jul26-down">
+                  <div class="ea-jul26-k-l">Faltante</div>
+                  <div class="ea-jul26-k-v">${faltante>=0?'−'+faltante:'+'+Math.abs(faltante)}</div>
+                  <div class="ea-jul26-k-s">avance ${avancePct}% del objetivo</div>
+                </div>
+                <div class="ea-jul26-kpi ea-jul26-cyan">
+                  <div class="ea-jul26-k-l">Apoyo acumulado</div>
+                  <div class="ea-jul26-k-v">$${totApoyo.toLocaleString('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2})}</div>
+                  <div class="ea-jul26-k-s">para nota de crédito Clarios</div>
+                </div>
+              </div>
+              ${avisoConfig}
+              ${avisoErr}
+              <div class="ea-jul26-tbl-wrap">
+                <table class="ea-jul26-tbl">
+                  <thead>
+                    <tr>
+                      <th rowspan="2" class="ea-jul26-l">Cliente</th>
+                      <th colspan="3" class="ea-jul26-lh" style="--lc:#3aa6ff">Premium</th>
+                      <th colspan="3" class="ea-jul26-lh" style="--lc:#a67cff">AGM</th>
+                      <th colspan="3" class="ea-jul26-lh" style="--lc:#5eead4">Estándar</th>
+                      <th colspan="3" class="ea-jul26-lh" style="--lc:#94a3b8">Value</th>
+                      <th rowspan="2" class="ea-jul26-apo">Apoyo $</th>
+                    </tr>
+                    <tr>
+                      <th class="ea-jul26-gs">Obj</th><th>Real</th><th>Avance</th>
+                      <th class="ea-jul26-gs">Obj</th><th>Real</th><th>Avance</th>
+                      <th class="ea-jul26-gs">Obj</th><th>Real</th><th>Avance</th>
+                      <th class="ea-jul26-gs">Obj</th><th>Real</th><th>Avance</th>
+                    </tr>
+                  </thead>
+                  <tbody>${tbody}${totRow}</tbody>
+                </table>
+              </div>
+              <footer class="ea-jul26-foot">
+                <span>${cli.length} clientes objetivo · financia Clarios</span>
+                <span>${campAgoState.stamp?'Actualizado: '+campAgoState.stamp.toLocaleString('es-MX',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):'Sin datos en vivo aún'} · Grupo Llanterama / Autoeléctrica Roma</span>
+              </footer>
+            </section>`;
             window.scrollTo(0,0);
         }
 
