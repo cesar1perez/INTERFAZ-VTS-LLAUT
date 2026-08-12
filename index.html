@@ -1707,7 +1707,7 @@
 
         // ⬇️ CONFIGURACIÓN — pega aquí la URL del Apps Script (termina en /exec)
         const CAMPANIA_AGO_CONFIG = {
-            apiUrl: '', // ← EJEMPLO: 'https://script.google.com/macros/s/AKfycb.../exec'
+            apiUrl: 'https://script.google.com/macros/s/AKfycbwQWOf5pLIl6xBNsiDLvt39peL7xv1sx3EsYtfBCjatFsgllfBeMGOWPBqJnZV3N39MZA/exec',
             clientes: [
                 // LLANTERAMA TULANCINGO
                 {codCliente:'007834', nombre:'TECNOLOGIA Y SERVICIOS AMBIENTALES S.A DE C.V', org:'TULANCINGO', obj:{PREMIUM:0, AGM:175, ESTANDAR:300, VALUE:0}},
@@ -1738,8 +1738,11 @@
                 for(const orgLabel in json.data){
                     const filas = json.data[orgLabel] || [];
                     filas.forEach(row=>{
-                        const codCli = norm(row['Cod de cliente'] || row['COD DE CLIENTE'] || '');
-                        if(!codCli) return;
+                        // Normalizar código: si viene como número (ej: 5955), rellenar con ceros a 6 dígitos (005955)
+                        // Códigos alfanuméricos (ej: P01760) se dejan como están
+                        let codCliRaw = String(row['Cod de cliente'] || row['COD DE CLIENTE'] || '').trim();
+                        if(!codCliRaw) return;
+                        const codCli = /^\d+$/.test(codCliRaw) ? codCliRaw.padStart(6,'0') : codCliRaw.toUpperCase();
                         const linea = lineaDeCodigo(row['Codigo'] || row['CODIGO']);
                         const cant = n(row['Cantidad'] || row['CANTIDAD']);
                         const apoyo = n(row['MONTOAPOYO'] || row['MontoApoyo'] || row['MONTO APOYO']);
