@@ -187,6 +187,12 @@
     </header>
 
     <div id="view-cover" class="fixed inset-0 navy-grad z-50 flex flex-col items-center justify-center text-center p-4 text-white">
+        <!-- Botón Cotizador esquina superior derecha (solo desktop) -->
+        <a href="${''}" id="cotizador-desktop" target="_blank" rel="noopener" class="hidden sm:flex absolute top-4 right-4 items-center gap-2 no-underline glass-btn px-4 py-2.5 rounded-xl shadow-lg" style="background:rgba(255,255,255,.08);border:1px solid rgba(245,183,0,.35);backdrop-filter:blur(10px)">
+            <i class="fas fa-calculator text-sm" style="color:var(--accent)"></i>
+            <span class="text-[11px] font-black uppercase tracking-widest" style="color:var(--accent)">Cotizador</span>
+        </a>
+
         <div class="max-w-xl w-full">
             <h1 class="text-3xl sm:text-4xl font-black mb-1 leading-tight uppercase" style="color:var(--accent)">GRUPO LLANTERAMA</h1>
             <p class="text-[9px] sm:text-[10px] tracking-[0.4em] mb-8 sm:mb-10 uppercase font-bold" style="color:var(--accent)">Unidad de Inteligencia Comercial</p>
@@ -203,6 +209,13 @@
                     <p class="text-lg sm:text-2xl font-black uppercase leading-none" style="color:var(--navy)">Poza Rica</p>
                 </button>
             </div>
+
+            <!-- Botón Cotizador abajo (solo móvil) -->
+            <a href="${''}" id="cotizador-mobile" target="_blank" rel="noopener" class="sm:hidden flex items-center justify-center gap-2 no-underline glass-btn mt-6 py-3 rounded-xl" style="background:rgba(255,255,255,.08);border:1px solid rgba(245,183,0,.35)">
+                <i class="fas fa-calculator text-sm" style="color:var(--accent)"></i>
+                <span class="text-[11px] font-black uppercase tracking-widest" style="color:var(--accent)">Abrir Cotizador</span>
+                <i class="fas fa-arrow-up-right-from-square text-[9px]" style="color:var(--accent)"></i>
+            </a>
         </div>
     </div>
 
@@ -261,6 +274,8 @@
 
         const CSV_URL = ORGS.TUL.csv; // legacy, ya no se usa directo
         const RDV_URL = 'https://cesar1perez.github.io/RDV/';
+        // ⬇️ PEGA AQUÍ el link de tu cotizador cuando lo subas a GitHub Pages
+        const COTIZADOR_URL = 'https://cesar1perez.github.io/COTIZAR-LL/';
         const CRM_LTH = 'https://cesar1perez.github.io/INTERFAZ-PROSPECTOS/';
         const CRM_LLANTAS = 'https://cesar1perez.github.io/CRM-LLANTAS/';
         const FORM_LLANTAS = 'https://docs.google.com/forms/d/e/1FAIpQLScb-nqtNToCZvcCkCxaLM6AgRRlz1U1ph0q736pj3QD4LnCrQ/viewform?usp=sharing&ouid=105872250861317126673';
@@ -2480,6 +2495,11 @@
 
         // La carga inicia cuando el usuario elige organización (enterApp)
         document.getElementById('loader').classList.add('hidden');
+        // Conectar botones del Cotizador al URL configurado
+        ['cotizador-desktop','cotizador-mobile'].forEach(function(id){
+            var el = document.getElementById(id);
+            if(el) el.setAttribute('href', COTIZADOR_URL);
+        });
     </script>
 </body>
 </html>
