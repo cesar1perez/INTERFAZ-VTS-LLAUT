@@ -277,7 +277,7 @@
         // ⬇️ PEGA AQUÍ el link de tu cotizador cuando lo subas a GitHub Pages
         const COTIZADOR_URL = 'https://cesar1perez.github.io/COTIZAR-LL/';
         const POSTVENTA_URL = 'https://cesar1perez.github.io/SEGUIMIENTO-POSTVENTA/';
-        const POSTVENTA_PASS = 'roma2026';
+        const CUENTAS_URL   = 'https://cesar1perez.github.io/CHECKLIST-DOC-CRED/';
         const CRM_LTH = 'https://cesar1perez.github.io/INTERFAZ-PROSPECTOS/';
         const CRM_LLANTAS = 'https://cesar1perez.github.io/CRM-LLANTAS/';
         const FORM_LLANTAS = 'https://docs.google.com/forms/d/e/1FAIpQLScb-nqtNToCZvcCkCxaLM6AgRRlz1U1ph0q736pj3QD4LnCrQ/viewform?usp=sharing&ouid=105872250861317126673';
@@ -515,9 +515,19 @@
                     <div class="w-14 h-14 rounded-2xl flex items-center justify-center text-2xl shadow-lg shrink-0" style="background:rgba(0,0,0,.35);color:#facc15"><i class="fas fa-headset"></i></div>
                     <div class="min-w-0">
                         <h4 class="text-xl font-black uppercase leading-tight text-white">Seguimiento Post-Venta</h4>
-                        <p class="text-[10px] font-bold uppercase tracking-tight flex items-center gap-1" style="color:#cbd5e1"><i class="fas fa-lock text-[9px]"></i>Acceso restringido <i class="fas fa-arrow-up-right-from-square text-[8px] ml-1"></i></p>
+                        <p class="text-[10px] font-bold uppercase tracking-tight flex items-center gap-1" style="color:#cbd5e1">Abrir plataforma <i class="fas fa-arrow-up-right-from-square text-[8px] ml-1"></i></p>
                     </div>
                 </div>
+
+                <a href="${CUENTAS_URL}" target="_blank" rel="noopener" class="block no-underline">
+                <div class="glass-btn p-6 rounded-[2rem] mb-4 flex items-center gap-4 shadow-2xl" style="background:linear-gradient(135deg,#450a0a 0%,#7f1d1d 50%,#991b1b 100%);border:2px solid #fca5a5">
+                    <div class="w-14 h-14 rounded-2xl flex items-center justify-center text-2xl shadow-lg shrink-0" style="background:rgba(0,0,0,.35);color:#fecaca"><i class="fas fa-file-invoice-dollar"></i></div>
+                    <div class="min-w-0">
+                        <h4 class="text-xl font-black uppercase leading-tight text-white">Cuentas por Cobrar</h4>
+                        <p class="text-[10px] font-bold uppercase tracking-tight flex items-center gap-1" style="color:#fecaca">Documentación crediticia <i class="fas fa-arrow-up-right-from-square text-[8px] ml-1"></i></p>
+                    </div>
+                </div>
+                </a>
             `;
             document.getElementById('content-area').innerHTML = html;
         }
@@ -1341,21 +1351,7 @@
         }
 
         function abrirPostVenta(){
-            // La contraseña se guarda en la sesión: solo se pide una vez por sesión de navegador
-            let autorizado = false;
-            try { autorizado = sessionStorage.getItem('postventa_ok') === '1'; } catch(e){}
-            if(autorizado){
-                window.open(POSTVENTA_URL, '_blank', 'noopener');
-                return;
-            }
-            const pass = prompt('🔒 Acceso restringido\n\nIngresa la contraseña para abrir Seguimiento Post-Venta:');
-            if(pass === null) return; // canceló
-            if(pass.trim().toLowerCase() === POSTVENTA_PASS.toLowerCase()){
-                try { sessionStorage.setItem('postventa_ok', '1'); } catch(e){}
-                window.open(POSTVENTA_URL, '_blank', 'noopener');
-            } else {
-                alert('Contraseña incorrecta. Contacta al administrador si necesitas acceso.');
-            }
+            window.open(POSTVENTA_URL, '_blank', 'noopener');
         }
 
         function renderRdvMantenimiento(){
@@ -1788,7 +1784,7 @@
                 // AUTOELECTRICA ROMA
                 {codCliente:'002199', nombre:'XIMENA OROZCO GONZALEZ',                        org:'AUTO_ROMA',  obj:{PREMIUM:0, AGM:0,   ESTANDAR:230, VALUE:0}},
                 // POZA RICA
-                {codCliente:'000325', nombre:'URIEL SEPTIEN PEREZ',                           org:'POZA_RICA',  obj:{PREMIUM:0, AGM:0,   ESTANDAR:40,  VALUE:30}}
+                {codCliente:'P01760', nombre:'TAPIA LEON MARIA GUADALUPE',                    org:'POZA_RICA',  obj:{PREMIUM:0, AGM:0,   ESTANDAR:72,  VALUE:0}}
             ]
         };
 
