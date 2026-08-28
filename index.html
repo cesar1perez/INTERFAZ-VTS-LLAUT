@@ -2095,7 +2095,7 @@
                       <td class="ea-jul26-gs">${objTotG}</td>
                       <td>${realTotG||'—'}</td>
                       <td class="ea-jul26-p ${pctCol(avancePct)}">${avancePct}%</td>
-                      <td class="ea-jul26-apo-c ea-jul26-tot-apo">$${totApoyo.toLocaleString('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2})}<br><span style="font-size:9px;font-weight:700;opacity:.85">C/IVA $${(totApoyo*1.16).toLocaleString('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2})}</span></td>
+                      <td class="ea-jul26-apo-c ea-jul26-tot-apo">$${(totApoyo*1.16).toLocaleString('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2})}<br><span style="font-size:9px;font-weight:700;opacity:.75">S/IVA $${totApoyo.toLocaleString('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2})}</span></td>
                     </tr>`;
                 return `
                 <div class="ea-jul26-tbl-wrap">
@@ -2138,7 +2138,7 @@
                       ${pctCell(totObj.AGM,     totReal.AGM)}
                       ${pctCell(totObj.ESTANDAR,totReal.ESTANDAR)}
                       ${pctCell(totObj.VALUE,   totReal.VALUE)}
-                      <td class="ea-jul26-apo-c ea-jul26-tot-apo">$${totApoyo.toLocaleString('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2})}<br><span style="font-size:9px;font-weight:700;opacity:.85">C/IVA $${(totApoyo*1.16).toLocaleString('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2})}</span></td>
+                      <td class="ea-jul26-apo-c ea-jul26-tot-apo">$${(totApoyo*1.16).toLocaleString('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2})}<br><span style="font-size:9px;font-weight:700;opacity:.75">S/IVA $${totApoyo.toLocaleString('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2})}</span></td>
                     </tr>`;
                 return `
                 <div class="ea-jul26-tbl-wrap">
@@ -2203,9 +2203,9 @@
                             <p style="font-size:11px;color:#4a5a7a;margin:2px 0 0">${r.realTot} de ${r.objTot} acumuladores</p>
                         </div>
                         <div style="background:linear-gradient(135deg,#facc15,#eab308);border-radius:12px;padding:12px">
-                            <p style="font-size:10px;font-weight:900;color:#7c2d12;text-transform:uppercase;margin:0 0 4px">Apoyo acumulado</p>
-                            <p style="font-size:20px;font-weight:900;color:#0c1f44;margin:0;line-height:1">$${r.apoyo.toLocaleString('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2})}</p>
-                            <p style="font-size:10px;color:#7c2d12;font-weight:700;margin:2px 0 0">S/IVA · C/IVA $${(r.apoyo*1.16).toLocaleString('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2})}</p>
+                            <p style="font-size:10px;font-weight:900;color:#7c2d12;text-transform:uppercase;margin:0 0 4px">Apoyo total C/IVA</p>
+                            <p style="font-size:20px;font-weight:900;color:#0c1f44;margin:0;line-height:1">$${(r.apoyo*1.16).toLocaleString('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2})}</p>
+                            <p style="font-size:10px;color:#7c2d12;font-weight:700;margin:2px 0 0">subtotal S/IVA $${r.apoyo.toLocaleString('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2})}</p>
                         </div>
                     </div>
 
@@ -2278,9 +2278,9 @@
                     <div class="ea-jul26-k-s">avance ${avancePct}% del objetivo</div>
                   </div>
                   <div class="ea-jul26-kpi ea-jul26-cyan">
-                    <div class="ea-jul26-k-l">Apoyo acumulado</div>
-                    <div class="ea-jul26-k-v">$${totApoyo.toLocaleString('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2})}</div>
-                    <div class="ea-jul26-k-s">subtotal S/IVA · <b style="color:#facc15">C/IVA $${(totApoyo*1.16).toLocaleString('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2})}</b></div>
+                    <div class="ea-jul26-k-l">Apoyo total C/IVA</div>
+                    <div class="ea-jul26-k-v">$${(totApoyo*1.16).toLocaleString('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2})}</div>
+                    <div class="ea-jul26-k-s">subtotal S/IVA $${totApoyo.toLocaleString('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2})}</div>
                   </div>
                 </div>
                 ${avisoCache}
@@ -2304,33 +2304,77 @@
                 ? 'Ficha_' + (CAMPANIA_AGO_CONFIG.clientes.find(c=>c.codCliente===rows[0])||{nombre:'cliente'}).nombre.replace(/[^\w]+/g,'_').slice(0,30)
                 : 'CampañaAcumuladores_Ago2026';
 
-            // Clonamos el elemento y le aplicamos estilos "ahorra tinta": blanco, gris, sin gradientes
+            // Clonamos el elemento y le aplicamos estilos "ahorra tinta"
             const clon = el.cloneNode(true);
             clon.classList.add('pdf-print-mode');
 
-            // Contenedor temporal fuera de pantalla para renderizar
+            // Contenedor temporal con el ANCHO EXACTO del área imprimible (A4 - márgenes)
+            // A4 vertical = 210mm de ancho. Con márgenes de 8mm por lado = 194mm útiles = ~734 px
             const wrap = document.createElement('div');
-            wrap.style.cssText = 'position:absolute;left:-9999px;top:0;width:190mm;background:#fff;padding:6mm';
+            wrap.style.cssText = 'position:absolute;left:-9999px;top:0;width:734px;background:#fff;padding:0;box-sizing:border-box';
             wrap.appendChild(clon);
             document.body.appendChild(wrap);
 
-            // orientación: ficha individual (1 cliente) → vertical; tabla resumen → vertical; tabla detalle → horizontal
-            const orientacion = (rows.length !== 1 && campAgoUI.verDetalle) ? 'landscape' : 'portrait';
+            // Loader mientras se genera
+            const loader = document.createElement('div');
+            loader.id = 'pdf-gen-loader';
+            loader.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff';
+            loader.innerHTML = '<div class="w-12 h-12 border-4 rounded-full animate-spin mb-4" style="border-color:#facc15;border-top-color:transparent"></div><p class="text-[12px] font-black uppercase tracking-widest" style="color:#facc15">Generando vista previa...</p>';
+            document.body.appendChild(loader);
 
-            html2pdf().set({
-                margin:[6,6,6,6],
+            const opts = {
+                margin: 8,
                 filename: nombre + '.pdf',
-                image:{ type:'jpeg', quality:0.92 },
-                html2canvas:{ scale:2, backgroundColor:'#ffffff', useCORS:true, letterRendering:true, windowWidth: orientacion==='landscape'?1400:800 },
-                jsPDF:{ unit:'mm', format:'a4', orientation: orientacion, compress:true },
-                pagebreak:{ mode:['avoid-all'] }  // forzar una sola hoja
-            }).from(clon).save().then(()=>{
+                image: { type:'jpeg', quality:0.95 },
+                html2canvas: { scale:2, backgroundColor:'#ffffff', useCORS:true, letterRendering:true, windowWidth:734 },
+                jsPDF: { unit:'mm', format:'a4', orientation:'portrait', compress:true }
+            };
+
+            html2pdf().set(opts).from(clon).outputPdf('bloburl').then(url=>{
                 document.body.removeChild(wrap);
+                document.body.removeChild(loader);
+                mostrarPreviewPdf(url, nombre + '.pdf');
             }).catch(err=>{
-                document.body.removeChild(wrap);
+                if(wrap.parentNode) document.body.removeChild(wrap);
+                if(loader.parentNode) document.body.removeChild(loader);
                 console.error(err);
                 alert('Error al generar PDF: ' + err.message);
             });
+        }
+
+        function mostrarPreviewPdf(blobUrl, filename){
+            const overlay = document.createElement('div');
+            overlay.id = 'pdf-preview-overlay';
+            overlay.style.cssText = 'position:fixed;inset:0;background:rgba(12,31,68,.95);z-index:99999;display:flex;flex-direction:column;padding:12px';
+            overlay.innerHTML = `
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;color:#fff;gap:10px">
+                    <div>
+                        <p style="font-size:9px;font-weight:900;color:#facc15;letter-spacing:2px;text-transform:uppercase;margin:0">Vista previa</p>
+                        <p style="font-size:13px;font-weight:900;margin:2px 0 0;text-transform:uppercase;letter-spacing:.5px">${filename}</p>
+                    </div>
+                    <div style="display:flex;gap:8px;flex-wrap:wrap">
+                        <button id="pdf-preview-download" style="background:linear-gradient(135deg,#065f46,#10b981);color:#fff;border:none;padding:10px 16px;border-radius:10px;font-weight:900;font-size:11px;text-transform:uppercase;letter-spacing:1.5px;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,.3);display:flex;align-items:center;gap:6px"><i class="fas fa-download"></i>Descargar</button>
+                        <button id="pdf-preview-print" style="background:linear-gradient(135deg,#1e3a8a,#3b82f6);color:#fff;border:none;padding:10px 16px;border-radius:10px;font-weight:900;font-size:11px;text-transform:uppercase;letter-spacing:1.5px;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,.3);display:flex;align-items:center;gap:6px"><i class="fas fa-print"></i>Imprimir</button>
+                        <button id="pdf-preview-close" style="background:rgba(255,255,255,.15);color:#fff;border:none;width:40px;height:40px;border-radius:10px;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center"><i class="fas fa-xmark"></i></button>
+                    </div>
+                </div>
+                <iframe src="${blobUrl}" style="flex:1;width:100%;background:#fff;border:none;border-radius:8px;box-shadow:0 10px 40px rgba(0,0,0,.4)"></iframe>
+            `;
+            document.body.appendChild(overlay);
+
+            document.getElementById('pdf-preview-download').onclick = ()=>{
+                const a = document.createElement('a');
+                a.href = blobUrl; a.download = filename;
+                document.body.appendChild(a); a.click(); document.body.removeChild(a);
+            };
+            document.getElementById('pdf-preview-print').onclick = ()=>{
+                const w = window.open(blobUrl, '_blank');
+                if(w) setTimeout(()=>{ try{ w.print(); }catch(e){} }, 500);
+            };
+            document.getElementById('pdf-preview-close').onclick = ()=>{
+                document.body.removeChild(overlay);
+                URL.revokeObjectURL(blobUrl);
+            };
         }
 
         /* ===================== RESULTADOS ACUMULADORES JULIO 2026 (histórico) ===================== */
