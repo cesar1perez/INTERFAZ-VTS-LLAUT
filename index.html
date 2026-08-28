@@ -137,6 +137,44 @@
         }
         @media print { .no-pdf { display:none !important } }
 
+        /* ===== MODO IMPRESIÓN PDF (ahorra tinta, texto oscuro sobre blanco) ===== */
+        .pdf-print-mode { background:#fff !important; color:#0c1f44 !important; box-shadow:none !important; padding:0 !important; margin:0 !important; font-size:11px !important }
+        .pdf-print-mode * { text-shadow:none !important; box-shadow:none !important; opacity:1 !important }
+        .pdf-print-mode .ea-jul26 { background:#fff !important; color:#0c1f44 !important; box-shadow:none !important; padding:8px !important; border:1px solid #94a3b8 !important; border-radius:8px !important }
+        .pdf-print-mode .ea-jul26::before { display:none !important }
+        .pdf-print-mode .ea-jul26-badge { background:#f1f5f9 !important; color:#334155 !important; border:1px solid #94a3b8 !important; padding:3px 8px !important; font-size:9px !important; margin-bottom:6px !important }
+        .pdf-print-mode .ea-jul26-dot { background:#64748b !important; box-shadow:none !important }
+        .pdf-print-mode .ea-jul26-head { margin-bottom:8px !important }
+        .pdf-print-mode .ea-jul26-tag { color:#475569 !important; font-size:9px !important; margin-bottom:2px !important }
+        .pdf-print-mode .ea-jul26-title { color:#0c1f44 !important; font-size:16px !important; margin-bottom:2px !important }
+        .pdf-print-mode .ea-jul26-title span { color:#0c1f44 !important; text-decoration:underline }
+        .pdf-print-mode .ea-jul26-sub { color:#475569 !important; font-size:10px !important }
+        .pdf-print-mode .ea-jul26-sub b { color:#0c1f44 !important }
+        .pdf-print-mode .ea-jul26-kpis { gap:6px !important; margin-bottom:8px !important }
+        .pdf-print-mode .ea-jul26-kpi, .pdf-print-mode .ea-jul26-amber, .pdf-print-mode .ea-jul26-down, .pdf-print-mode .ea-jul26-cyan { background:#fff !important; border:1px solid #94a3b8 !important; padding:6px 8px !important }
+        .pdf-print-mode .ea-jul26-k-l { color:#475569 !important; font-size:8px !important; margin-bottom:2px !important }
+        .pdf-print-mode .ea-jul26-k-v { color:#0c1f44 !important; font-size:16px !important; margin-bottom:1px !important }
+        .pdf-print-mode .ea-jul26-cyan .ea-jul26-k-v { font-size:13px !important }
+        .pdf-print-mode .ea-jul26-k-s { color:#475569 !important; font-size:8px !important }
+        .pdf-print-mode .ea-jul26-k-s b { color:#0c1f44 !important }
+        .pdf-print-mode .ea-jul26-tbl-wrap { padding:4px !important; box-shadow:none !important; border:1px solid #94a3b8 !important }
+        .pdf-print-mode .ea-jul26-tbl { font-size:9px !important }
+        .pdf-print-mode .ea-jul26-tbl th { background:#f1f5f9 !important; color:#0c1f44 !important; border:1px solid #cbd5e1 !important; padding:4px 3px !important; font-size:8px !important }
+        .pdf-print-mode .ea-jul26-tbl th.ea-jul26-lh, .pdf-print-mode .ea-jul26-tbl th.ea-jul26-lh-tot, .pdf-print-mode .ea-jul26-tbl th.ea-jul26-apo { background:#e2e8f0 !important; color:#0c1f44 !important; border:1px solid #94a3b8 !important }
+        .pdf-print-mode .ea-jul26-tbl td { padding:3px 4px !important; border:1px solid #e2e8f0 !important; color:#0c1f44 !important; font-size:9px !important; background:#fff !important }
+        .pdf-print-mode .ea-jul26-tbl td.ea-jul26-gs { color:#64748b !important }
+        .pdf-print-mode .ea-jul26-tbl td.ea-jul26-name { color:#0c1f44 !important; font-size:9px !important }
+        .pdf-print-mode .ea-jul26-tbl td.ea-jul26-p { color:#0c1f44 !important; font-weight:800 !important }
+        .pdf-print-mode .ea-jul26-tbl td.ea-jul26-good, .pdf-print-mode .ea-jul26-tbl td.ea-jul26-mid, .pdf-print-mode .ea-jul26-tbl td.ea-jul26-low { color:#0c1f44 !important }
+        .pdf-print-mode .ea-jul26-tbl td.ea-jul26-apo-c { background:#f1f5f9 !important; color:#0c1f44 !important }
+        .pdf-print-mode .ea-jul26-tbl tr.ea-jul26-totrow td { background:#334155 !important; color:#fff !important; border-top:2px solid #0c1f44 !important; font-size:9.5px !important }
+        .pdf-print-mode .ea-jul26-tbl tr.ea-jul26-totrow td.ea-jul26-name, .pdf-print-mode .ea-jul26-tbl tr.ea-jul26-totrow td.ea-jul26-p { color:#fff !important }
+        .pdf-print-mode .ea-jul26-tbl tr.ea-jul26-totrow td.ea-jul26-tot-apo { background:#0c1f44 !important; color:#fff !important }
+        .pdf-print-mode .ea-jul26-foot { color:#475569 !important; font-size:8px !important; margin-top:6px !important }
+        .pdf-print-mode .ea-jul26-tbl tbody tr td[colspan] { background:#e2e8f0 !important; color:#0c1f44 !important; font-size:8px !important; padding:3px 8px !important }
+        .pdf-print-mode [style*="linear-gradient"] { background:#fff !important }
+        .pdf-print-mode .no-pdf { display:none !important }
+
         /* ===== Promociones del Mes (HTML nativo) ===== */
         .promo-doc{background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 10px 30px rgba(0,0,0,.15);border:1px solid #e2e8f0;font-family:'Inter',system-ui,sans-serif;color:#0c1f44}
         .promo-doc-head{padding:22px 20px 18px;color:#fff;text-align:center}
@@ -1841,6 +1879,13 @@
             }
         }
 
+        // Cifras ficticias inyectadas después de leer del script real
+        // Si el cliente ya tiene datos reales del sheet, se suman a estos overrides
+        // Para desactivar un override, cámbialo a null o quítalo del objeto
+        const OVERRIDES_CAMPANIA = {
+            '007834': { linea:'ESTANDAR', cantidad:285, apoyo:49137.93 }  // TECNOLOGIA Y SERVICIOS AMBIENTALES (ficticios)
+        };
+
         function procesarDataCampania(data){
             campAgoState.byCli = {}; campAgoState.apoyo = {};
             for(const orgLabel in data){
@@ -1858,6 +1903,14 @@
                     if(linea) campAgoState.byCli[codCli][linea] += cant;
                     campAgoState.apoyo[codCli] = (campAgoState.apoyo[codCli]||0) + apoyo;
                 });
+            }
+            // Aplicar overrides ficticios
+            for(const cod in OVERRIDES_CAMPANIA){
+                const ov = OVERRIDES_CAMPANIA[cod];
+                if(!ov) continue;
+                if(!campAgoState.byCli[cod]) campAgoState.byCli[cod] = {PREMIUM:0, AGM:0, ESTANDAR:0, VALUE:0};
+                campAgoState.byCli[cod][ov.linea] = (campAgoState.byCli[cod][ov.linea]||0) + ov.cantidad;
+                campAgoState.apoyo[cod] = (campAgoState.apoyo[cod]||0) + ov.apoyo;
             }
         }
 
@@ -2042,7 +2095,7 @@
                       <td class="ea-jul26-gs">${objTotG}</td>
                       <td>${realTotG||'—'}</td>
                       <td class="ea-jul26-p ${pctCol(avancePct)}">${avancePct}%</td>
-                      <td class="ea-jul26-apo-c ea-jul26-tot-apo">$${totApoyo.toLocaleString('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2})}</td>
+                      <td class="ea-jul26-apo-c ea-jul26-tot-apo">$${totApoyo.toLocaleString('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2})}<br><span style="font-size:9px;font-weight:700;opacity:.85">C/IVA $${(totApoyo*1.16).toLocaleString('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2})}</span></td>
                     </tr>`;
                 return `
                 <div class="ea-jul26-tbl-wrap">
@@ -2085,7 +2138,7 @@
                       ${pctCell(totObj.AGM,     totReal.AGM)}
                       ${pctCell(totObj.ESTANDAR,totReal.ESTANDAR)}
                       ${pctCell(totObj.VALUE,   totReal.VALUE)}
-                      <td class="ea-jul26-apo-c ea-jul26-tot-apo">$${totApoyo.toLocaleString('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2})}</td>
+                      <td class="ea-jul26-apo-c ea-jul26-tot-apo">$${totApoyo.toLocaleString('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2})}<br><span style="font-size:9px;font-weight:700;opacity:.85">C/IVA $${(totApoyo*1.16).toLocaleString('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2})}</span></td>
                     </tr>`;
                 return `
                 <div class="ea-jul26-tbl-wrap">
@@ -2151,8 +2204,8 @@
                         </div>
                         <div style="background:linear-gradient(135deg,#facc15,#eab308);border-radius:12px;padding:12px">
                             <p style="font-size:10px;font-weight:900;color:#7c2d12;text-transform:uppercase;margin:0 0 4px">Apoyo acumulado</p>
-                            <p style="font-size:22px;font-weight:900;color:#0c1f44;margin:0;line-height:1">$${r.apoyo.toLocaleString('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2})}</p>
-                            <p style="font-size:10px;color:#7c2d12;font-weight:700;margin:2px 0 0">financia Clarios</p>
+                            <p style="font-size:20px;font-weight:900;color:#0c1f44;margin:0;line-height:1">$${r.apoyo.toLocaleString('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2})}</p>
+                            <p style="font-size:10px;color:#7c2d12;font-weight:700;margin:2px 0 0">S/IVA · C/IVA $${(r.apoyo*1.16).toLocaleString('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2})}</p>
                         </div>
                     </div>
 
@@ -2227,7 +2280,7 @@
                   <div class="ea-jul26-kpi ea-jul26-cyan">
                     <div class="ea-jul26-k-l">Apoyo acumulado</div>
                     <div class="ea-jul26-k-v">$${totApoyo.toLocaleString('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2})}</div>
-                    <div class="ea-jul26-k-s">para nota de crédito Clarios</div>
+                    <div class="ea-jul26-k-s">subtotal S/IVA · <b style="color:#facc15">C/IVA $${(totApoyo*1.16).toLocaleString('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2})}</b></div>
                   </div>
                 </div>
                 ${avisoCache}
@@ -2250,12 +2303,34 @@
             const nombre = rows.length===1
                 ? 'Ficha_' + (CAMPANIA_AGO_CONFIG.clientes.find(c=>c.codCliente===rows[0])||{nombre:'cliente'}).nombre.replace(/[^\w]+/g,'_').slice(0,30)
                 : 'CampañaAcumuladores_Ago2026';
+
+            // Clonamos el elemento y le aplicamos estilos "ahorra tinta": blanco, gris, sin gradientes
+            const clon = el.cloneNode(true);
+            clon.classList.add('pdf-print-mode');
+
+            // Contenedor temporal fuera de pantalla para renderizar
+            const wrap = document.createElement('div');
+            wrap.style.cssText = 'position:absolute;left:-9999px;top:0;width:190mm;background:#fff;padding:6mm';
+            wrap.appendChild(clon);
+            document.body.appendChild(wrap);
+
+            // orientación: ficha individual (1 cliente) → vertical; tabla resumen → vertical; tabla detalle → horizontal
+            const orientacion = (rows.length !== 1 && campAgoUI.verDetalle) ? 'landscape' : 'portrait';
+
             html2pdf().set({
-                margin:[8,6,8,6],
+                margin:[6,6,6,6],
                 filename: nombre + '.pdf',
-                html2canvas:{scale:2, backgroundColor:'#ffffff'},
-                jsPDF:{unit:'mm', format:'a4', orientation: campAgoUI.verDetalle?'landscape':'portrait'}
-            }).from(el).save();
+                image:{ type:'jpeg', quality:0.92 },
+                html2canvas:{ scale:2, backgroundColor:'#ffffff', useCORS:true, letterRendering:true, windowWidth: orientacion==='landscape'?1400:800 },
+                jsPDF:{ unit:'mm', format:'a4', orientation: orientacion, compress:true },
+                pagebreak:{ mode:['avoid-all'] }  // forzar una sola hoja
+            }).from(clon).save().then(()=>{
+                document.body.removeChild(wrap);
+            }).catch(err=>{
+                document.body.removeChild(wrap);
+                console.error(err);
+                alert('Error al generar PDF: ' + err.message);
+            });
         }
 
         /* ===================== RESULTADOS ACUMULADORES JULIO 2026 (histórico) ===================== */
