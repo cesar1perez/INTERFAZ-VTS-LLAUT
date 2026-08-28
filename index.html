@@ -140,7 +140,7 @@
         /* ===== MODO IMPRESIÓN PDF (ahorra tinta, texto oscuro sobre blanco) ===== */
         .pdf-print-mode { background:#fff !important; color:#0c1f44 !important; box-shadow:none !important; padding:0 !important; margin:0 !important; font-size:11px !important }
         .pdf-print-mode * { text-shadow:none !important; box-shadow:none !important; opacity:1 !important }
-        .pdf-print-mode .ea-jul26 { background:#fff !important; color:#0c1f44 !important; box-shadow:none !important; padding:8px !important; border:1px solid #94a3b8 !important; border-radius:8px !important }
+        .pdf-print-mode .ea-jul26 { background:#fff !important; color:#0c1f44 !important; box-shadow:none !important; padding:8px !important; border:1px solid #94a3b8 !important; border-radius:8px !important; width:100% !important; max-width:100% !important; box-sizing:border-box !important; overflow:hidden !important }
         .pdf-print-mode .ea-jul26::before { display:none !important }
         .pdf-print-mode .ea-jul26-badge { background:#f1f5f9 !important; color:#334155 !important; border:1px solid #94a3b8 !important; padding:3px 8px !important; font-size:9px !important; margin-bottom:6px !important }
         .pdf-print-mode .ea-jul26-dot { background:#64748b !important; box-shadow:none !important }
@@ -157,8 +157,8 @@
         .pdf-print-mode .ea-jul26-cyan .ea-jul26-k-v { font-size:13px !important }
         .pdf-print-mode .ea-jul26-k-s { color:#475569 !important; font-size:8px !important }
         .pdf-print-mode .ea-jul26-k-s b { color:#0c1f44 !important }
-        .pdf-print-mode .ea-jul26-tbl-wrap { padding:4px !important; box-shadow:none !important; border:1px solid #94a3b8 !important }
-        .pdf-print-mode .ea-jul26-tbl { font-size:9px !important }
+        .pdf-print-mode .ea-jul26-tbl-wrap { padding:4px !important; box-shadow:none !important; border:1px solid #94a3b8 !important; overflow:hidden !important; max-width:100% !important; width:100% !important }
+        .pdf-print-mode .ea-jul26-tbl { font-size:9px !important; table-layout:fixed !important; width:100% !important; word-break:break-word !important }
         .pdf-print-mode .ea-jul26-tbl th { background:#f1f5f9 !important; color:#0c1f44 !important; border:1px solid #cbd5e1 !important; padding:4px 3px !important; font-size:8px !important }
         .pdf-print-mode .ea-jul26-tbl th.ea-jul26-lh, .pdf-print-mode .ea-jul26-tbl th.ea-jul26-lh-tot, .pdf-print-mode .ea-jul26-tbl th.ea-jul26-apo { background:#e2e8f0 !important; color:#0c1f44 !important; border:1px solid #94a3b8 !important }
         .pdf-print-mode .ea-jul26-tbl td { padding:3px 4px !important; border:1px solid #e2e8f0 !important; color:#0c1f44 !important; font-size:9px !important; background:#fff !important }
@@ -2095,7 +2095,7 @@
                       <td class="ea-jul26-gs">${objTotG}</td>
                       <td>${realTotG||'—'}</td>
                       <td class="ea-jul26-p ${pctCol(avancePct)}">${avancePct}%</td>
-                      <td class="ea-jul26-apo-c ea-jul26-tot-apo">$${(totApoyo*1.16).toLocaleString('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2})}<br><span style="font-size:9px;font-weight:700;opacity:.75">S/IVA $${totApoyo.toLocaleString('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2})}</span></td>
+                      <td class="ea-jul26-apo-c ea-jul26-tot-apo">$${(totApoyo*1.16).toLocaleString('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2})}<br><span style="font-size:9px;font-weight:700;opacity:.75">Subtotal: $${totApoyo.toLocaleString('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2})}</span></td>
                     </tr>`;
                 return `
                 <div class="ea-jul26-tbl-wrap">
@@ -2138,7 +2138,7 @@
                       ${pctCell(totObj.AGM,     totReal.AGM)}
                       ${pctCell(totObj.ESTANDAR,totReal.ESTANDAR)}
                       ${pctCell(totObj.VALUE,   totReal.VALUE)}
-                      <td class="ea-jul26-apo-c ea-jul26-tot-apo">$${(totApoyo*1.16).toLocaleString('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2})}<br><span style="font-size:9px;font-weight:700;opacity:.75">S/IVA $${totApoyo.toLocaleString('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2})}</span></td>
+                      <td class="ea-jul26-apo-c ea-jul26-tot-apo">$${(totApoyo*1.16).toLocaleString('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2})}<br><span style="font-size:9px;font-weight:700;opacity:.75">Subtotal: $${totApoyo.toLocaleString('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2})}</span></td>
                     </tr>`;
                 return `
                 <div class="ea-jul26-tbl-wrap">
@@ -2203,9 +2203,9 @@
                             <p style="font-size:11px;color:#4a5a7a;margin:2px 0 0">${r.realTot} de ${r.objTot} acumuladores</p>
                         </div>
                         <div style="background:linear-gradient(135deg,#facc15,#eab308);border-radius:12px;padding:12px">
-                            <p style="font-size:10px;font-weight:900;color:#7c2d12;text-transform:uppercase;margin:0 0 4px">Apoyo total C/IVA</p>
+                            <p style="font-size:10px;font-weight:900;color:#7c2d12;text-transform:uppercase;margin:0 0 4px">Total neto</p>
                             <p style="font-size:20px;font-weight:900;color:#0c1f44;margin:0;line-height:1">$${(r.apoyo*1.16).toLocaleString('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2})}</p>
-                            <p style="font-size:10px;color:#7c2d12;font-weight:700;margin:2px 0 0">subtotal S/IVA $${r.apoyo.toLocaleString('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2})}</p>
+                            <p style="font-size:10px;color:#7c2d12;font-weight:700;margin:2px 0 0">Subtotal: $${r.apoyo.toLocaleString('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2})}</p>
                         </div>
                     </div>
 
@@ -2278,9 +2278,9 @@
                     <div class="ea-jul26-k-s">avance ${avancePct}% del objetivo</div>
                   </div>
                   <div class="ea-jul26-kpi ea-jul26-cyan">
-                    <div class="ea-jul26-k-l">Apoyo total C/IVA</div>
+                    <div class="ea-jul26-k-l">Total neto</div>
                     <div class="ea-jul26-k-v">$${(totApoyo*1.16).toLocaleString('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2})}</div>
-                    <div class="ea-jul26-k-s">subtotal S/IVA $${totApoyo.toLocaleString('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2})}</div>
+                    <div class="ea-jul26-k-s">Subtotal: $${totApoyo.toLocaleString('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2})}</div>
                   </div>
                 </div>
                 ${avisoCache}
@@ -2326,20 +2326,23 @@
                 margin: 8,
                 filename: nombre + '.pdf',
                 image: { type:'jpeg', quality:0.95 },
-                html2canvas: { scale:2, backgroundColor:'#ffffff', useCORS:true, letterRendering:true, windowWidth:734 },
+                html2canvas: { scale:2, backgroundColor:'#ffffff', useCORS:true, letterRendering:true, windowWidth:734, width:734 },
                 jsPDF: { unit:'mm', format:'a4', orientation:'portrait', compress:true }
             };
 
-            html2pdf().set(opts).from(clon).outputPdf('bloburl').then(url=>{
-                document.body.removeChild(wrap);
-                document.body.removeChild(loader);
-                mostrarPreviewPdf(url, nombre + '.pdf');
-            }).catch(err=>{
-                if(wrap.parentNode) document.body.removeChild(wrap);
-                if(loader.parentNode) document.body.removeChild(loader);
-                console.error(err);
-                alert('Error al generar PDF: ' + err.message);
-            });
+            // Esperar 2 frames de render para asegurar que .pdf-print-mode se aplique antes de capturar
+            requestAnimationFrame(()=>requestAnimationFrame(()=>{
+                html2pdf().set(opts).from(clon).outputPdf('bloburl').then(url=>{
+                    document.body.removeChild(wrap);
+                    document.body.removeChild(loader);
+                    mostrarPreviewPdf(url, nombre + '.pdf');
+                }).catch(err=>{
+                    if(wrap.parentNode) document.body.removeChild(wrap);
+                    if(loader.parentNode) document.body.removeChild(loader);
+                    console.error('PDF error:', err);
+                    alert('Error al generar PDF: ' + err.message);
+                });
+            }));
         }
 
         function mostrarPreviewPdf(blobUrl, filename){
