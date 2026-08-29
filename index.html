@@ -1778,9 +1778,14 @@
             return COD_LINEA_ACUM[c] || null;
         }
 
-        // ⬇️ CONFIGURACIÓN — pega aquí la URL del Apps Script (termina en /exec)
+        // ⬇️ CONFIGURACIÓN — 3 URLs CSV publicadas del Google Sheet (una por hoja)
+        // Base del archivo publicado: mismo que ya usa el dashboard general de Tulancingo
         const CAMPANIA_AGO_CONFIG = {
-            apiUrl: 'https://script.google.com/macros/s/AKfycbwQWOf5pLIl6xBNsiDLvt39peL7xv1sx3EsYtfBCjatFsgllfBeMGOWPBqJnZV3N39MZA/exec',
+            csvUrls: {
+                'TULANCINGO': 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSXDFzkon4Xxv9ydIrVdSW5ER9FweUPFbmE0GI55ca6rFzy-yrjFVmN8kgQ7X0s5oF6k1Wbf8XG4lmX/pub?gid=1860476982&single=true&output=csv',
+                'AUTO_ROMA':  'https://docs.google.com/spreadsheets/d/e/2PACX-1vSXDFzkon4Xxv9ydIrVdSW5ER9FweUPFbmE0GI55ca6rFzy-yrjFVmN8kgQ7X0s5oF6k1Wbf8XG4lmX/pub?gid=1762177058&single=true&output=csv',
+                'POZA_RICA':  'https://docs.google.com/spreadsheets/d/e/2PACX-1vSXDFzkon4Xxv9ydIrVdSW5ER9FweUPFbmE0GI55ca6rFzy-yrjFVmN8kgQ7X0s5oF6k1Wbf8XG4lmX/pub?gid=411536143&single=true&output=csv'
+            },
             clientes: [
                 // LLANTERAMA TULANCINGO
                 {codCliente:'007834', nombre:'TECNOLOGIA Y SERVICIOS AMBIENTALES S.A DE C.V', org:'TULANCINGO', obj:{PREMIUM:0, AGM:175, ESTANDAR:300, VALUE:0}},
@@ -1799,20 +1804,20 @@
         // Estado global del módulo Agosto
         const campAgoState = { rows:null, byCli:{}, apoyo:{}, stamp:null, err:null };
 
-        // Fetch específico para Apps Script (timeout largo: Google puede tardar hasta 30s)
-        async function fetchAppsScript(url, tries=3){
+        // Cargar 3 CSVs en paralelo (mucho más rápido que Apps Script secuencial)
+        async function fetchCsvHoja(url, tries=2){
             let last;
             for(let i=0;i<tries;i++){
                 try{
                     const ctrl = new AbortController();
-                    const to = setTimeout(()=>ctrl.abort(), 30000); // 30s (era 15s)
-                    const r = await fetch(url, {signal:ctrl.signal, cache:'no-store'});
+                    const to = setTimeout(()=>ctrl.abort(), 12000); // 12s por hoja
+                    const r = await fetch(url + '&t=' + Date.now(), {signal:ctrl.signal, cache:'no-store'});
                     clearTimeout(to);
                     if(!r.ok) throw new Error('HTTP '+r.status);
-                    return r;
+                    return await r.text();
                 }catch(e){
                     last = e;
-                    if(i<tries-1) await new Promise(res=>setTimeout(res, 1500*(i+1))); // 1.5s, 3s (era 0.8, 1.6)
+                    if(i<tries-1) await new Promise(res=>setTimeout(res, 800));
                 }
             }
             throw last;
@@ -1821,20 +1826,26 @@
         async function loadCampaniaAgo(){
             const cfg = CAMPANIA_AGO_CONFIG;
             campAgoState.byCli = {}; campAgoState.apoyo = {}; campAgoState.err = null; campAgoState.fromCache = false;
-            if(!cfg.apiUrl) return false;
             try{
-                const r = await fetchAppsScript(cfg.apiUrl + '?action=all&t=' + Date.now(), 3);
-                const json = await r.json();
-                if(!json.ok) throw new Error(json.error || 'Respuesta inválida del Apps Script');
-                // json.data = {TULANCINGO:[...filas...], AUTO_ROMA:[...], POZA_RICA:[...]}
-                procesarDataCampania(json.data);
+                // Descargar las 3 hojas en paralelo (mucho más rápido)
+                const [tulTxt, autoTxt, pozaTxt] = await Promise.all([
+                    fetchCsvHoja(cfg.csvUrls.TULANCINGO),
+                    fetchCsvHoja(cfg.csvUrls.AUTO_ROMA),
+                    fetchCsvHoja(cfg.csvUrls.POZA_RICA)
+                ]);
+                const data = {
+                    TULANCINGO: Papa.parse(tulTxt,  {header:true, skipEmptyLines:true}).data,
+                    AUTO_ROMA:  Papa.parse(autoTxt, {header:true, skipEmptyLines:true}).data,
+                    POZA_RICA:  Papa.parse(pozaTxt, {header:true, skipEmptyLines:true}).data
+                };
+                procesarDataCampania(data);
                 campAgoState.stamp = new Date();
-                // Guardar en cache local para próximas cargas si Apps Script falla
-                try{ localStorage.setItem('camp_ago_v1', JSON.stringify({t:campAgoState.stamp.toISOString(), data:json.data})); }catch(e){}
+                // Guardar en cache local por si algún día la red falla
+                try{ localStorage.setItem('camp_ago_v1', JSON.stringify({t:campAgoState.stamp.toISOString(), data:data})); }catch(e){}
                 return true;
             }catch(e){
                 campAgoState.err = e;
-                // Fallback a cache local si existe
+                // Fallback a cache local
                 try{
                     const cached = JSON.parse(localStorage.getItem('camp_ago_v1'));
                     if(cached && cached.data){
@@ -1885,7 +1896,7 @@
 
         function renderCampaniaAgo(){
             const cfg = CAMPANIA_AGO_CONFIG;
-            const hayApi = !!cfg.apiUrl;
+            const hayApi = !!(cfg.csvUrls && cfg.csvUrls.TULANCINGO);
 
             // Loader con mensaje que puede cambiar si tarda mucho
             document.getElementById('content-area').innerHTML = `
@@ -1893,7 +1904,7 @@
             <div id="camp-loader" class="surface rounded-2xl p-10 text-center">
                 <div class="w-10 h-10 border-4 rounded-full animate-spin mx-auto mb-4" style="border-color:#3aa6ff;border-top-color:transparent"></div>
                 <p class="text-[11px] font-black muted uppercase tracking-widest" id="camp-loader-msg">Cargando seguimiento en vivo...</p>
-                <p class="text-[10px] muted mt-2" id="camp-loader-sub">Consultando Apps Script de Google</p>
+                <p class="text-[10px] muted mt-2" id="camp-loader-sub">Descargando datos de Google Sheets</p>
             </div>`;
             window.scrollTo(0,0);
 
@@ -1902,7 +1913,7 @@
                 const m = document.getElementById('camp-loader-msg');
                 const s = document.getElementById('camp-loader-sub');
                 if(m) m.textContent = 'Aún cargando, sé paciente...';
-                if(s) s.textContent = 'Google Apps Script a veces tarda en despertar (hasta 30 seg)';
+                if(s) s.textContent = 'La conexión está lenta, un momento...';
             }, 8000);
 
             (async ()=>{
@@ -1915,7 +1926,7 @@
                     <div class="surface rounded-2xl p-8 text-center">
                         <i class="fas fa-cloud-slash text-4xl mb-3" style="color:var(--bad)"></i>
                         <p class="text-[13px] font-black uppercase txt mb-2">No se pudo conectar</p>
-                        <p class="text-[12px] muted mb-4 leading-relaxed">Google Apps Script no respondió. Puede ser un mantenimiento de Google (dura 10-30 min) o mala señal. Intenta de nuevo en un minuto.</p>
+                        <p class="text-[12px] muted mb-4 leading-relaxed">No se pudo descargar los datos del Google Sheet. Puede ser mala señal o el archivo temporalmente no accesible. Intenta de nuevo en un momento.</p>
                         <button onclick="renderCampaniaAgo()" class="glass-btn chip-accent px-8 py-3 rounded-xl text-[11px] font-black uppercase tracking-widest shadow-lg"><i class="fas fa-rotate mr-2"></i>Reintentar</button>
                     </div>`;
                     window.scrollTo(0,0);
@@ -2198,24 +2209,24 @@
                 cuerpoTablas = campAgoUI.verDetalle ? tablaDetalle() : tablaResumen();
             }
 
-            // Aviso si estamos mostrando datos de cache (Apps Script falló pero teníamos copia)
+            // Aviso si estamos mostrando datos de cache (red falló pero teníamos copia)
             const avisoCache = campAgoState.fromCache ? `
                 <div class="surface rounded-2xl p-4 mb-4 flex items-center gap-3 no-pdf" style="border-left:6px solid #f97316">
                     <i class="fas fa-cloud-arrow-down text-lg" style="color:#f97316"></i>
-                    <p class="text-[12px] muted leading-snug"><b class="txt">Modo sin conexión:</b> Google Apps Script no respondió. Mostrando última copia guardada del ${campAgoState.stamp ? campAgoState.stamp.toLocaleString('es-MX',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) : ''}. <button onclick="renderCampaniaAgo()" class="underline font-black" style="color:#f97316">Reintentar</button></p>
+                    <p class="text-[12px] muted leading-snug"><b class="txt">Modo sin conexión:</b> no se pudo actualizar. Mostrando última copia guardada del ${campAgoState.stamp ? campAgoState.stamp.toLocaleString('es-MX',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) : ''}. <button onclick="renderCampaniaAgo()" class="underline font-black" style="color:#f97316">Reintentar</button></p>
                 </div>` : '';
 
-            // Aviso si aún no hay URL del Apps Script
+            // Aviso si aún no hay URLs configuradas
             const avisoConfig = !hayApi ? `
                 <div class="surface rounded-2xl p-4 mb-4 flex items-center gap-3 no-pdf" style="border-left:6px solid #b45309">
                     <i class="fas fa-hourglass-half text-lg" style="color:#b45309"></i>
-                    <p class="text-[12px] muted leading-snug"><b class="txt">Datos reales pendientes:</b> falta pegar la URL del Apps Script (termina en <code style="color:#0891b2">/exec</code>) en <code style="color:#0891b2">CAMPANIA_AGO_CONFIG.apiUrl</code>.</p>
+                    <p class="text-[12px] muted leading-snug"><b class="txt">Datos reales pendientes:</b> faltan las URLs CSV de las 3 hojas en <code style="color:#0891b2">CAMPANIA_AGO_CONFIG.csvUrls</code>.</p>
                 </div>` : '';
 
             const avisoErr = (hayApi && campAgoState.err) ? `
                 <div class="surface rounded-2xl p-4 mb-4 flex items-center gap-3 no-pdf" style="border-left:6px solid var(--bad)">
                     <i class="fas fa-triangle-exclamation text-lg" style="color:var(--bad)"></i>
-                    <p class="text-[12px] muted leading-snug"><b class="txt">No se pudo leer del Apps Script.</b> ${String(campAgoState.err.message||campAgoState.err)}</p>
+                    <p class="text-[12px] muted leading-snug"><b class="txt">No se pudo descargar del Google Sheet.</b> ${String(campAgoState.err.message||campAgoState.err)}</p>
                 </div>` : '';
 
             document.getElementById('content-area').innerHTML = `
