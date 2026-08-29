@@ -137,43 +137,12 @@
         }
         @media print { .no-pdf { display:none !important } }
 
-        /* ===== MODO IMPRESIÓN PDF (ahorra tinta, texto oscuro sobre blanco) ===== */
-        .pdf-print-mode { background:#fff !important; color:#0c1f44 !important; box-shadow:none !important; padding:0 !important; margin:0 !important; font-size:11px !important }
-        .pdf-print-mode * { text-shadow:none !important; box-shadow:none !important; opacity:1 !important }
-        .pdf-print-mode .ea-jul26 { background:#fff !important; color:#0c1f44 !important; box-shadow:none !important; padding:8px !important; border:1px solid #94a3b8 !important; border-radius:8px !important; width:100% !important; max-width:100% !important; box-sizing:border-box !important; overflow:hidden !important }
-        .pdf-print-mode .ea-jul26::before { display:none !important }
-        .pdf-print-mode .ea-jul26-badge { background:#f1f5f9 !important; color:#334155 !important; border:1px solid #94a3b8 !important; padding:3px 8px !important; font-size:9px !important; margin-bottom:6px !important }
-        .pdf-print-mode .ea-jul26-dot { background:#64748b !important; box-shadow:none !important }
-        .pdf-print-mode .ea-jul26-head { margin-bottom:8px !important }
-        .pdf-print-mode .ea-jul26-tag { color:#475569 !important; font-size:9px !important; margin-bottom:2px !important }
-        .pdf-print-mode .ea-jul26-title { color:#0c1f44 !important; font-size:16px !important; margin-bottom:2px !important }
-        .pdf-print-mode .ea-jul26-title span { color:#0c1f44 !important; text-decoration:underline }
-        .pdf-print-mode .ea-jul26-sub { color:#475569 !important; font-size:10px !important }
-        .pdf-print-mode .ea-jul26-sub b { color:#0c1f44 !important }
-        .pdf-print-mode .ea-jul26-kpis { gap:6px !important; margin-bottom:8px !important }
-        .pdf-print-mode .ea-jul26-kpi, .pdf-print-mode .ea-jul26-amber, .pdf-print-mode .ea-jul26-down, .pdf-print-mode .ea-jul26-cyan { background:#fff !important; border:1px solid #94a3b8 !important; padding:6px 8px !important }
-        .pdf-print-mode .ea-jul26-k-l { color:#475569 !important; font-size:8px !important; margin-bottom:2px !important }
-        .pdf-print-mode .ea-jul26-k-v { color:#0c1f44 !important; font-size:16px !important; margin-bottom:1px !important }
-        .pdf-print-mode .ea-jul26-cyan .ea-jul26-k-v { font-size:13px !important }
-        .pdf-print-mode .ea-jul26-k-s { color:#475569 !important; font-size:8px !important }
-        .pdf-print-mode .ea-jul26-k-s b { color:#0c1f44 !important }
-        .pdf-print-mode .ea-jul26-tbl-wrap { padding:4px !important; box-shadow:none !important; border:1px solid #94a3b8 !important; overflow:hidden !important; max-width:100% !important; width:100% !important }
-        .pdf-print-mode .ea-jul26-tbl { font-size:9px !important; table-layout:fixed !important; width:100% !important; word-break:break-word !important }
-        .pdf-print-mode .ea-jul26-tbl th { background:#f1f5f9 !important; color:#0c1f44 !important; border:1px solid #cbd5e1 !important; padding:4px 3px !important; font-size:8px !important }
-        .pdf-print-mode .ea-jul26-tbl th.ea-jul26-lh, .pdf-print-mode .ea-jul26-tbl th.ea-jul26-lh-tot, .pdf-print-mode .ea-jul26-tbl th.ea-jul26-apo { background:#e2e8f0 !important; color:#0c1f44 !important; border:1px solid #94a3b8 !important }
-        .pdf-print-mode .ea-jul26-tbl td { padding:3px 4px !important; border:1px solid #e2e8f0 !important; color:#0c1f44 !important; font-size:9px !important; background:#fff !important }
-        .pdf-print-mode .ea-jul26-tbl td.ea-jul26-gs { color:#64748b !important }
-        .pdf-print-mode .ea-jul26-tbl td.ea-jul26-name { color:#0c1f44 !important; font-size:9px !important }
-        .pdf-print-mode .ea-jul26-tbl td.ea-jul26-p { color:#0c1f44 !important; font-weight:800 !important }
-        .pdf-print-mode .ea-jul26-tbl td.ea-jul26-good, .pdf-print-mode .ea-jul26-tbl td.ea-jul26-mid, .pdf-print-mode .ea-jul26-tbl td.ea-jul26-low { color:#0c1f44 !important }
-        .pdf-print-mode .ea-jul26-tbl td.ea-jul26-apo-c { background:#f1f5f9 !important; color:#0c1f44 !important }
-        .pdf-print-mode .ea-jul26-tbl tr.ea-jul26-totrow td { background:#334155 !important; color:#fff !important; border-top:2px solid #0c1f44 !important; font-size:9.5px !important }
-        .pdf-print-mode .ea-jul26-tbl tr.ea-jul26-totrow td.ea-jul26-name, .pdf-print-mode .ea-jul26-tbl tr.ea-jul26-totrow td.ea-jul26-p { color:#fff !important }
-        .pdf-print-mode .ea-jul26-tbl tr.ea-jul26-totrow td.ea-jul26-tot-apo { background:#0c1f44 !important; color:#fff !important }
-        .pdf-print-mode .ea-jul26-foot { color:#475569 !important; font-size:8px !important; margin-top:6px !important }
-        .pdf-print-mode .ea-jul26-tbl tbody tr td[colspan] { background:#e2e8f0 !important; color:#0c1f44 !important; font-size:8px !important; padding:3px 8px !important }
-        .pdf-print-mode [style*="linear-gradient"] { background:#fff !important }
-        .pdf-print-mode .no-pdf { display:none !important }
+        /* ===== MODO CAPTURA PDF: colores suaves para ahorrar tinta al imprimir =====
+           Se aplica al elemento original y html2canvas hace pantallazo directo.
+           Los filtros bajan la saturación (colores menos intensos) y suben un poco
+           el brillo del fondo. Los botones .no-pdf se ocultan. */
+        .pdf-screenshot-mode { filter: saturate(0.55) brightness(1.05) !important; }
+        .pdf-screenshot-mode .no-pdf { display:none !important; }
 
         /* ===== Promociones del Mes (HTML nativo) ===== */
         .promo-doc{background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 10px 30px rgba(0,0,0,.15);border:1px solid #e2e8f0;font-family:'Inter',system-ui,sans-serif;color:#0c1f44}
@@ -2304,45 +2273,61 @@
                 ? 'Ficha_' + (CAMPANIA_AGO_CONFIG.clientes.find(c=>c.codCliente===rows[0])||{nombre:'cliente'}).nombre.replace(/[^\w]+/g,'_').slice(0,30)
                 : 'CampañaAcumuladores_Ago2026';
 
-            // Clonamos el elemento y le aplicamos estilos "ahorra tinta"
-            const clon = el.cloneNode(true);
-            clon.classList.add('pdf-print-mode');
-
-            // Contenedor temporal con el ANCHO EXACTO del área imprimible (A4 - márgenes)
-            // A4 vertical = 210mm de ancho. Con márgenes de 8mm por lado = 194mm útiles = ~734 px
-            const wrap = document.createElement('div');
-            wrap.style.cssText = 'position:absolute;left:-9999px;top:0;width:734px;background:#fff;padding:0;box-sizing:border-box';
-            wrap.appendChild(clon);
-            document.body.appendChild(wrap);
-
-            // Loader mientras se genera
+            // Loader
             const loader = document.createElement('div');
-            loader.id = 'pdf-gen-loader';
             loader.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff';
-            loader.innerHTML = '<div class="w-12 h-12 border-4 rounded-full animate-spin mb-4" style="border-color:#facc15;border-top-color:transparent"></div><p class="text-[12px] font-black uppercase tracking-widest" style="color:#facc15">Generando vista previa...</p>';
+            loader.innerHTML = '<div class="w-12 h-12 border-4 rounded-full animate-spin mb-4" style="border-color:#facc15;border-top-color:transparent"></div><p class="text-[12px] font-black uppercase tracking-widest" style="color:#facc15">Generando pantallazo...</p>';
             document.body.appendChild(loader);
 
-            const opts = {
-                margin: 8,
-                filename: nombre + '.pdf',
-                image: { type:'jpeg', quality:0.95 },
-                html2canvas: { scale:2, backgroundColor:'#ffffff', useCORS:true, letterRendering:true, windowWidth:734, width:734 },
-                jsPDF: { unit:'mm', format:'a4', orientation:'portrait', compress:true }
-            };
+            // Aplicar filtro "colores suaves" temporalmente al elemento original (visual solo para captura)
+            el.classList.add('pdf-screenshot-mode');
 
-            // Esperar 2 frames de render para asegurar que .pdf-print-mode se aplique antes de capturar
-            requestAnimationFrame(()=>requestAnimationFrame(()=>{
-                html2pdf().set(opts).from(clon).outputPdf('bloburl').then(url=>{
-                    document.body.removeChild(wrap);
-                    document.body.removeChild(loader);
-                    mostrarPreviewPdf(url, nombre + '.pdf');
-                }).catch(err=>{
-                    if(wrap.parentNode) document.body.removeChild(wrap);
-                    if(loader.parentNode) document.body.removeChild(loader);
-                    console.error('PDF error:', err);
-                    alert('Error al generar PDF: ' + err.message);
-                });
-            }));
+            // html2canvas viene dentro de html2pdf.bundle
+            html2canvas(el, {
+                scale: 2,
+                backgroundColor: '#ffffff',
+                useCORS: true,
+                logging: false
+            }).then(canvas=>{
+                el.classList.remove('pdf-screenshot-mode');
+
+                // Crear PDF con la imagen escalada a A4 vertical
+                const { jsPDF } = window.jspdf;
+                const pdf = new jsPDF({ unit:'mm', format:'a4', orientation:'portrait', compress:true });
+                const pageW = pdf.internal.pageSize.getWidth();   // 210
+                const pageH = pdf.internal.pageSize.getHeight();  // 297
+                const margin = 8;
+                const usableW = pageW - margin*2;   // 194
+                const usableH = pageH - margin*2;   // 281
+
+                // Escalar la imagen manteniendo proporción para que quepa completa
+                const imgRatio = canvas.width / canvas.height;
+                const boxRatio = usableW / usableH;
+                let w, h;
+                if(imgRatio > boxRatio){
+                    // más ancha que alta relativamente → ajustar por ancho
+                    w = usableW;
+                    h = w / imgRatio;
+                } else {
+                    // más alta que ancha → ajustar por alto
+                    h = usableH;
+                    w = h * imgRatio;
+                }
+                const x = (pageW - w) / 2;
+                const y = (pageH - h) / 2;
+
+                const imgData = canvas.toDataURL('image/jpeg', 0.92);
+                pdf.addImage(imgData, 'JPEG', x, y, w, h, undefined, 'FAST');
+
+                const blobUrl = pdf.output('bloburl');
+                document.body.removeChild(loader);
+                mostrarPreviewPdf(blobUrl, nombre + '.pdf');
+            }).catch(err=>{
+                el.classList.remove('pdf-screenshot-mode');
+                if(loader.parentNode) document.body.removeChild(loader);
+                console.error('PDF error:', err);
+                alert('Error al generar PDF: ' + err.message);
+            });
         }
 
         function mostrarPreviewPdf(blobUrl, filename){
