@@ -4,12 +4,44 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Dashboard Tulancingo</title>
+    <!-- Preconexiones para acelerar handshake TLS con CDNs -->
+    <link rel="preconnect" href="https://cdn.tailwindcss.com" crossorigin>
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+    <link rel="preconnect" href="https://docs.google.com" crossorigin>
+    <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <!-- Críticos (bloquean render): Tailwind + PapaParse. Sin ellos el dashboard no arma UI ni lee CSV. -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <!-- FontAwesome: se carga en paralelo, si tarda no bloquea el render. Los íconos aparecen 200-400ms después. -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" media="print" onload="this.media='all'">
+    <noscript><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"></noscript>
+    <!-- Fuente Inter: display=swap = usa fuente del sistema mientras Google Fonts baja -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <!-- Chart.js y html2pdf se cargan SOLO cuando se abren los módulos que los necesitan (Gráficas / PDF).
+         Esto quita ~450 KB del arranque inicial. Ver funciones cargarChartJs() y cargarHtml2Pdf() en el JS. -->
+    <script>
+        // Helper para cargar scripts on-demand con promesa
+        window.__cachedScripts = {};
+        function loadScriptOnce(src){
+            if(window.__cachedScripts[src]) return window.__cachedScripts[src];
+            window.__cachedScripts[src] = new Promise((resolve, reject)=>{
+                const s = document.createElement('script');
+                s.src = src;
+                s.async = true;
+                s.onload = ()=>resolve();
+                s.onerror = ()=>{ delete window.__cachedScripts[src]; reject(new Error('No se pudo cargar '+src)); };
+                document.head.appendChild(s);
+            });
+            return window.__cachedScripts[src];
+        }
+        function cargarChartJs(){
+            return loadScriptOnce('https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js');
+        }
+        function cargarHtml2Pdf(){
+            return loadScriptOnce('https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js');
+        }
+    </script>
     <style>
         /* ===== SISTEMA DE TEMAS (RDV style) ===== */
         :root, [data-theme="light"]{
@@ -997,6 +1029,25 @@
         function setGrafVMetric(k){ grafState.vMetric=k; renderGraficas(); }
 
         function renderGraficas(){
+            // Cargar Chart.js on-demand si no está cargado (ahorra ~230 KB en el arranque)
+            if(typeof Chart === 'undefined'){
+                document.getElementById('content-area').innerHTML = `
+                    ${backBtn("renderMainMenu()","Menú principal")}
+                    <div class="surface rounded-2xl p-10 text-center">
+                        <div class="w-10 h-10 border-4 rounded-full animate-spin mx-auto mb-4" style="border-color:var(--brand);border-top-color:transparent"></div>
+                        <p class="text-[11px] font-black muted uppercase tracking-widest">Cargando gráficas...</p>
+                    </div>`;
+                cargarChartJs().then(()=>renderGraficas()).catch(err=>{
+                    document.getElementById('content-area').innerHTML = `
+                        ${backBtn("renderMainMenu()","Menú principal")}
+                        <div class="surface rounded-2xl p-6 text-center">
+                            <i class="fas fa-triangle-exclamation text-3xl mb-3" style="color:var(--bad)"></i>
+                            <p class="text-[13px] txt font-black mb-2">No se pudo cargar la librería de gráficas</p>
+                            <p class="text-[12px] muted">Verifica tu conexión e intenta de nuevo.</p>
+                        </div>`;
+                });
+                return;
+            }
             const years=yearsInData();
             if(years.length===0){ document.getElementById('content-area').innerHTML='Sin datos'; return; }
             if(!grafState.year || !years.includes(grafState.year)) grafState.year=years[years.length-1];
@@ -2279,6 +2330,21 @@
         function descargarPdfCampania(){
             const el = document.getElementById('camp-ago-pdf');
             if(!el){ alert('Nada que exportar'); return; }
+            // Cargar html2pdf on-demand (ahorra ~250 KB en el arranque)
+            if(typeof html2canvas === 'undefined' || typeof window.jspdf === 'undefined'){
+                const preloader = document.createElement('div');
+                preloader.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff';
+                preloader.innerHTML = '<div class="w-12 h-12 border-4 rounded-full animate-spin mb-4" style="border-color:#facc15;border-top-color:transparent"></div><p class="text-[12px] font-black uppercase tracking-widest" style="color:#facc15">Preparando exportación...</p>';
+                document.body.appendChild(preloader);
+                cargarHtml2Pdf().then(()=>{
+                    document.body.removeChild(preloader);
+                    descargarPdfCampania();
+                }).catch(err=>{
+                    document.body.removeChild(preloader);
+                    alert('No se pudo cargar la librería PDF. Verifica tu conexión.');
+                });
+                return;
+            }
             const rows = campAgoUI.selectedCli ? Array.from(campAgoUI.selectedCli) : [];
             const nombre = rows.length===1
                 ? 'Ficha_' + (CAMPANIA_AGO_CONFIG.clientes.find(c=>c.codCliente===rows[0])||{nombre:'cliente'}).nombre.replace(/[^\w]+/g,'_').slice(0,30)
@@ -2701,6 +2767,10 @@
         function sum(dataArr, field){ if(!field) return 0; return dataArr.reduce((acc,r)=>acc+Math.round(n(r[field])),0); }
         function toggleDropdown(id){ document.getElementById(id).classList.toggle('dropdown-active'); }
         function downloadPDF(name){
+            if(typeof html2pdf === 'undefined'){
+                cargarHtml2Pdf().then(()=>downloadPDF(name)).catch(()=>alert('No se pudo cargar la librería PDF. Verifica tu conexión.'));
+                return;
+            }
             const element = document.getElementById('pdf-container');
             html2pdf().set({ margin:[10,5,10,5], filename:`${currentOrg}_${name}.pdf`, html2canvas:{scale:2}, jsPDF:{unit:'mm',format:'a4'} }).from(element).save();
         }
