@@ -41,6 +41,9 @@
         function cargarHtml2Pdf(){
             return loadScriptOnce('https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js');
         }
+        function cargarSheetJs(){
+            return loadScriptOnce('https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js');
+        }
     </script>
     <style>
         /* ===== SISTEMA DE TEMAS (RDV style) ===== */
@@ -1398,50 +1401,87 @@
         }
 
         function exportarConcursoExcel(){
+            // Cargar SheetJS on-demand (solo cuando dan clic al botón)
+            if(typeof XLSX === 'undefined'){
+                const preloader = document.createElement('div');
+                preloader.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff';
+                preloader.innerHTML = '<div class="w-12 h-12 border-4 rounded-full animate-spin mb-4" style="border-color:#16a34a;border-top-color:transparent"></div><p class="text-[12px] font-black uppercase tracking-widest" style="color:#bbf7d0">Preparando Excel...</p>';
+                document.body.appendChild(preloader);
+                cargarSheetJs().then(()=>{
+                    document.body.removeChild(preloader);
+                    exportarConcursoExcel();
+                }).catch(err=>{
+                    document.body.removeChild(preloader);
+                    alert('No se pudo cargar la librería de Excel. Verifica tu conexión.');
+                });
+                return;
+            }
+
             const data = concursoData();
-            // Ordenar por % cumplimiento desc (mismo orden que en pantalla)
             const rows = data.slice().sort((a,b)=>{
                 if(a.pctComp!==null && b.pctComp!==null) return b.pctComp-a.pctComp;
                 if(a.pctComp!==null) return -1; if(b.pctComp!==null) return 1;
                 return b.pctBase-a.pctBase;
             });
 
-            // Encabezados y filas para CSV compacto (Excel lo abre nativo)
-            const headers = ['Posición','Vendedor','Objetivo Mensual (lts)','Julio 2026 (lts)','Agosto 2026 (lts)','Objetivo Jul+Ago (lts)','Vendido Jul+Ago (lts)','% Cumplimiento','Estado'];
-            const csvRows = [headers];
+            // Construir hoja como array de arrays (AOA) con encabezados
+            const aoa = [
+                ['Concurso LTH Lubricantes · Llanterama Tulancingo'],
+                ['Periodo: Julio – Agosto 2026 · Generado: ' + new Date().toLocaleString('es-MX',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'})],
+                [], // fila en blanco
+                ['Posición','Vendedor','Objetivo Mensual (lts)','Julio 2026 (lts)','Agosto 2026 (lts)','Objetivo Jul+Ago (lts)','Vendido Jul+Ago (lts)','% Cumplimiento','Estado']
+            ];
             rows.forEach((r,i)=>{
                 const pos = r.pctComp!==null ? (i+1) : '';
                 const estado = r.pctComp===null ? 'Pendiente captura' : (r.pctComp>=100?'Cumplió objetivo':(r.pctComp>=70?'En progreso':'Bajo objetivo'));
-                csvRows.push([
+                aoa.push([
                     pos,
                     r.v,
                     r.objMes || 0,
-                    r.jul.has ? r.jul.val : '',
-                    r.ago.has ? r.ago.val : '',
-                    r.compObj || '',
-                    r.hasComp ? r.compTot : '',
-                    r.pctComp!==null ? Math.round(r.pctComp*10)/10 : '',
+                    r.jul.has ? r.jul.val : null,
+                    r.ago.has ? r.ago.val : null,
+                    r.compObj || null,
+                    r.hasComp ? r.compTot : null,
+                    r.pctComp!==null ? Math.round(r.pctComp*10)/10 : null,
                     estado
                 ]);
             });
 
-            // Convertir a CSV con separador ; (mejor para Excel en español) y BOM UTF-8 para acentos
-            const escapeCell = v => {
-                const s = String(v ?? '');
-                return (s.includes(';') || s.includes('"') || s.includes('\n')) ? `"${s.replace(/"/g,'""')}"` : s;
-            };
-            const csv = '\uFEFF' + csvRows.map(row => row.map(escapeCell).join(';')).join('\r\n');
+            const ws = XLSX.utils.aoa_to_sheet(aoa);
 
-            const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
-            const url = URL.createObjectURL(blob);
+            // Anchos de columna (en caracteres) para que quede legible
+            ws['!cols'] = [
+                {wch:9},   // Posición
+                {wch:32},  // Vendedor
+                {wch:22},  // Obj mensual
+                {wch:16},  // Julio
+                {wch:16},  // Agosto
+                {wch:22},  // Obj J+A
+                {wch:22},  // Vendido J+A
+                {wch:16},  // %
+                {wch:22}   // Estado
+            ];
+            // Combinar celdas del título y subtítulo (filas 0 y 1, columnas A-I)
+            ws['!merges'] = [
+                {s:{r:0,c:0}, e:{r:0,c:8}},
+                {s:{r:1,c:0}, e:{r:1,c:8}}
+            ];
+            // Formato de miles para las columnas numéricas (fila 5 en adelante)
+            const numCols = ['C','D','E','F','G']; // Obj Mensual, Jul, Ago, Obj J+A, Vendido J+A
+            const pctCol = 'H';
+            for(let i=5; i<=aoa.length; i++){
+                numCols.forEach(col=>{
+                    const cell = ws[col+i];
+                    if(cell && cell.v !== null && cell.v !== '') cell.z = '#,##0';
+                });
+                const pc = ws[pctCol+i];
+                if(pc && pc.v !== null && pc.v !== '') pc.z = '0.0"%"';
+            }
+
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'Concurso Lubricantes');
             const fecha = new Date().toISOString().slice(0,10);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `ConcursoLubricantesLTH_${fecha}.csv`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            setTimeout(()=>URL.revokeObjectURL(url), 1000);
+            XLSX.writeFile(wb, `ConcursoLubricantesLTH_${fecha}.xlsx`);
         }
 
         function abrirPostVenta(){
