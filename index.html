@@ -1313,21 +1313,6 @@
                         <i class="fas fa-bullseye text-sm" style="color:#b45309"></i>
                         <p class="text-[11px] font-black uppercase" style="color:#b45309">Objetivo mensual lubricante: <span class="text-[13px]">${f(r.objMes)} lts</span></p>
                     </div>`:''}
-                    <p class="text-[9px] font-black uppercase tracking-widest mb-1" style="color:var(--brand)">Referencia · Marzo–Abril <span class="muted normal-case">(informativa, no participa)</span></p>
-                    <div class="grid grid-cols-3 gap-2 mb-2">
-                        ${miniCell('Mar-26', cel(r.mar))}
-                        ${miniCell('Abr-26', cel(r.abr))}
-                        ${miniCell('Obj M+A', r.baseObj?f(r.baseObj):'—')}
-                    </div>
-                    <div class="flex items-center justify-between rounded-xl px-4 py-2.5 mb-1 navy-grad">
-                        <div>
-                            <p class="text-[10px] font-black uppercase tracking-widest text-white"><i class="fas fa-droplet mr-1" style="color:var(--accent)"></i>Vendido: ${f(r.baseTot)} lts</p>
-                            <p class="text-[9px] font-bold uppercase" style="color:#94a3b8">de ${f(r.baseObj)} lts de objetivo</p>
-                        </div>
-                        <p class="text-2xl font-black leading-none" style="color:var(--accent)">${Math.round(r.pctBase)}%</p>
-                    </div>
-                    <div class="h-2 rounded-full overflow-hidden mb-3" style="background:var(--surface-2)"><div style="width:${Math.min(r.pctBase,100)}%;background:var(--accent)" class="h-full rounded-full"></div></div>
-
                     <p class="text-[9px] font-black uppercase tracking-widest mb-1" style="color:#b45309">Concurso · Julio–Agosto · Real vs Objetivo Total</p>
                     <div class="grid grid-cols-3 gap-2 mb-2">
                         ${miniCell('Jul-26', r.jul.has?f(r.jul.val):'Pend.')}
@@ -1382,7 +1367,6 @@
                     <li>• <b class="txt">Periodo del concurso:</b> los litros vendidos en <b class="txt">julio + agosto 2026</b> se miden contra la <b class="txt">suma del objetivo mensual completo</b> de ambos meses.</li>
                     <li>• <b class="txt">Ganador:</b> obtiene el primer lugar quien alcance el <b class="txt">mayor porcentaje de cumplimiento</b> de su objetivo al cierre del concurso; el segundo lugar es el siguiente porcentaje más alto.</li>
                     <li>• Cada participante compite <b class="txt">contra su propio objetivo</b>: la medición es equitativa sin importar el tamaño de su cartera o territorio.</li>
-                    <li>• Los resultados de <b class="txt">marzo–abril</b> se muestran únicamente como <b class="txt">referencia informativa</b> del desempeño previo; <b class="txt">no participan</b> en la premiación.</li>
                 </ul>
                 <div class="rounded-xl px-4 py-3 mt-3 surface-2" style="border-left:4px solid var(--accent)">
                     <p class="text-[11px] font-bold muted leading-snug"><b class="txt">Ejemplo:</b> si tu objetivo es 10,000 lts en julio y 10,000 lts en agosto (20,000 en total) y facturas 18,500 lts, tu cumplimiento es <b class="txt">92.5%</b>. Ese porcentaje es el que compite.</p>
@@ -1400,12 +1384,64 @@
                 <p class="text-[12px] muted leading-snug"><b class="txt">El concurso se define por el % de cumplimiento del objetivo en julio–agosto.</b> Los litros y objetivos de esos meses aparecerán automáticamente aquí conforme se capturen en el sistema.</p>
             </div>`}
 
-            <p class="text-[11px] font-black muted uppercase tracking-widest mb-3">Registro de progreso · Litros de lubricante</p>
+            <div class="flex items-center justify-between gap-2 mb-3">
+                <p class="text-[11px] font-black muted uppercase tracking-widest">Registro de progreso · Litros de lubricante</p>
+                <button onclick="exportarConcursoExcel()" class="glass-btn flex items-center gap-2 px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest shadow" style="background:linear-gradient(135deg,#065f46,#16a34a);color:#fff">
+                    <i class="fas fa-file-excel"></i>Excel
+                </button>
+            </div>
             ${cards}
 
             <p class="text-center text-[10px] font-bold muted mt-4 mb-10 leading-snug">Los litros de Julio y Agosto se actualizan solos al capturarlos en el Google Sheet.<br>Llanterama Tulancingo · Concurso LTH Lubricantes</p>`;
             document.getElementById('content-area').innerHTML = html;
             window.scrollTo(0,0);
+        }
+
+        function exportarConcursoExcel(){
+            const data = concursoData();
+            // Ordenar por % cumplimiento desc (mismo orden que en pantalla)
+            const rows = data.slice().sort((a,b)=>{
+                if(a.pctComp!==null && b.pctComp!==null) return b.pctComp-a.pctComp;
+                if(a.pctComp!==null) return -1; if(b.pctComp!==null) return 1;
+                return b.pctBase-a.pctBase;
+            });
+
+            // Encabezados y filas para CSV compacto (Excel lo abre nativo)
+            const headers = ['Posición','Vendedor','Objetivo Mensual (lts)','Julio 2026 (lts)','Agosto 2026 (lts)','Objetivo Jul+Ago (lts)','Vendido Jul+Ago (lts)','% Cumplimiento','Estado'];
+            const csvRows = [headers];
+            rows.forEach((r,i)=>{
+                const pos = r.pctComp!==null ? (i+1) : '';
+                const estado = r.pctComp===null ? 'Pendiente captura' : (r.pctComp>=100?'Cumplió objetivo':(r.pctComp>=70?'En progreso':'Bajo objetivo'));
+                csvRows.push([
+                    pos,
+                    r.v,
+                    r.objMes || 0,
+                    r.jul.has ? r.jul.val : '',
+                    r.ago.has ? r.ago.val : '',
+                    r.compObj || '',
+                    r.hasComp ? r.compTot : '',
+                    r.pctComp!==null ? Math.round(r.pctComp*10)/10 : '',
+                    estado
+                ]);
+            });
+
+            // Convertir a CSV con separador ; (mejor para Excel en español) y BOM UTF-8 para acentos
+            const escapeCell = v => {
+                const s = String(v ?? '');
+                return (s.includes(';') || s.includes('"') || s.includes('\n')) ? `"${s.replace(/"/g,'""')}"` : s;
+            };
+            const csv = '\uFEFF' + csvRows.map(row => row.map(escapeCell).join(';')).join('\r\n');
+
+            const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+            const url = URL.createObjectURL(blob);
+            const fecha = new Date().toISOString().slice(0,10);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `ConcursoLubricantesLTH_${fecha}.csv`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            setTimeout(()=>URL.revokeObjectURL(url), 1000);
         }
 
         function abrirPostVenta(){
