@@ -172,6 +172,15 @@
         }
         @media print { .no-pdf { display:none !important } }
 
+        /* ===== PIN GATE ===== */
+        .pin-dot { width:16px; height:16px; border-radius:50%; border:2px solid var(--accent); background:transparent; transition:all .15s ease }
+        .pin-dot.filled { background:var(--accent); box-shadow:0 0 12px rgba(245,183,0,.6) }
+        .pin-dot.error { border-color:#fca5a5; background:#fca5a5; animation:pinShake .4s }
+        @keyframes pinShake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-6px)} 75%{transform:translateX(6px)} }
+        .pin-key { height:64px; border-radius:16px; font-size:22px; font-weight:900; color:var(--accent); background:rgba(255,255,255,.08); border:1px solid rgba(245,183,0,.25); transition:all .1s ease; -webkit-tap-highlight-color:transparent; user-select:none }
+        .pin-key:hover { background:rgba(245,183,0,.12) }
+        .pin-key:active { background:rgba(245,183,0,.25); transform:scale(.96) }
+
         /* ===== MODO CAPTURA PDF: colores suaves para ahorrar tinta al imprimir =====
            Se aplica al elemento original y html2canvas hace pantallazo directo.
            Los filtros bajan la saturación (colores menos intensos) y suben un poco
@@ -229,35 +238,73 @@
     </header>
 
     <div id="view-cover" class="fixed inset-0 navy-grad z-50 flex flex-col items-center justify-center text-center p-4 text-white">
-        <!-- Botón Cotizador esquina superior derecha (solo desktop) -->
-        <a href="${''}" id="cotizador-desktop" target="_blank" rel="noopener" class="hidden sm:flex absolute top-4 right-4 items-center gap-2 no-underline glass-btn px-4 py-2.5 rounded-xl shadow-lg" style="background:rgba(255,255,255,.08);border:1px solid rgba(245,183,0,.35);backdrop-filter:blur(10px)">
-            <i class="fas fa-calculator text-sm" style="color:var(--accent)"></i>
-            <span class="text-[11px] font-black uppercase tracking-widest" style="color:var(--accent)">Cotizador</span>
-        </a>
-
-        <div class="max-w-xl w-full">
-            <h1 class="text-3xl sm:text-4xl font-black mb-1 leading-tight uppercase" style="color:var(--accent)">GRUPO LLANTERAMA</h1>
-            <p class="text-[9px] sm:text-[10px] tracking-[0.4em] mb-8 sm:mb-10 uppercase font-bold" style="color:var(--accent)">Unidad de Inteligencia Comercial</p>
-            <p class="text-[10px] uppercase tracking-widest mb-4 text-white/70 font-bold">Seleccione organización</p>
-            <div class="grid grid-cols-2 gap-3 sm:gap-4">
-                <button onclick="enterApp('TUL')" class="glass-btn p-5 sm:p-7 rounded-3xl shadow-2xl flex flex-col items-center gap-2 chip-accent">
-                    <i class="fas fa-warehouse text-3xl sm:text-4xl mb-1" style="color:var(--navy)"></i>
-                    <p class="text-[9px] sm:text-[10px] font-black uppercase tracking-widest" style="color:var(--navy-2)">Llanterama</p>
-                    <p class="text-lg sm:text-2xl font-black uppercase leading-none" style="color:var(--navy)">Tulancingo</p>
-                </button>
-                <button onclick="enterApp('PZ')" class="glass-btn p-5 sm:p-7 rounded-3xl shadow-2xl flex flex-col items-center gap-2 chip-accent">
-                    <i class="fas fa-warehouse text-3xl sm:text-4xl mb-1" style="color:var(--navy)"></i>
-                    <p class="text-[9px] sm:text-[10px] font-black uppercase tracking-widest" style="color:var(--navy-2)">Llanterama</p>
-                    <p class="text-lg sm:text-2xl font-black uppercase leading-none" style="color:var(--navy)">Poza Rica</p>
-                </button>
+        <!-- PIN GATE (se muestra primero, hasta que se ingresa PIN correcto) -->
+        <div id="pin-gate" class="max-w-sm w-full">
+            <div class="mb-8">
+                <div class="inline-flex w-16 h-16 rounded-2xl items-center justify-center text-3xl mb-4 shadow-lg" style="background:rgba(245,183,0,.15);border:1.5px solid var(--accent);color:var(--accent)">
+                    <i class="fas fa-lock"></i>
+                </div>
+                <h1 class="text-2xl sm:text-3xl font-black leading-tight uppercase mb-1" style="color:var(--accent)">Acceso Restringido</h1>
+                <p class="text-[10px] sm:text-[11px] tracking-[0.35em] uppercase font-bold" style="color:var(--accent)">Grupo Llanterama</p>
             </div>
 
-            <!-- Botón Cotizador abajo (solo móvil) -->
-            <a href="${''}" id="cotizador-mobile" target="_blank" rel="noopener" class="sm:hidden flex items-center justify-center gap-2 no-underline glass-btn mt-6 py-3 rounded-xl" style="background:rgba(255,255,255,.08);border:1px solid rgba(245,183,0,.35)">
+            <p class="text-[10px] uppercase tracking-widest mb-3 text-white/70 font-bold">Ingrese PIN de acceso</p>
+            <div class="flex justify-center gap-2 mb-2" id="pin-dots">
+                <div class="pin-dot"></div>
+                <div class="pin-dot"></div>
+                <div class="pin-dot"></div>
+                <div class="pin-dot"></div>
+            </div>
+            <p id="pin-error" class="text-[11px] font-bold mb-4 h-4" style="color:#fca5a5"></p>
+
+            <div class="grid grid-cols-3 gap-2 max-w-[240px] mx-auto">
+                <button class="pin-key" data-key="1">1</button>
+                <button class="pin-key" data-key="2">2</button>
+                <button class="pin-key" data-key="3">3</button>
+                <button class="pin-key" data-key="4">4</button>
+                <button class="pin-key" data-key="5">5</button>
+                <button class="pin-key" data-key="6">6</button>
+                <button class="pin-key" data-key="7">7</button>
+                <button class="pin-key" data-key="8">8</button>
+                <button class="pin-key" data-key="9">9</button>
+                <button class="pin-key opacity-0 pointer-events-none">·</button>
+                <button class="pin-key" data-key="0">0</button>
+                <button class="pin-key" data-key="del"><i class="fas fa-delete-left"></i></button>
+            </div>
+        </div>
+
+        <!-- SELECCIÓN DE ORGANIZACIÓN (oculta hasta que se ingresa el PIN) -->
+        <div id="pin-content" class="hidden">
+            <!-- Botón Cotizador esquina superior derecha (solo desktop) -->
+            <a href="${''}" id="cotizador-desktop" target="_blank" rel="noopener" class="hidden sm:flex absolute top-4 right-4 items-center gap-2 no-underline glass-btn px-4 py-2.5 rounded-xl shadow-lg" style="background:rgba(255,255,255,.08);border:1px solid rgba(245,183,0,.35);backdrop-filter:blur(10px)">
                 <i class="fas fa-calculator text-sm" style="color:var(--accent)"></i>
-                <span class="text-[11px] font-black uppercase tracking-widest" style="color:var(--accent)">Abrir Cotizador</span>
-                <i class="fas fa-arrow-up-right-from-square text-[9px]" style="color:var(--accent)"></i>
+                <span class="text-[11px] font-black uppercase tracking-widest" style="color:var(--accent)">Cotizador</span>
             </a>
+
+            <div class="max-w-xl w-full">
+                <h1 class="text-3xl sm:text-4xl font-black mb-1 leading-tight uppercase" style="color:var(--accent)">GRUPO LLANTERAMA</h1>
+                <p class="text-[9px] sm:text-[10px] tracking-[0.4em] mb-8 sm:mb-10 uppercase font-bold" style="color:var(--accent)">Unidad de Inteligencia Comercial</p>
+                <p class="text-[10px] uppercase tracking-widest mb-4 text-white/70 font-bold">Seleccione organización</p>
+                <div class="grid grid-cols-2 gap-3 sm:gap-4">
+                    <button onclick="enterApp('TUL')" class="glass-btn p-5 sm:p-7 rounded-3xl shadow-2xl flex flex-col items-center gap-2 chip-accent">
+                        <i class="fas fa-warehouse text-3xl sm:text-4xl mb-1" style="color:var(--navy)"></i>
+                        <p class="text-[9px] sm:text-[10px] font-black uppercase tracking-widest" style="color:var(--navy-2)">Llanterama</p>
+                        <p class="text-lg sm:text-2xl font-black uppercase leading-none" style="color:var(--navy)">Tulancingo</p>
+                    </button>
+                    <button onclick="enterApp('PZ')" class="glass-btn p-5 sm:p-7 rounded-3xl shadow-2xl flex flex-col items-center gap-2 chip-accent">
+                        <i class="fas fa-warehouse text-3xl sm:text-4xl mb-1" style="color:var(--navy)"></i>
+                        <p class="text-[9px] sm:text-[10px] font-black uppercase tracking-widest" style="color:var(--navy-2)">Llanterama</p>
+                        <p class="text-lg sm:text-2xl font-black uppercase leading-none" style="color:var(--navy)">Poza Rica</p>
+                    </button>
+                </div>
+
+                <!-- Botón Cotizador abajo (solo móvil) -->
+                <a href="${''}" id="cotizador-mobile" target="_blank" rel="noopener" class="sm:hidden flex items-center justify-center gap-2 no-underline glass-btn mt-6 py-3 rounded-xl" style="background:rgba(255,255,255,.08);border:1px solid rgba(245,183,0,.35)">
+                    <i class="fas fa-calculator text-sm" style="color:var(--accent)"></i>
+                    <span class="text-[11px] font-black uppercase tracking-widest" style="color:var(--accent)">Abrir Cotizador</span>
+                    <i class="fas fa-arrow-up-right-from-square text-[9px]" style="color:var(--accent)"></i>
+                </a>
+            </div>
         </div>
     </div>
 
@@ -1513,18 +1560,46 @@
         //    accion: función a llamar al hacer clic (ej: 'renderCampania()')
         //    link: URL externa (alternativa a accion)
         const ESTRATEGIAS_POR_MES = {
+            'SEPTIEMBRE 2026': [
+                {
+                    producto:'Acumuladores', color:'#3aa6ff', icono:'fa-car-battery',
+                    titulo:'Recuperación Trimestral de Acumuladores',
+                    estado:'ACTIVA', periodo:'Julio · Agosto · Septiembre 2026',
+                    descripcion:'Campaña trimestral consolidada: se suman los objetivos y ventas de los tres meses. Seguimiento diario desde las hojas de campaña del Google Sheet. El apoyo Clarios se acumula por todo el trimestre.',
+                    puntos:[
+                        'Objetivos triplicados (mes × 3) sobre los mismos clientes',
+                        'Ventas Jul + Ago + Sep consolidadas por línea',
+                        'Apoyo Clarios acumulado del trimestre para nota de crédito'
+                    ],
+                    linkLabel:'Ver seguimiento trimestral',
+                    accion:'renderCampaniaAgo()'
+                },
+                {
+                    producto:'Promociones', color:'#0891b2', icono:'fa-tags',
+                    titulo:'Promociones del Mes · Septiembre 2026',
+                    estado:'ACTIVA', periodo:'Septiembre 2026 · Tulancingo y Poza Rica',
+                    descripcion:'Promociones vigentes para venta mayoreo de motobatería, lubricante y pila alcalina LTH, tanto para Llanterama Tulancingo como Llanterama Poza Rica.',
+                    puntos:[
+                        'Motobatería: bonificación por volumen + aceite 4T LTH gratis',
+                        'Lubricante: bonificaciones por 10 y 15 cajas/cubetas + precio especial cubeta 19L',
+                        'Pila alcalina LTH: lista de precios vigente'
+                    ],
+                    linkLabel:'Ver promociones (Tulancingo y Poza Rica)',
+                    accion:'renderPromosAgosto()'
+                }
+            ],
             'AGOSTO 2026': [
                 {
                     producto:'Acumuladores', color:'#3aa6ff', icono:'fa-car-battery',
                     titulo:'Recuperación de venta de Acumuladores',
-                    estado:'ACTIVA', periodo:'Agosto 2026 · seguimiento en vivo',
-                    descripcion:'Nueva campaña de recuperación con seguimiento diario desde las hojas de campaña del Google Sheet (campallante, campaauto, campapoza). Progreso automático por cliente y línea de acumulador.',
+                    estado:'CERRADA', periodo:'Agosto 2026 · consolidada en trimestre',
+                    descripcion:'Los datos de agosto ahora forman parte de la campaña trimestral (Jul-Ago-Sep) del mes actual. Ver seguimiento en la tarjeta de Septiembre.',
                     puntos:[
                         'Clientes objetivo seleccionados por caída de compra',
-                        'Progreso en vivo desde base de datos del sistema',
-                        'Ranking por línea: Premium · AGM · Estándar · Value'
+                        'Datos ya consolidados con julio y septiembre',
+                        'Se conserva como referencia histórica'
                     ],
-                    linkLabel:'Ver seguimiento en vivo',
+                    linkLabel:'Ver seguimiento (trimestral)',
                     accion:'renderCampaniaAgo()'
                 },
                 {
@@ -1633,12 +1708,12 @@
             const isPZ = currentOrg === 'PZ';
             let entries = Object.entries(ESTRATEGIAS_POR_MES);
             if(isPZ){
-                // Solo Agosto y sin el concurso de lubricantes
-                entries = entries.filter(([mes])=>mes==='AGOSTO 2026').map(([mes,arr])=>[mes, arr.filter(s=>s.accion!=='renderConcurso()')]);
+                // Solo Septiembre (mes actual) y sin el concurso de lubricantes
+                entries = entries.filter(([mes])=>mes==='SEPTIEMBRE 2026').map(([mes,arr])=>[mes, arr.filter(s=>s.accion!=='renderConcurso()')]);
             }
-            // Orden: agosto primero (más reciente), luego julio
+            // Orden: septiembre primero (más reciente), luego agosto y julio
             const secciones = entries.map(([mes,arr], idx)=>{
-                const esActual = mes === 'AGOSTO 2026';
+                const esActual = mes === 'SEPTIEMBRE 2026';
                 const [mesN, anio] = mes.split(' ');
                 const separadorTop = idx>0 ? '<div style="height:32px"></div>' : '';
                 return `
@@ -1908,12 +1983,17 @@
         // ⬇️ CONFIGURACIÓN — 3 URLs CSV publicadas del Google Sheet (una por hoja)
         // Base del archivo publicado: mismo que ya usa el dashboard general de Tulancingo
         const CAMPANIA_AGO_CONFIG = {
+            // Cuántos meses se acumulan en esta campaña. Los objetivos por cliente son mensuales,
+            // y aquí se multiplican por este factor para reflejar el objetivo del periodo total.
+            // 1 = mes individual · 3 = trimestre (Jul-Ago-Sep) · etc.
+            mesesAcumulados: 3,
             csvUrls: {
                 'TULANCINGO': 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSXDFzkon4Xxv9ydIrVdSW5ER9FweUPFbmE0GI55ca6rFzy-yrjFVmN8kgQ7X0s5oF6k1Wbf8XG4lmX/pub?gid=1860476982&single=true&output=csv',
                 'AUTO_ROMA':  'https://docs.google.com/spreadsheets/d/e/2PACX-1vSXDFzkon4Xxv9ydIrVdSW5ER9FweUPFbmE0GI55ca6rFzy-yrjFVmN8kgQ7X0s5oF6k1Wbf8XG4lmX/pub?gid=1762177058&single=true&output=csv',
                 'POZA_RICA':  'https://docs.google.com/spreadsheets/d/e/2PACX-1vSXDFzkon4Xxv9ydIrVdSW5ER9FweUPFbmE0GI55ca6rFzy-yrjFVmN8kgQ7X0s5oF6k1Wbf8XG4lmX/pub?gid=411536143&single=true&output=csv'
             },
-            clientes: [
+            clientesMensual: [
+                // Objetivos MENSUALES por cliente. Se multiplican por mesesAcumulados automáticamente.
                 // LLANTERAMA TULANCINGO
                 {codCliente:'007834', nombre:'TECNOLOGIA Y SERVICIOS AMBIENTALES S.A DE C.V', org:'TULANCINGO', obj:{PREMIUM:0, AGM:175, ESTANDAR:300, VALUE:0}},
                 {codCliente:'005955', nombre:'IRVING ARIEL GRANILLO GARRIDO',                 org:'TULANCINGO', obj:{PREMIUM:0, AGM:2,   ESTANDAR:170, VALUE:0}},
@@ -1927,6 +2007,16 @@
                 {codCliente:'P01760', nombre:'TAPIA LEON MARIA GUADALUPE',                    org:'POZA_RICA',  obj:{PREMIUM:0, AGM:0,   ESTANDAR:72,  VALUE:0}}
             ]
         };
+        // Getter dinámico: multiplica objetivos mensuales × mesesAcumulados. Todo el resto del código lee CAMPANIA_AGO_CONFIG.clientes sin cambios.
+        Object.defineProperty(CAMPANIA_AGO_CONFIG, 'clientes', {
+            get: function(){
+                const m = this.mesesAcumulados || 1;
+                return this.clientesMensual.map(c => ({
+                    ...c,
+                    obj: { PREMIUM: c.obj.PREMIUM*m, AGM: c.obj.AGM*m, ESTANDAR: c.obj.ESTANDAR*m, VALUE: c.obj.VALUE*m }
+                }));
+            }
+        });
 
         // Estado global del módulo Agosto
         const campAgoState = { rows:null, byCli:{}, apoyo:{}, stamp:null, err:null };
@@ -2364,15 +2454,15 @@
               <section class="ea-jul26">
                 <div class="ea-jul26-badge"><span class="ea-jul26-dot"></span>Estrategia en curso · datos en vivo</div>
                 <header class="ea-jul26-head">
-                  <div class="ea-jul26-tag">Estrategia especial · Agosto 2026</div>
-                  <h2 class="ea-jul26-title">Recuperación de venta de <span>Acumuladores</span></h2>
-                  <p class="ea-jul26-sub">Objetivo AGOSTO 2026 vs facturado · seguimiento en tiempo real · <b>Financia Clarios</b></p>
+                  <div class="ea-jul26-tag">Estrategia trimestral · Jul – Ago – Sep 2026</div>
+                  <h2 class="ea-jul26-title">Recuperación Trimestral de <span>Acumuladores</span></h2>
+                  <p class="ea-jul26-sub">Objetivo TRIMESTRAL vs facturado · seguimiento en tiempo real · <b>Financia Clarios</b></p>
                 </header>
                 <div class="ea-jul26-kpis">
                   <div class="ea-jul26-kpi">
                     <div class="ea-jul26-k-l">Acumuladores facturados</div>
                     <div class="ea-jul26-k-v">${realTotG}</div>
-                    <div class="ea-jul26-k-s">agosto en curso</div>
+                    <div class="ea-jul26-k-s">trimestre en curso</div>
                   </div>
                   <div class="ea-jul26-kpi ea-jul26-amber">
                     <div class="ea-jul26-k-l">Objetivo total</div>
@@ -2424,7 +2514,7 @@
             const rows = campAgoUI.selectedCli ? Array.from(campAgoUI.selectedCli) : [];
             const nombre = rows.length===1
                 ? 'Ficha_' + (CAMPANIA_AGO_CONFIG.clientes.find(c=>c.codCliente===rows[0])||{nombre:'cliente'}).nombre.replace(/[^\w]+/g,'_').slice(0,30)
-                : 'CampañaAcumuladores_Ago2026';
+                : 'RecuperacionTrimestral_Acumuladores_2026';
 
             // Loader
             const loader = document.createElement('div');
@@ -2858,6 +2948,68 @@
             var el = document.getElementById(id);
             if(el) el.setAttribute('href', COTIZADOR_URL);
         });
+
+        // ===== PIN GATE =====
+        // Protección básica contra curiosos. NO es seguridad de verdad (código visible en HTML).
+        // Para cambiar el PIN: modifica la constante PIN_ACCESO abajo.
+        const PIN_ACCESO = '1182';
+        (function(){
+            let pinBuffer = '';
+            const dots = document.querySelectorAll('#pin-dots .pin-dot');
+            const errorEl = document.getElementById('pin-error');
+            const gate = document.getElementById('pin-gate');
+            const content = document.getElementById('pin-content');
+
+            // Si el PIN ya fue validado en esta sesión, saltar
+            try {
+                if(sessionStorage.getItem('pin_ok') === '1'){
+                    gate.classList.add('hidden');
+                    content.classList.remove('hidden');
+                    return;
+                }
+            } catch(e){}
+
+            function renderDots(){
+                dots.forEach((d,i)=>{
+                    d.classList.remove('filled','error');
+                    if(i < pinBuffer.length) d.classList.add('filled');
+                });
+            }
+            function mostrarError(){
+                dots.forEach(d=>{ d.classList.remove('filled'); d.classList.add('error'); });
+                errorEl.textContent = 'PIN incorrecto';
+                setTimeout(()=>{
+                    pinBuffer = '';
+                    errorEl.textContent = '';
+                    renderDots();
+                }, 700);
+            }
+            function abrir(){
+                try { sessionStorage.setItem('pin_ok','1'); } catch(e){}
+                gate.classList.add('hidden');
+                content.classList.remove('hidden');
+            }
+            function pressKey(k){
+                if(k === 'del'){ pinBuffer = pinBuffer.slice(0,-1); renderDots(); return; }
+                if(pinBuffer.length >= 4) return;
+                pinBuffer += k;
+                renderDots();
+                if(pinBuffer.length === 4){
+                    if(pinBuffer === PIN_ACCESO) setTimeout(abrir, 150);
+                    else mostrarError();
+                }
+            }
+            // Click en teclado
+            document.querySelectorAll('.pin-key[data-key]').forEach(btn=>{
+                btn.addEventListener('click', ()=>pressKey(btn.getAttribute('data-key')));
+            });
+            // Soporte teclado físico (útil para desktop)
+            document.addEventListener('keydown', (e)=>{
+                if(gate.classList.contains('hidden')) return;
+                if(e.key >= '0' && e.key <= '9') pressKey(e.key);
+                else if(e.key === 'Backspace' || e.key === 'Delete') pressKey('del');
+            });
+        })();
     </script>
 </body>
 </html>
