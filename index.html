@@ -172,6 +172,34 @@
         }
         @media print { .no-pdf { display:none !important } }
 
+        /* ===== MODO CAPTURA MÓVIL: densifica al máximo para caber en pantalla iPhone SE (375px) ===== */
+        .ea-capture { padding:12px 8px !important; }
+        .ea-capture .ea-jul26-head { margin-bottom:10px !important; }
+        .ea-capture .ea-jul26-title { font-size:16px !important; margin-bottom:4px !important; line-height:1.1 !important; }
+        .ea-capture .ea-jul26-tag { font-size:8px !important; letter-spacing:.15em !important; margin-bottom:2px !important; }
+        .ea-capture .ea-jul26-sub { font-size:9px !important; line-height:1.3 !important; }
+        .ea-capture .ea-jul26-badge { font-size:8px !important; padding:3px 8px !important; margin-bottom:6px !important; letter-spacing:.1em !important; }
+        .ea-capture .ea-jul26-kpis { gap:5px !important; margin-bottom:8px !important; grid-template-columns:repeat(2,1fr) !important; }
+        .ea-capture .ea-jul26-kpi { padding:6px 8px !important; border-radius:8px !important; }
+        .ea-capture .ea-jul26-k-l { font-size:8px !important; margin-bottom:2px !important; letter-spacing:.05em !important; }
+        .ea-capture .ea-jul26-k-v { font-size:15px !important; margin-bottom:1px !important; line-height:1 !important; }
+        .ea-capture .ea-jul26-cyan .ea-jul26-k-v { font-size:12.5px !important; }
+        .ea-capture .ea-jul26-k-s { font-size:7.5px !important; line-height:1.15 !important; }
+        .ea-capture .ea-jul26-tbl-wrap { padding:3px !important; border-radius:8px !important; overflow:hidden !important; }
+        .ea-capture .ea-jul26-tbl { font-size:8.5px !important; table-layout:fixed !important; width:100% !important; }
+        .ea-capture .ea-jul26-tbl th { padding:2px 1px !important; font-size:7px !important; letter-spacing:0 !important; }
+        .ea-capture .ea-jul26-tbl td { padding:2px 1px !important; font-size:8px !important; line-height:1.15 !important; }
+        .ea-capture .ea-jul26-tbl td.ea-jul26-name { font-size:7.5px !important; padding:2px 3px !important; line-height:1.1 !important; word-break:break-word !important; }
+        .ea-capture .ea-jul26-tbl td.ea-jul26-apo-c { font-size:7.5px !important; padding:2px 2px !important; }
+        .ea-capture .ea-jul26-tbl tr.ea-jul26-totrow td { font-size:8px !important; padding:3px 2px !important; }
+        .ea-capture .ea-jul26-tbl tr.ea-jul26-totrow td.ea-jul26-tot-apo { font-size:8.5px !important; }
+        .ea-capture .ea-jul26-tbl tr.ea-jul26-totrow td.ea-jul26-tot-apo span { font-size:7px !important; }
+        .ea-capture .ea-jul26-foot { font-size:7px !important; margin-top:4px !important; padding-top:4px !important; gap:2px !important; }
+        /* Ocultar controles UI que no aportan a la captura (chips, botones, filtros) */
+        .ea-capture .no-pdf { display:none !important; }
+        /* Cambiar textos de header "Obj/Real/Avance" → "O/R/%" en el trimestral en vivo */
+        .ea-capture .ea-jul26-tbl th.ea-jul26-gs { font-size:6.5px !important; }
+
         /* ===== PIN GATE ===== */
         .pin-dot { width:16px; height:16px; border-radius:50%; border:2px solid var(--accent); background:transparent; transition:all .15s ease }
         .pin-dot.filled { background:var(--accent); box-shadow:0 0 12px rgba(245,183,0,.6) }
@@ -1592,15 +1620,15 @@
                 {
                     producto:'Acumuladores', color:'#3aa6ff', icono:'fa-car-battery',
                     titulo:'Recuperación de venta de Acumuladores',
-                    estado:'CERRADA', periodo:'Agosto 2026 · consolidada en trimestre',
-                    descripcion:'Los datos de agosto ahora forman parte de la campaña trimestral (Jul-Ago-Sep) del mes actual. Ver seguimiento en la tarjeta de Septiembre.',
+                    estado:'CERRADA', periodo:'1 – 31 ago 2026',
+                    descripcion:'Campaña de recuperación de agosto: cifras finales del mes con los mismos clientes seleccionados de las tres organizaciones. Los datos ya están consolidados en la vista trimestral de Septiembre.',
                     puntos:[
                         'Clientes objetivo seleccionados por caída de compra',
-                        'Datos ya consolidados con julio y septiembre',
-                        'Se conserva como referencia histórica'
+                        'Cifras finales snapshot del cierre de agosto',
+                        'También integrado en el acumulado trimestral'
                     ],
-                    linkLabel:'Ver seguimiento (trimestral)',
-                    accion:'renderCampaniaAgo()'
+                    linkLabel:'Ver resultados de agosto',
+                    accion:'renderResultadosAgo()'
                 },
                 {
                     producto:'Lubricantes', color:'#f97316', icono:'fa-oil-can',
@@ -2350,10 +2378,10 @@
                         <th rowspan="2" class="ea-jul26-apo">Apoyo $</th>
                       </tr>
                       <tr>
-                        <th class="ea-jul26-gs">Obj</th><th>Real</th><th>Avance</th>
-                        <th class="ea-jul26-gs">Obj</th><th>Real</th><th>Avance</th>
-                        <th class="ea-jul26-gs">Obj</th><th>Real</th><th>Avance</th>
-                        <th class="ea-jul26-gs">Obj</th><th>Real</th><th>Avance</th>
+                        <th class="ea-jul26-gs">Obj</th><th>Real</th><th>%</th>
+                        <th class="ea-jul26-gs">Obj</th><th>Real</th><th>%</th>
+                        <th class="ea-jul26-gs">Obj</th><th>Real</th><th>%</th>
+                        <th class="ea-jul26-gs">Obj</th><th>Real</th><th>%</th>
                       </tr>
                     </thead>
                     <tbody>${cuerpo}${totRow}</tbody>
@@ -2451,7 +2479,7 @@
             ${filtroHTML}
             ${barraHTML}
             <div id="camp-ago-pdf">
-              <section class="ea-jul26">
+              <section class="ea-jul26 ea-capture">
                 <div class="ea-jul26-badge"><span class="ea-jul26-dot"></span>Estrategia en curso · datos en vivo</div>
                 <header class="ea-jul26-head">
                   <div class="ea-jul26-tag">Estrategia trimestral · Jul – Ago – Sep 2026</div>
@@ -2609,10 +2637,145 @@
         }
 
         /* ===================== RESULTADOS ACUMULADORES JULIO 2026 (histórico) ===================== */
+        function renderResultadosAgo(){
+            const html = `
+            ${backBtn("renderEstrategias()","Estrategias")}
+            <section class="ea-jul26 ea-capture">
+              <div class="ea-jul26-badge"><span class="ea-jul26-dot"></span>Estrategia concluida · archivo histórico</div>
+              <header class="ea-jul26-head">
+                <div class="ea-jul26-tag">Estrategia especial · 1 – 31 ago 2026</div>
+                <h2 class="ea-jul26-title">Recuperación de venta de <span>Acumuladores</span></h2>
+                <p class="ea-jul26-sub">Objetivo (AGOSTO 2026) vs facturado · clientes seleccionados de <b>ambas organizaciones</b></p>
+              </header>
+              <div class="ea-jul26-kpis">
+                <div class="ea-jul26-kpi">
+                  <div class="ea-jul26-k-l">Acumuladores facturados</div>
+                  <div class="ea-jul26-k-v">292</div>
+                  <div class="ea-jul26-k-s">1 – 31 ago 2026</div>
+                </div>
+                <div class="ea-jul26-kpi ea-jul26-amber">
+                  <div class="ea-jul26-k-l">Objetivo total</div>
+                  <div class="ea-jul26-k-v">886</div>
+                  <div class="ea-jul26-k-s">de objetivos · AGOSTO 2026</div>
+                </div>
+                <div class="ea-jul26-kpi ea-jul26-down">
+                  <div class="ea-jul26-k-l">Faltante</div>
+                  <div class="ea-jul26-k-v">−594</div>
+                  <div class="ea-jul26-k-s">avance 33% del objetivo</div>
+                </div>
+                <div class="ea-jul26-kpi ea-jul26-cyan">
+                  <div class="ea-jul26-k-l">Total neto</div>
+                  <div class="ea-jul26-k-v">$56,999.98</div>
+                  <div class="ea-jul26-k-s">Subtotal: $49,137.93</div>
+                </div>
+              </div>
+              <div class="ea-jul26-tbl-wrap">
+                <table class="ea-jul26-tbl">
+                  <thead>
+                    <tr>
+                      <th rowspan="2" class="ea-jul26-l">Cliente</th>
+                      <th colspan="3" class="ea-jul26-lh" style="--lc:#3aa6ff">Premium</th>
+                      <th colspan="3" class="ea-jul26-lh" style="--lc:#a67cff">AGM</th>
+                      <th colspan="3" class="ea-jul26-lh" style="--lc:#5eead4">Estándar</th>
+                      <th colspan="3" class="ea-jul26-lh" style="--lc:#94a3b8">Value</th>
+                      <th rowspan="2" class="ea-jul26-apo">Apoyo $</th>
+                    </tr>
+                    <tr>
+                      <th class="ea-jul26-gs">Obj</th><th>Real</th><th>%</th>
+                      <th class="ea-jul26-gs">Obj</th><th>Real</th><th>%</th>
+                      <th class="ea-jul26-gs">Obj</th><th>Real</th><th>%</th>
+                      <th class="ea-jul26-gs">Obj</th><th>Real</th><th>%</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td class="ea-jul26-name">TECNOLOGIA Y SERVICIOS AMBIENTALES</td>
+                      <td class="ea-jul26-gs">—</td><td>—</td><td>—</td>
+                      <td class="ea-jul26-gs">175</td><td>—</td><td class="ea-jul26-p ea-jul26-low">0%</td>
+                      <td class="ea-jul26-gs">300</td><td>285</td><td class="ea-jul26-p ea-jul26-good">95%</td>
+                      <td class="ea-jul26-gs">—</td><td>—</td><td>—</td>
+                      <td class="ea-jul26-apo-c">$49,137.93</td>
+                    </tr>
+                    <tr>
+                      <td class="ea-jul26-name">IRVING ARIEL GRANILLO GARRIDO</td>
+                      <td class="ea-jul26-gs">—</td><td>—</td><td>—</td>
+                      <td class="ea-jul26-gs">2</td><td>1</td><td class="ea-jul26-p ea-jul26-mid">50%</td>
+                      <td class="ea-jul26-gs">170</td><td>7</td><td class="ea-jul26-p ea-jul26-low">4%</td>
+                      <td class="ea-jul26-gs">—</td><td>—</td><td>—</td>
+                      <td class="ea-jul26-apo-c">—</td>
+                    </tr>
+                    <tr>
+                      <td class="ea-jul26-name">PROVEEDORA DE LUBRICANTES</td>
+                      <td class="ea-jul26-gs">1</td><td>—</td><td class="ea-jul26-p ea-jul26-low">0%</td>
+                      <td class="ea-jul26-gs">2</td><td>—</td><td class="ea-jul26-p ea-jul26-low">0%</td>
+                      <td class="ea-jul26-gs">37</td><td>—</td><td class="ea-jul26-p ea-jul26-low">0%</td>
+                      <td class="ea-jul26-gs">—</td><td>—</td><td>—</td>
+                      <td class="ea-jul26-apo-c">—</td>
+                    </tr>
+                    <tr>
+                      <td class="ea-jul26-name">ANGEL URIEL MENDEZ DELGADO</td>
+                      <td class="ea-jul26-gs">—</td><td>—</td><td>—</td>
+                      <td class="ea-jul26-gs">—</td><td>—</td><td>—</td>
+                      <td class="ea-jul26-gs">40</td><td>—</td><td class="ea-jul26-p ea-jul26-low">0%</td>
+                      <td class="ea-jul26-gs">—</td><td>—</td><td>—</td>
+                      <td class="ea-jul26-apo-c">—</td>
+                    </tr>
+                    <tr>
+                      <td class="ea-jul26-name">EDUARDO ROMERO MORENO</td>
+                      <td class="ea-jul26-gs">—</td><td>—</td><td>—</td>
+                      <td class="ea-jul26-gs">—</td><td>—</td><td>—</td>
+                      <td class="ea-jul26-gs">25</td><td>—</td><td class="ea-jul26-p ea-jul26-low">0%</td>
+                      <td class="ea-jul26-gs">—</td><td>—</td><td>—</td>
+                      <td class="ea-jul26-apo-c">—</td>
+                    </tr>
+                    <tr>
+                      <td class="ea-jul26-name">FOSADO CUEVAS SALOMON</td>
+                      <td class="ea-jul26-gs">—</td><td>—</td><td>—</td>
+                      <td class="ea-jul26-gs">—</td><td>—</td><td>—</td>
+                      <td class="ea-jul26-gs">—</td><td>—</td><td>—</td>
+                      <td class="ea-jul26-gs">—</td><td>—</td><td>—</td>
+                      <td class="ea-jul26-apo-c">—</td>
+                    </tr>
+                    <tr>
+                      <td class="ea-jul26-name">XIMENA OROZCO GONZALEZ</td>
+                      <td class="ea-jul26-gs">—</td><td>—</td><td>—</td>
+                      <td class="ea-jul26-gs">—</td><td>—</td><td>—</td>
+                      <td class="ea-jul26-gs">230</td><td>—</td><td class="ea-jul26-p ea-jul26-low">0%</td>
+                      <td class="ea-jul26-gs">—</td><td>—</td><td>—</td>
+                      <td class="ea-jul26-apo-c">—</td>
+                    </tr>
+                    <tr>
+                      <td class="ea-jul26-name">TAPIA LEON MARIA GUADALUPE</td>
+                      <td class="ea-jul26-gs">—</td><td>—</td><td>—</td>
+                      <td class="ea-jul26-gs">—</td><td>—</td><td>—</td>
+                      <td class="ea-jul26-gs">72</td><td>—</td><td class="ea-jul26-p ea-jul26-low">0%</td>
+                      <td class="ea-jul26-gs">—</td><td>—</td><td>—</td>
+                      <td class="ea-jul26-apo-c">—</td>
+                    </tr>
+                    <tr class="ea-jul26-totrow">
+                      <td class="ea-jul26-name">Totales campaña</td>
+                      <td class="ea-jul26-gs">1</td><td>—</td><td class="ea-jul26-p ea-jul26-low">0%</td>
+                      <td class="ea-jul26-gs">179</td><td>1</td><td class="ea-jul26-p ea-jul26-low">1%</td>
+                      <td class="ea-jul26-gs">874</td><td>292</td><td class="ea-jul26-p ea-jul26-low">33%</td>
+                      <td class="ea-jul26-gs">—</td><td>—</td><td>—</td>
+                      <td class="ea-jul26-apo-c ea-jul26-tot-apo">$56,999.98<br><span style="font-size:9px;font-weight:700;opacity:.75">Subtotal: $49,137.93</span></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <footer class="ea-jul26-foot">
+                <span>Clientes: seleccionados de ambas organizaciones</span>
+                <span>Cierre: 31 ago 2026 · Grupo Llanterama / Autoeléctrica Roma</span>
+              </footer>
+            </section>`;
+            document.getElementById('content-area').innerHTML = html;
+            window.scrollTo(0,0);
+        }
+
         function renderResultadosAcum(){
             const html = `
             ${backBtn("renderEstrategias()","Estrategias")}
-            <section class="ea-jul26">
+            <section class="ea-jul26 ea-capture">
               <div class="ea-jul26-badge"><span class="ea-jul26-dot"></span>Estrategia concluida · archivo histórico</div>
               <header class="ea-jul26-head">
                 <div class="ea-jul26-tag">Estrategia especial · 25 jun – 31 jul 2026</div>
@@ -2653,10 +2816,10 @@
                       <th rowspan="2" class="ea-jul26-apo">Apoyo $</th>
                     </tr>
                     <tr>
-                      <th class="ea-jul26-gs">Obj</th><th>Real</th><th>Avance</th>
-                      <th class="ea-jul26-gs">Obj</th><th>Real</th><th>Avance</th>
-                      <th class="ea-jul26-gs">Obj</th><th>Real</th><th>Avance</th>
-                      <th class="ea-jul26-gs">Obj</th><th>Real</th><th>Avance</th>
+                      <th class="ea-jul26-gs">Obj</th><th>Real</th><th>%</th>
+                      <th class="ea-jul26-gs">Obj</th><th>Real</th><th>%</th>
+                      <th class="ea-jul26-gs">Obj</th><th>Real</th><th>%</th>
+                      <th class="ea-jul26-gs">Obj</th><th>Real</th><th>%</th>
                     </tr>
                   </thead>
                   <tbody>
