@@ -2199,15 +2199,15 @@
                     diag.procesadas++;
                 });
             }
-            // Aplicar overrides ficticios (solo si NO hay filtro de mes específico)
-            if(!filtroMes){
-                for(const cod in OVERRIDES_CAMPANIA){
-                    const ov = OVERRIDES_CAMPANIA[cod];
-                    if(!ov) continue;
-                    if(!campAgoState.byCli[cod]) campAgoState.byCli[cod] = {PREMIUM:0, AGM:0, ESTANDAR:0, VALUE:0};
-                    campAgoState.byCli[cod][ov.linea] = (campAgoState.byCli[cod][ov.linea]||0) + ov.cantidad;
-                    campAgoState.apoyo[cod] = (campAgoState.apoyo[cod]||0) + ov.apoyo;
-                }
+            // Aplicar overrides ficticios (cifras adicionales fijas para clientes específicos)
+            // Se aplican tanto en vista trimestral como en vista mensual filtrada.
+            // Para desactivar un override, cámbialo a null o quítalo del objeto OVERRIDES_CAMPANIA.
+            for(const cod in OVERRIDES_CAMPANIA){
+                const ov = OVERRIDES_CAMPANIA[cod];
+                if(!ov) continue;
+                if(!campAgoState.byCli[cod]) campAgoState.byCli[cod] = {PREMIUM:0, AGM:0, ESTANDAR:0, VALUE:0};
+                campAgoState.byCli[cod][ov.linea] = (campAgoState.byCli[cod][ov.linea]||0) + ov.cantidad;
+                campAgoState.apoyo[cod] = (campAgoState.apoyo[cod]||0) + ov.apoyo;
             }
             // Guardar diagnóstico y loggear a consola
             campAgoState.diag = diag;
