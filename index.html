@@ -41,6 +41,14 @@
         function cargarHtml2Pdf(){
             return loadScriptOnce('https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js');
         }
+        // Para el módulo de acumuladores: cargar html2canvas y jsPDF por separado.
+        // El bundle html2pdf oculta jsPDF internamente y NO expone window.jspdf, por eso lo separamos.
+        function cargarPdfLibs(){
+            return Promise.all([
+                loadScriptOnce('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js'),
+                loadScriptOnce('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js')
+            ]);
+        }
         function cargarSheetJs(){
             return loadScriptOnce('https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js');
         }
@@ -2644,18 +2652,19 @@
         function descargarPdfCampania(){
             const el = document.getElementById('camp-ago-pdf');
             if(!el){ alert('Nada que exportar'); return; }
-            // Cargar html2pdf on-demand (ahorra ~250 KB en el arranque)
+            // Cargar html2canvas + jsPDF on-demand (garantiza que ambos globales existan).
             if(typeof html2canvas === 'undefined' || typeof window.jspdf === 'undefined'){
                 const preloader = document.createElement('div');
                 preloader.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff';
                 preloader.innerHTML = '<div class="w-12 h-12 border-4 rounded-full animate-spin mb-4" style="border-color:#facc15;border-top-color:transparent"></div><p class="text-[12px] font-black uppercase tracking-widest" style="color:#facc15">Preparando exportación...</p>';
                 document.body.appendChild(preloader);
-                cargarHtml2Pdf().then(()=>{
+                cargarPdfLibs().then(()=>{
                     document.body.removeChild(preloader);
                     descargarPdfCampania();
                 }).catch(err=>{
                     document.body.removeChild(preloader);
-                    alert('No se pudo cargar la librería PDF. Verifica tu conexión.');
+                    console.error('[PDF] Error cargando libs:', err);
+                    alert('No se pudo cargar la librería PDF. Verifica tu conexión e intenta de nuevo.');
                 });
                 return;
             }
