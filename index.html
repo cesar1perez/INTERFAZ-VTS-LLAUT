@@ -180,12 +180,11 @@
         }
         @media print { .no-pdf { display:none !important } }
 
-        /* ===== MODO CAPTURA MÓVIL: tabla legible con scroll horizontal ===== 
-           Estrategia: en vez de apretar todo hasta que se vea ilegible,
-           damos anchos mínimos cómodos y dejamos que el usuario haga scroll
-           horizontal. Al tomar captura, puede hacer zoom-out o capturar 
-           por partes. Es mejor una tabla legible desplazable que una
-           ilegible completa. */
+        /* ===== MODO CAPTURA MÓVIL v2: solo compacta tamaños, NO toca colores =====
+           Aprende del error anterior: NO fuerza fondos, NO cambia colores,
+           NO toca opacidades. Solo reduce fuentes, paddings y gaps para que
+           la tabla quepa en captura de pantalla. Todos los colores originales
+           (azules oscuros, gradientes, KPIs de colores) se mantienen intactos. */
         .ea-capture { padding:12px 8px !important; }
         .ea-capture .ea-jul26-head { margin-bottom:10px !important; }
         .ea-capture .ea-jul26-title { font-size:16px !important; margin-bottom:4px !important; line-height:1.1 !important; }
@@ -198,23 +197,19 @@
         .ea-capture .ea-jul26-k-v { font-size:15px !important; margin-bottom:1px !important; line-height:1 !important; }
         .ea-capture .ea-jul26-cyan .ea-jul26-k-v { font-size:12.5px !important; }
         .ea-capture .ea-jul26-k-s { font-size:7.5px !important; line-height:1.15 !important; }
-        /* Tabla con scroll horizontal y anchos absolutos cómodos */
-        .ea-capture .ea-jul26-tbl-wrap { padding:3px !important; border-radius:8px !important; overflow-x:auto !important; -webkit-overflow-scrolling:touch !important; }
-        .ea-capture .ea-jul26-tbl { font-size:10px !important; table-layout:fixed !important; width:auto !important; min-width:640px !important; }
-        .ea-capture .ea-jul26-tbl col.c-name { width:135px }
-        .ea-capture .ea-jul26-tbl col.c-line { width:32px }
-        .ea-capture .ea-jul26-tbl col.c-apo  { width:78px }
-        .ea-capture .ea-jul26-tbl th { padding:3px 2px !important; font-size:8px !important; letter-spacing:0 !important; }
-        .ea-capture .ea-jul26-tbl td { padding:3px 2px !important; font-size:9.5px !important; line-height:1.2 !important; text-align:center !important; }
-        .ea-capture .ea-jul26-tbl td.ea-jul26-name { font-size:9px !important; padding:4px 6px !important; line-height:1.2 !important; text-align:left !important; font-weight:700 !important; word-break:normal !important; overflow-wrap:break-word !important; }
+        /* Tabla: solo reduce tamaños, NO toca colores/fondos */
+        .ea-capture .ea-jul26-tbl-wrap { padding:3px !important; border-radius:8px !important; }
+        .ea-capture .ea-jul26-tbl { font-size:10px !important; }
+        .ea-capture .ea-jul26-tbl th { padding:3px 2px !important; font-size:8.5px !important; letter-spacing:0 !important; }
+        .ea-capture .ea-jul26-tbl td { padding:3px 3px !important; font-size:9.5px !important; line-height:1.2 !important; }
+        .ea-capture .ea-jul26-tbl td.ea-jul26-name { font-size:9px !important; padding:4px 6px !important; line-height:1.2 !important; }
         .ea-capture .ea-jul26-tbl td.ea-jul26-apo-c { font-size:9px !important; padding:3px 4px !important; white-space:nowrap !important; }
-        .ea-capture .ea-jul26-tbl tr.ea-jul26-totrow td { font-size:9px !important; padding:4px 2px !important; }
+        .ea-capture .ea-jul26-tbl tr.ea-jul26-totrow td { font-size:9px !important; padding:4px 3px !important; }
         .ea-capture .ea-jul26-tbl tr.ea-jul26-totrow td.ea-jul26-tot-apo { font-size:10px !important; }
         .ea-capture .ea-jul26-tbl tr.ea-jul26-totrow td.ea-jul26-tot-apo span { font-size:8px !important; }
         .ea-capture .ea-jul26-foot { font-size:7.5px !important; margin-top:6px !important; padding-top:4px !important; gap:2px !important; }
+        /* Ocultar controles UI (chips de filtro, botones) para captura limpia */
         .ea-capture .no-pdf { display:none !important; }
-        /* Hint visual de scroll: sombra en el lado derecho */
-        .ea-capture .ea-jul26-tbl-wrap { position:relative; background:linear-gradient(to right, transparent 90%, rgba(148,163,184,.15) 100%); }
 
         /* ===== PIN GATE ===== */
         .pin-dot { width:16px; height:16px; border-radius:50%; border:2px solid var(--accent); background:transparent; transition:all .15s ease }
@@ -2605,7 +2600,7 @@
             ${filtroHTML}
             ${barraHTML}
             <div id="camp-ago-pdf">
-              <section class="ea-jul26">
+              <section class="ea-jul26 ea-capture">
                 <div class="ea-jul26-badge"><span class="ea-jul26-dot"></span>Estrategia en curso · datos en vivo</div>
                 <header class="ea-jul26-head">
                   <div class="ea-jul26-tag">${lbl.tag}</div>
