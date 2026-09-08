@@ -2147,29 +2147,35 @@
         function procesarDataCampania(data, filtroMes){
             // filtroMes: null = sin filtro (suma todo). {mes:8,anio:2026} = solo agosto 2026.
             campAgoState.byCli = {}; campAgoState.apoyo = {};
+            // Diagnóstico: contadores para saber cuántas filas se descartan y por qué
+            let diag = { total:0, sinFecha:0, fechaOtroMes:0, sinCodCli:0, sinLinea:0, procesadas:0, ejemplosFecha:[] };
             for(const orgLabel in data){
                 const filas = data[orgLabel] || [];
                 filas.forEach(row=>{
+                    diag.total++;
                     // Filtrar por mes si se pidió (columna 'Fecha' es la O)
                     if(filtroMes){
-                        const f = parseFechaVenta(row['Fecha'] || row['FECHA'] || row['fecha']);
-                        if(!f) return; // sin fecha parseable → se ignora
-                        if(f.mes !== filtroMes.mes || f.anio !== filtroMes.anio) return;
+                        const raw = row['Fecha'] || row['FECHA'] || row['fecha'];
+                        // Capturar algunos ejemplos para diagnóstico
+                        if(diag.ejemplosFecha.length < 5 && raw) diag.ejemplosFecha.push(String(raw));
+                        const f = parseFechaVenta(raw);
+                        if(!f){ diag.sinFecha++; return; }
+                        if(f.mes !== filtroMes.mes || f.anio !== filtroMes.anio){ diag.fechaOtroMes++; return; }
                     }
-                    // Normalizar código: si viene como número (ej: 5955), rellenar con ceros a 6 dígitos (005955)
-                    // Códigos alfanuméricos (ej: P01760) se dejan como están
                     let codCliRaw = String(row['Cod de cliente'] || row['COD DE CLIENTE'] || '').trim();
-                    if(!codCliRaw) return;
+                    if(!codCliRaw){ diag.sinCodCli++; return; }
                     const codCli = /^\d+$/.test(codCliRaw) ? codCliRaw.padStart(6,'0') : codCliRaw.toUpperCase();
                     const linea = lineaDeCodigo(row['Codigo'] || row['CODIGO']);
                     const cant = n(row['Cantidad'] || row['CANTIDAD']);
                     const apoyo = n(row['MONTOAPOYO'] || row['MontoApoyo'] || row['MONTO APOYO']);
                     if(!campAgoState.byCli[codCli]) campAgoState.byCli[codCli] = {PREMIUM:0, AGM:0, ESTANDAR:0, VALUE:0};
                     if(linea) campAgoState.byCli[codCli][linea] += cant;
+                    else diag.sinLinea++;
                     campAgoState.apoyo[codCli] = (campAgoState.apoyo[codCli]||0) + apoyo;
+                    diag.procesadas++;
                 });
             }
-            // Aplicar overrides ficticios (solo si NO hay filtro de mes específico, para no ensuciar el histórico)
+            // Aplicar overrides ficticios (solo si NO hay filtro de mes específico)
             if(!filtroMes){
                 for(const cod in OVERRIDES_CAMPANIA){
                     const ov = OVERRIDES_CAMPANIA[cod];
@@ -2178,6 +2184,13 @@
                     campAgoState.byCli[cod][ov.linea] = (campAgoState.byCli[cod][ov.linea]||0) + ov.cantidad;
                     campAgoState.apoyo[cod] = (campAgoState.apoyo[cod]||0) + ov.apoyo;
                 }
+            }
+            // Guardar diagnóstico y loggear a consola
+            campAgoState.diag = diag;
+            console.log('[Acumuladores] Diagnóstico de lectura:', diag);
+            if(filtroMes && diag.procesadas === 0){
+                console.warn('[Acumuladores] ⚠️ El filtro por mes ('+filtroMes.label+') no encontró ninguna fila. Ejemplos de fechas encontradas:', diag.ejemplosFecha);
+                console.warn('[Acumuladores] Columnas detectadas en la primera fila:', data[Object.keys(data)[0]] && data[Object.keys(data)[0]][0] ? Object.keys(data[Object.keys(data)[0]][0]) : 'ninguna');
             }
         }
 
@@ -2541,12 +2554,27 @@
                     <p class="text-[12px] muted leading-snug"><b class="txt">No se pudo descargar del Google Sheet.</b> ${String(campAgoState.err.message||campAgoState.err)}</p>
                 </div>` : '';
 
+            // Aviso diagnóstico: si el filtro por mes descartó todas las filas
+            const dg = campAgoState.diag;
+            const avisoFiltro = (campAgoState.filtroMes && dg && dg.procesadas === 0 && dg.total > 0) ? `
+                <div class="surface rounded-2xl p-4 mb-4 no-pdf" style="border-left:6px solid #f97316">
+                    <div class="flex items-start gap-3 mb-2">
+                        <i class="fas fa-magnifying-glass text-lg mt-0.5" style="color:#f97316"></i>
+                        <div>
+                            <p class="text-[12px] font-black txt mb-1">El filtro por ${campAgoState.filtroMes.label} no encontró ventas</p>
+                            <p class="text-[11px] muted leading-snug">Se leyeron <b>${dg.total}</b> filas de las hojas, pero <b>${dg.sinFecha}</b> no tienen fecha válida y <b>${dg.fechaOtroMes}</b> son de otro mes.</p>
+                        </div>
+                    </div>
+                    ${dg.ejemplosFecha.length > 0 ? `<p class="text-[10px] muted mt-2 pl-8"><b>Ejemplos de fechas leídas:</b> ${dg.ejemplosFecha.map(x=>`<code class="px-1 rounded" style="background:rgba(148,163,184,.15)">${x}</code>`).join(' · ')}</p>` : '<p class="text-[10px] muted mt-2 pl-8">Ninguna fila trae fecha en la columna esperada.</p>'}
+                    <p class="text-[10px] muted mt-2 pl-8">Si las fechas se ven mal, mándale captura al administrador para ajustar el parser.</p>
+                </div>` : '';
+
             document.getElementById('content-area').innerHTML = `
             ${backBtn("renderEstrategias()","Estrategias")}
             ${filtroHTML}
             ${barraHTML}
             <div id="camp-ago-pdf">
-              <section class="ea-jul26 ea-capture">
+              <section class="ea-jul26">
                 <div class="ea-jul26-badge"><span class="ea-jul26-dot"></span>Estrategia en curso · datos en vivo</div>
                 <header class="ea-jul26-head">
                   <div class="ea-jul26-tag">${lbl.tag}</div>
@@ -2578,6 +2606,7 @@
                 ${avisoCache}
                 ${avisoConfig}
                 ${avisoErr}
+                ${avisoFiltro}
                 ${cuerpoTablas}
                 <footer class="ea-jul26-foot">
                   <span>${rows.length===1?'Reporte individual':rows.length+' clientes'} · financia Clarios</span>
