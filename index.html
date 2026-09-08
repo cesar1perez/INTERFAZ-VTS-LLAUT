@@ -2684,14 +2684,14 @@
             }).then(canvas=>{
                 el.classList.remove('pdf-screenshot-mode');
 
-                // Crear PDF con la imagen escalada a A4 vertical
+                // Crear PDF en hoja CARTA vertical (letter portrait) — 216×279 mm
                 const { jsPDF } = window.jspdf;
-                const pdf = new jsPDF({ unit:'mm', format:'a4', orientation:'portrait', compress:true });
-                const pageW = pdf.internal.pageSize.getWidth();   // 210
-                const pageH = pdf.internal.pageSize.getHeight();  // 297
-                const margin = 8;
-                const usableW = pageW - margin*2;   // 194
-                const usableH = pageH - margin*2;   // 281
+                const pdf = new jsPDF({ unit:'mm', format:'letter', orientation:'portrait', compress:true });
+                const pageW = pdf.internal.pageSize.getWidth();   // 215.9
+                const pageH = pdf.internal.pageSize.getHeight();  // 279.4
+                const margin = 10;
+                const usableW = pageW - margin*2;   // 195.9
+                const usableH = pageH - margin*2;   // 259.4
 
                 // Escalar la imagen manteniendo proporción para que quepa completa
                 const imgRatio = canvas.width / canvas.height;
