@@ -1629,14 +1629,14 @@
                     producto:'Acumuladores', color:'#3aa6ff', icono:'fa-car-battery',
                     titulo:'Recuperación de venta de Acumuladores',
                     estado:'CERRADA', periodo:'1 – 31 ago 2026',
-                    descripcion:'Campaña de recuperación de agosto: cifras finales del mes con los mismos clientes seleccionados de las tres organizaciones. Los datos ya están consolidados en la vista trimestral de Septiembre.',
+                    descripcion:'Campaña de agosto: cifras leídas en vivo del Google Sheet filtradas por la columna Fecha, mostrando solo las ventas de agosto de los clientes seleccionados en las 3 organizaciones.',
                     puntos:[
                         'Clientes objetivo seleccionados por caída de compra',
-                        'Cifras finales snapshot del cierre de agosto',
-                        'También integrado en el acumulado trimestral'
+                        'Ventas leídas del sheet filtradas solo por agosto',
+                        'Todas las mismas funciones: filtros, detalle por línea, Excel y PDF'
                     ],
                     linkLabel:'Ver resultados de agosto',
-                    accion:'renderResultadosAgo()'
+                    accion:"renderCampaniaAgo('AGOSTO')"
                 },
                 {
                     producto:'Lubricantes', color:'#f97316', icono:'fa-oil-can',
@@ -2043,10 +2043,13 @@
                 {codCliente:'P01760', nombre:'TAPIA LEON MARIA GUADALUPE',                    org:'POZA_RICA',  obj:{PREMIUM:0, AGM:0,   ESTANDAR:72,  VALUE:0}}
             ]
         };
-        // Getter dinámico: multiplica objetivos mensuales × mesesAcumulados. Todo el resto del código lee CAMPANIA_AGO_CONFIG.clientes sin cambios.
+        // Getter dinámico: multiplica objetivos mensuales × mesesAcumulados. Si campAgoState.filtroMes está activo,
+        // se comporta como vista mensual (objetivos × 1). Sin filtro = vista trimestral (× mesesAcumulados).
         Object.defineProperty(CAMPANIA_AGO_CONFIG, 'clientes', {
             get: function(){
-                const m = this.mesesAcumulados || 1;
+                // Si estamos en vista mensual filtrada, usar objetivos mensuales sin multiplicar
+                const enModoMensual = !!(typeof campAgoState !== 'undefined' && campAgoState && campAgoState.filtroMes);
+                const m = enModoMensual ? 1 : (this.mesesAcumulados || 1);
                 return this.clientesMensual.map(c => ({
                     ...c,
                     obj: { PREMIUM: c.obj.PREMIUM*m, AGM: c.obj.AGM*m, ESTANDAR: c.obj.ESTANDAR*m, VALUE: c.obj.VALUE*m }
@@ -2076,7 +2079,7 @@
             throw last;
         }
 
-        async function loadCampaniaAgo(){
+        async function loadCampaniaAgo(filtroMes){
             const cfg = CAMPANIA_AGO_CONFIG;
             campAgoState.byCli = {}; campAgoState.apoyo = {}; campAgoState.err = null; campAgoState.fromCache = false;
             try{
@@ -2091,7 +2094,7 @@
                     AUTO_ROMA:  Papa.parse(autoTxt, {header:true, skipEmptyLines:true}).data,
                     POZA_RICA:  Papa.parse(pozaTxt, {header:true, skipEmptyLines:true}).data
                 };
-                procesarDataCampania(data);
+                procesarDataCampania(data, filtroMes);
                 campAgoState.stamp = new Date();
                 // Guardar en cache local por si algún día la red falla
                 try{ localStorage.setItem('camp_ago_v1', JSON.stringify({t:campAgoState.stamp.toISOString(), data:data})); }catch(e){}
@@ -2102,7 +2105,7 @@
                 try{
                     const cached = JSON.parse(localStorage.getItem('camp_ago_v1'));
                     if(cached && cached.data){
-                        procesarDataCampania(cached.data);
+                        procesarDataCampania(cached.data, filtroMes);
                         campAgoState.stamp = new Date(cached.t);
                         campAgoState.fromCache = true;
                         return true;
@@ -2119,11 +2122,40 @@
             '007834': { linea:'ESTANDAR', cantidad:285, apoyo:49137.93 }  // TECNOLOGIA Y SERVICIOS AMBIENTALES (ficticios)
         };
 
-        function procesarDataCampania(data){
+        // Helper: parsea la columna 'Fecha' (columna O de las hojas) y devuelve mes (1-12) y año.
+        // Acepta formatos: '15/08/2026', '15-08-2026', '2026-08-15', 'DD/MM/YY', '8/15/2026', etc.
+        // Retorna null si no puede parsearla.
+        function parseFechaVenta(raw){
+            if(!raw) return null;
+            const s = String(raw).trim();
+            if(!s) return null;
+            // ISO: 2026-08-15 o 2026/08/15
+            let m = s.match(/^(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})/);
+            if(m) return {mes:+m[2], anio:+m[1]};
+            // DD/MM/YYYY o DD-MM-YYYY
+            m = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})/);
+            if(m){
+                let a = +m[3]; if(a<100) a += 2000;
+                return {mes:+m[2], anio:a};
+            }
+            // Como último recurso, intentar Date.parse
+            const d = new Date(s);
+            if(!isNaN(d)) return {mes:d.getMonth()+1, anio:d.getFullYear()};
+            return null;
+        }
+
+        function procesarDataCampania(data, filtroMes){
+            // filtroMes: null = sin filtro (suma todo). {mes:8,anio:2026} = solo agosto 2026.
             campAgoState.byCli = {}; campAgoState.apoyo = {};
             for(const orgLabel in data){
                 const filas = data[orgLabel] || [];
                 filas.forEach(row=>{
+                    // Filtrar por mes si se pidió (columna 'Fecha' es la O)
+                    if(filtroMes){
+                        const f = parseFechaVenta(row['Fecha'] || row['FECHA'] || row['fecha']);
+                        if(!f) return; // sin fecha parseable → se ignora
+                        if(f.mes !== filtroMes.mes || f.anio !== filtroMes.anio) return;
+                    }
                     // Normalizar código: si viene como número (ej: 5955), rellenar con ceros a 6 dígitos (005955)
                     // Códigos alfanuméricos (ej: P01760) se dejan como están
                     let codCliRaw = String(row['Cod de cliente'] || row['COD DE CLIENTE'] || '').trim();
@@ -2137,19 +2169,29 @@
                     campAgoState.apoyo[codCli] = (campAgoState.apoyo[codCli]||0) + apoyo;
                 });
             }
-            // Aplicar overrides ficticios
-            for(const cod in OVERRIDES_CAMPANIA){
-                const ov = OVERRIDES_CAMPANIA[cod];
-                if(!ov) continue;
-                if(!campAgoState.byCli[cod]) campAgoState.byCli[cod] = {PREMIUM:0, AGM:0, ESTANDAR:0, VALUE:0};
-                campAgoState.byCli[cod][ov.linea] = (campAgoState.byCli[cod][ov.linea]||0) + ov.cantidad;
-                campAgoState.apoyo[cod] = (campAgoState.apoyo[cod]||0) + ov.apoyo;
+            // Aplicar overrides ficticios (solo si NO hay filtro de mes específico, para no ensuciar el histórico)
+            if(!filtroMes){
+                for(const cod in OVERRIDES_CAMPANIA){
+                    const ov = OVERRIDES_CAMPANIA[cod];
+                    if(!ov) continue;
+                    if(!campAgoState.byCli[cod]) campAgoState.byCli[cod] = {PREMIUM:0, AGM:0, ESTANDAR:0, VALUE:0};
+                    campAgoState.byCli[cod][ov.linea] = (campAgoState.byCli[cod][ov.linea]||0) + ov.cantidad;
+                    campAgoState.apoyo[cod] = (campAgoState.apoyo[cod]||0) + ov.apoyo;
+                }
             }
         }
 
-        function renderCampaniaAgo(){
+        function renderCampaniaAgo(mesFiltro){
+            // mesFiltro (opcional): 'AGOSTO' o 'SEPTIEMBRE' → filtra solo ese mes de las hojas.
+            //                       Si se omite → suma todo (uso trimestral).
             const cfg = CAMPANIA_AGO_CONFIG;
             const hayApi = !!(cfg.csvUrls && cfg.csvUrls.TULANCINGO);
+
+            // Normalizar filtro a objeto {mes,anio}
+            const MESES = { 'AGOSTO':8, 'SEPTIEMBRE':9 };
+            const filtroObj = (mesFiltro && MESES[mesFiltro]) ? {mes:MESES[mesFiltro], anio:2026, label:mesFiltro} : null;
+            // Guardar en estado global para que las demás funciones sepan si es vista mensual o trimestral
+            campAgoState.filtroMes = filtroObj;
 
             // Loader con mensaje que puede cambiar si tarda mucho
             document.getElementById('content-area').innerHTML = `
@@ -2170,17 +2212,17 @@
             }, 8000);
 
             (async ()=>{
-                if(hayApi) await loadCampaniaAgo();
+                if(hayApi) await loadCampaniaAgo(filtroObj);
                 clearTimeout(slowMsg);
-                // Si falló pero hay error visible, dar botón reintentar
                 if(hayApi && campAgoState.err && !campAgoState.byCli && Object.keys(campAgoState.byCli||{}).length===0){
+                    const btnCall = filtroObj ? `renderCampaniaAgo('${mesFiltro}')` : 'renderCampaniaAgo()';
                     document.getElementById('content-area').innerHTML = `
                     ${backBtn("renderEstrategias()","Estrategias")}
                     <div class="surface rounded-2xl p-8 text-center">
                         <i class="fas fa-cloud-slash text-4xl mb-3" style="color:var(--bad)"></i>
                         <p class="text-[13px] font-black uppercase txt mb-2">No se pudo conectar</p>
                         <p class="text-[12px] muted mb-4 leading-relaxed">No se pudo descargar los datos del Google Sheet. Puede ser mala señal o el archivo temporalmente no accesible. Intenta de nuevo en un momento.</p>
-                        <button onclick="renderCampaniaAgo()" class="glass-btn chip-accent px-8 py-3 rounded-xl text-[11px] font-black uppercase tracking-widest shadow-lg"><i class="fas fa-rotate mr-2"></i>Reintentar</button>
+                        <button onclick="${btnCall}" class="glass-btn chip-accent px-8 py-3 rounded-xl text-[11px] font-black uppercase tracking-widest shadow-lg"><i class="fas fa-rotate mr-2"></i>Reintentar</button>
                     </div>`;
                     window.scrollTo(0,0);
                     return;
@@ -2226,6 +2268,15 @@
             const cli = CAMPANIA_AGO_CONFIG.clientes;
             const orgNombre = {'TULANCINGO':'Llanterama Tulancingo', 'AUTO_ROMA':'Autoeléctrica Roma', 'POZA_RICA':'Llanterama Poza Rica'};
             const orgShort  = {'TULANCINGO':'Tulancingo', 'AUTO_ROMA':'Auto Roma', 'POZA_RICA':'Poza Rica'};
+            // Etiquetas dinámicas según si es vista mensual filtrada o trimestral
+            const filt = campAgoState.filtroMes;
+            const esMensual = !!filt;
+            const lbl = {
+                tag:    esMensual ? `Estrategia especial · ${filt.label==='AGOSTO'?'Agosto':'Septiembre'} ${filt.anio}` : 'Estrategia trimestral · Jul – Ago – Sep 2026',
+                titulo: esMensual ? `Recuperación de venta de` : 'Recuperación Trimestral de',
+                sub:    esMensual ? `Objetivo (${filt.label} ${filt.anio}) vs facturado · seguimiento en tiempo real · <b>Financia Clarios</b>` : 'Objetivo TRIMESTRAL vs facturado · seguimiento en tiempo real · <b>Financia Clarios</b>',
+                periodo: esMensual ? `${filt.label==='AGOSTO'?'agosto':'septiembre'} en curso` : 'trimestre en curso'
+            };
 
             // Cálculos por cliente (todos)
             const allRows = cli.map(c=>{
@@ -2498,15 +2549,15 @@
               <section class="ea-jul26 ea-capture">
                 <div class="ea-jul26-badge"><span class="ea-jul26-dot"></span>Estrategia en curso · datos en vivo</div>
                 <header class="ea-jul26-head">
-                  <div class="ea-jul26-tag">Estrategia trimestral · Jul – Ago – Sep 2026</div>
-                  <h2 class="ea-jul26-title">Recuperación Trimestral de <span>Acumuladores</span></h2>
-                  <p class="ea-jul26-sub">Objetivo TRIMESTRAL vs facturado · seguimiento en tiempo real · <b>Financia Clarios</b></p>
+                  <div class="ea-jul26-tag">${lbl.tag}</div>
+                  <h2 class="ea-jul26-title">${lbl.titulo} <span>Acumuladores</span></h2>
+                  <p class="ea-jul26-sub">${lbl.sub}</p>
                 </header>
                 <div class="ea-jul26-kpis">
                   <div class="ea-jul26-kpi">
                     <div class="ea-jul26-k-l">Acumuladores facturados</div>
                     <div class="ea-jul26-k-v">${realTotG}</div>
-                    <div class="ea-jul26-k-s">trimestre en curso</div>
+                    <div class="ea-jul26-k-s">${lbl.periodo}</div>
                   </div>
                   <div class="ea-jul26-kpi ea-jul26-amber">
                     <div class="ea-jul26-k-l">Objetivo total</div>
@@ -2556,9 +2607,11 @@
                 return;
             }
             const rows = campAgoUI.selectedCli ? Array.from(campAgoUI.selectedCli) : [];
+            const filt = campAgoState.filtroMes;
+            const nombreBase = filt ? `Acumuladores_${filt.label}_${filt.anio}` : 'RecuperacionTrimestral_Acumuladores_2026';
             const nombre = rows.length===1
                 ? 'Ficha_' + (CAMPANIA_AGO_CONFIG.clientes.find(c=>c.codCliente===rows[0])||{nombre:'cliente'}).nombre.replace(/[^\w]+/g,'_').slice(0,30)
-                : 'RecuperacionTrimestral_Acumuladores_2026';
+                : nombreBase;
 
             // Loader
             const loader = document.createElement('div');
@@ -2653,149 +2706,6 @@
         }
 
         /* ===================== RESULTADOS ACUMULADORES JULIO 2026 (histórico) ===================== */
-        function renderResultadosAgo(){
-            const html = `
-            ${backBtn("renderEstrategias()","Estrategias")}
-            <section class="ea-jul26 ea-capture">
-              <div class="ea-jul26-badge"><span class="ea-jul26-dot"></span>Estrategia concluida · archivo histórico</div>
-              <header class="ea-jul26-head">
-                <div class="ea-jul26-tag">Estrategia especial · 1 – 31 ago 2026</div>
-                <h2 class="ea-jul26-title">Recuperación de venta de <span>Acumuladores</span></h2>
-                <p class="ea-jul26-sub">Objetivo (AGOSTO 2026) vs facturado · clientes seleccionados de <b>ambas organizaciones</b></p>
-              </header>
-              <div class="ea-jul26-kpis">
-                <div class="ea-jul26-kpi">
-                  <div class="ea-jul26-k-l">Acumuladores facturados</div>
-                  <div class="ea-jul26-k-v">292</div>
-                  <div class="ea-jul26-k-s">1 – 31 ago 2026</div>
-                </div>
-                <div class="ea-jul26-kpi ea-jul26-amber">
-                  <div class="ea-jul26-k-l">Objetivo total</div>
-                  <div class="ea-jul26-k-v">886</div>
-                  <div class="ea-jul26-k-s">de objetivos · AGOSTO 2026</div>
-                </div>
-                <div class="ea-jul26-kpi ea-jul26-down">
-                  <div class="ea-jul26-k-l">Faltante</div>
-                  <div class="ea-jul26-k-v">−594</div>
-                  <div class="ea-jul26-k-s">avance 33% del objetivo</div>
-                </div>
-                <div class="ea-jul26-kpi ea-jul26-cyan">
-                  <div class="ea-jul26-k-l">Total neto</div>
-                  <div class="ea-jul26-k-v">$56,999.98</div>
-                  <div class="ea-jul26-k-s">Subtotal: $49,137.93</div>
-                </div>
-              </div>
-              <div class="ea-jul26-tbl-wrap">
-                <table class="ea-jul26-tbl">
-                  <colgroup>
-                    <col class="c-name">
-                    <col class="c-line"><col class="c-line"><col class="c-line">
-                    <col class="c-line"><col class="c-line"><col class="c-line">
-                    <col class="c-line"><col class="c-line"><col class="c-line">
-                    <col class="c-line"><col class="c-line"><col class="c-line">
-                    <col class="c-apo">
-                  </colgroup>
-                  <thead>
-                    <tr>
-                      <th rowspan="2" class="ea-jul26-l">Cliente</th>
-                      <th colspan="3" class="ea-jul26-lh" style="--lc:#3aa6ff">Premium</th>
-                      <th colspan="3" class="ea-jul26-lh" style="--lc:#a67cff">AGM</th>
-                      <th colspan="3" class="ea-jul26-lh" style="--lc:#5eead4">Estándar</th>
-                      <th colspan="3" class="ea-jul26-lh" style="--lc:#94a3b8">Value</th>
-                      <th rowspan="2" class="ea-jul26-apo">Apoyo $</th>
-                    </tr>
-                    <tr>
-                      <th class="ea-jul26-gs">Obj</th><th>Real</th><th>%</th>
-                      <th class="ea-jul26-gs">Obj</th><th>Real</th><th>%</th>
-                      <th class="ea-jul26-gs">Obj</th><th>Real</th><th>%</th>
-                      <th class="ea-jul26-gs">Obj</th><th>Real</th><th>%</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr>
-                      <td class="ea-jul26-name">TECNOLOGIA Y SERVICIOS AMBIENTALES</td>
-                      <td class="ea-jul26-gs">—</td><td>—</td><td>—</td>
-                      <td class="ea-jul26-gs">175</td><td>—</td><td class="ea-jul26-p ea-jul26-low">0%</td>
-                      <td class="ea-jul26-gs">300</td><td>285</td><td class="ea-jul26-p ea-jul26-good">95%</td>
-                      <td class="ea-jul26-gs">—</td><td>—</td><td>—</td>
-                      <td class="ea-jul26-apo-c">$49,137.93</td>
-                    </tr>
-                    <tr>
-                      <td class="ea-jul26-name">IRVING ARIEL GRANILLO GARRIDO</td>
-                      <td class="ea-jul26-gs">—</td><td>—</td><td>—</td>
-                      <td class="ea-jul26-gs">2</td><td>1</td><td class="ea-jul26-p ea-jul26-mid">50%</td>
-                      <td class="ea-jul26-gs">170</td><td>7</td><td class="ea-jul26-p ea-jul26-low">4%</td>
-                      <td class="ea-jul26-gs">—</td><td>—</td><td>—</td>
-                      <td class="ea-jul26-apo-c">—</td>
-                    </tr>
-                    <tr>
-                      <td class="ea-jul26-name">PROVEEDORA DE LUBRICANTES</td>
-                      <td class="ea-jul26-gs">1</td><td>—</td><td class="ea-jul26-p ea-jul26-low">0%</td>
-                      <td class="ea-jul26-gs">2</td><td>—</td><td class="ea-jul26-p ea-jul26-low">0%</td>
-                      <td class="ea-jul26-gs">37</td><td>—</td><td class="ea-jul26-p ea-jul26-low">0%</td>
-                      <td class="ea-jul26-gs">—</td><td>—</td><td>—</td>
-                      <td class="ea-jul26-apo-c">—</td>
-                    </tr>
-                    <tr>
-                      <td class="ea-jul26-name">ANGEL URIEL MENDEZ DELGADO</td>
-                      <td class="ea-jul26-gs">—</td><td>—</td><td>—</td>
-                      <td class="ea-jul26-gs">—</td><td>—</td><td>—</td>
-                      <td class="ea-jul26-gs">40</td><td>—</td><td class="ea-jul26-p ea-jul26-low">0%</td>
-                      <td class="ea-jul26-gs">—</td><td>—</td><td>—</td>
-                      <td class="ea-jul26-apo-c">—</td>
-                    </tr>
-                    <tr>
-                      <td class="ea-jul26-name">EDUARDO ROMERO MORENO</td>
-                      <td class="ea-jul26-gs">—</td><td>—</td><td>—</td>
-                      <td class="ea-jul26-gs">—</td><td>—</td><td>—</td>
-                      <td class="ea-jul26-gs">25</td><td>—</td><td class="ea-jul26-p ea-jul26-low">0%</td>
-                      <td class="ea-jul26-gs">—</td><td>—</td><td>—</td>
-                      <td class="ea-jul26-apo-c">—</td>
-                    </tr>
-                    <tr>
-                      <td class="ea-jul26-name">FOSADO CUEVAS SALOMON</td>
-                      <td class="ea-jul26-gs">—</td><td>—</td><td>—</td>
-                      <td class="ea-jul26-gs">—</td><td>—</td><td>—</td>
-                      <td class="ea-jul26-gs">—</td><td>—</td><td>—</td>
-                      <td class="ea-jul26-gs">—</td><td>—</td><td>—</td>
-                      <td class="ea-jul26-apo-c">—</td>
-                    </tr>
-                    <tr>
-                      <td class="ea-jul26-name">XIMENA OROZCO GONZALEZ</td>
-                      <td class="ea-jul26-gs">—</td><td>—</td><td>—</td>
-                      <td class="ea-jul26-gs">—</td><td>—</td><td>—</td>
-                      <td class="ea-jul26-gs">230</td><td>—</td><td class="ea-jul26-p ea-jul26-low">0%</td>
-                      <td class="ea-jul26-gs">—</td><td>—</td><td>—</td>
-                      <td class="ea-jul26-apo-c">—</td>
-                    </tr>
-                    <tr>
-                      <td class="ea-jul26-name">TAPIA LEON MARIA GUADALUPE</td>
-                      <td class="ea-jul26-gs">—</td><td>—</td><td>—</td>
-                      <td class="ea-jul26-gs">—</td><td>—</td><td>—</td>
-                      <td class="ea-jul26-gs">72</td><td>—</td><td class="ea-jul26-p ea-jul26-low">0%</td>
-                      <td class="ea-jul26-gs">—</td><td>—</td><td>—</td>
-                      <td class="ea-jul26-apo-c">—</td>
-                    </tr>
-                    <tr class="ea-jul26-totrow">
-                      <td class="ea-jul26-name">Totales campaña</td>
-                      <td class="ea-jul26-gs">1</td><td>—</td><td class="ea-jul26-p ea-jul26-low">0%</td>
-                      <td class="ea-jul26-gs">179</td><td>1</td><td class="ea-jul26-p ea-jul26-low">1%</td>
-                      <td class="ea-jul26-gs">874</td><td>292</td><td class="ea-jul26-p ea-jul26-low">33%</td>
-                      <td class="ea-jul26-gs">—</td><td>—</td><td>—</td>
-                      <td class="ea-jul26-apo-c ea-jul26-tot-apo">$56,999.98<br><span style="font-size:9px;font-weight:700;opacity:.75">Subtotal: $49,137.93</span></td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-              <footer class="ea-jul26-foot">
-                <span>Clientes: seleccionados de ambas organizaciones</span>
-                <span>Cierre: 31 ago 2026 · Grupo Llanterama / Autoeléctrica Roma</span>
-              </footer>
-            </section>`;
-            document.getElementById('content-area').innerHTML = html;
-            window.scrollTo(0,0);
-        }
-
         function renderResultadosAcum(){
             const html = `
             ${backBtn("renderEstrategias()","Estrategias")}
