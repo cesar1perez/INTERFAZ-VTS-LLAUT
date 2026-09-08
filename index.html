@@ -2123,23 +2123,47 @@
         };
 
         // Helper: parsea la columna 'Fecha' (columna O de las hojas) y devuelve mes (1-12) y año.
-        // Acepta formatos: '15/08/2026', '15-08-2026', '2026-08-15', 'DD/MM/YY', '8/15/2026', etc.
-        // Retorna null si no puede parsearla.
+        // Acepta: '3/ago/26' (formato del sheet actual), '15/08/2026', '15-08-2026', '2026-08-15', etc.
         function parseFechaVenta(raw){
             if(!raw) return null;
-            const s = String(raw).trim();
+            const s = String(raw).trim().toLowerCase();
             if(!s) return null;
+            // Mapa de meses en español (nombres cortos y largos)
+            const MESES_ES = {
+                'ene':1, 'enero':1,
+                'feb':2, 'febrero':2,
+                'mar':3, 'marzo':3,
+                'abr':4, 'abril':4,
+                'may':5, 'mayo':5,
+                'jun':6, 'junio':6,
+                'jul':7, 'julio':7,
+                'ago':8, 'agosto':8,
+                'sep':9, 'sept':9, 'septiembre':9,
+                'oct':10, 'octubre':10,
+                'nov':11, 'noviembre':11,
+                'dic':12, 'diciembre':12
+            };
+            // FORMATO PRINCIPAL DEL SHEET: '3/ago/26' o '31/ago/2026' (día/mes-nombre/año)
+            let m = s.match(/^(\d{1,2})[\/\-\s]([a-záéíóú]+)[\/\-\s\.]*(\d{2,4})/);
+            if(m){
+                const mesNombre = m[2].replace(/\./g,'');
+                const mesNum = MESES_ES[mesNombre];
+                if(mesNum){
+                    let a = +m[3]; if(a<100) a += 2000;
+                    return {mes:mesNum, anio:a};
+                }
+            }
             // ISO: 2026-08-15 o 2026/08/15
-            let m = s.match(/^(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})/);
+            m = s.match(/^(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})/);
             if(m) return {mes:+m[2], anio:+m[1]};
-            // DD/MM/YYYY o DD-MM-YYYY
+            // DD/MM/YYYY o DD-MM-YYYY (numérico)
             m = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})/);
             if(m){
                 let a = +m[3]; if(a<100) a += 2000;
                 return {mes:+m[2], anio:a};
             }
-            // Como último recurso, intentar Date.parse
-            const d = new Date(s);
+            // Último recurso: Date.parse (para formatos raros)
+            const d = new Date(raw);
             if(!isNaN(d)) return {mes:d.getMonth()+1, anio:d.getFullYear()};
             return null;
         }
