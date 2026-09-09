@@ -1602,16 +1602,17 @@
             'SEPTIEMBRE 2026': [
                 {
                     producto:'Acumuladores', color:'#3aa6ff', icono:'fa-car-battery',
-                    titulo:'Recuperación Trimestral de Acumuladores',
-                    estado:'ACTIVA', periodo:'Julio · Agosto · Septiembre 2026',
-                    descripcion:'Campaña trimestral consolidada: se suman los objetivos y ventas de los tres meses. Seguimiento diario desde las hojas de campaña del Google Sheet. El apoyo Clarios se acumula por todo el trimestre.',
+                    titulo:'Recuperación de venta de Acumuladores',
+                    estado:'ACTIVA', periodo:'1 – 30 sep 2026 · 4 clientes selectos',
+                    descripcion:'Campaña mensual dirigida a 4 clientes clave (uno en Poza Rica, uno en Autoeléctrica Roma y dos en Tulancingo). Ventas leídas en vivo del Google Sheet filtradas solo por septiembre. Objetivos todos en línea Estándar.',
                     puntos:[
-                        'Objetivos triplicados (mes × 3) sobre los mismos clientes',
-                        'Ventas Jul + Ago + Sep consolidadas por línea',
-                        'Apoyo Clarios acumulado del trimestre para nota de crédito'
+                        'IRVING ARIEL GRANILLO · 176 estándar',
+                        'FOSADO CUEVAS SALOMON · 140 estándar',
+                        'XIMENA OROZCO GONZALEZ · 200 estándar (Auto Roma)',
+                        'TAPIA LEON MARIA GUADALUPE · 216 estándar (Poza Rica)'
                     ],
-                    linkLabel:'Ver seguimiento trimestral',
-                    accion:'renderCampaniaAgo()'
+                    linkLabel:'Ver seguimiento de septiembre',
+                    accion:"renderCampaniaAgo('SEPTIEMBRE')"
                 },
                 {
                     producto:'Promociones', color:'#0891b2', icono:'fa-tags',
@@ -2022,17 +2023,16 @@
         // ⬇️ CONFIGURACIÓN — 3 URLs CSV publicadas del Google Sheet (una por hoja)
         // Base del archivo publicado: mismo que ya usa el dashboard general de Tulancingo
         const CAMPANIA_AGO_CONFIG = {
-            // Cuántos meses se acumulan en esta campaña. Los objetivos por cliente son mensuales,
-            // y aquí se multiplican por este factor para reflejar el objetivo del periodo total.
-            // 1 = mes individual · 3 = trimestre (Jul-Ago-Sep) · etc.
-            mesesAcumulados: 3,
+            // Como ahora es campaña mensual (no trimestral), los objetivos son 1×.
+            // Si algún día se vuelve trimestral, cambiar a 3 (aplica solo cuando NO hay filtroMes activo).
+            mesesAcumulados: 1,
             csvUrls: {
                 'TULANCINGO': 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSXDFzkon4Xxv9ydIrVdSW5ER9FweUPFbmE0GI55ca6rFzy-yrjFVmN8kgQ7X0s5oF6k1Wbf8XG4lmX/pub?gid=1860476982&single=true&output=csv',
                 'AUTO_ROMA':  'https://docs.google.com/spreadsheets/d/e/2PACX-1vSXDFzkon4Xxv9ydIrVdSW5ER9FweUPFbmE0GI55ca6rFzy-yrjFVmN8kgQ7X0s5oF6k1Wbf8XG4lmX/pub?gid=1762177058&single=true&output=csv',
                 'POZA_RICA':  'https://docs.google.com/spreadsheets/d/e/2PACX-1vSXDFzkon4Xxv9ydIrVdSW5ER9FweUPFbmE0GI55ca6rFzy-yrjFVmN8kgQ7X0s5oF6k1Wbf8XG4lmX/pub?gid=411536143&single=true&output=csv'
             },
-            clientesMensual: [
-                // Objetivos MENSUALES por cliente. Se multiplican por mesesAcumulados automáticamente.
+            // Lista de clientes AGOSTO 2026 (7 clientes originales, no se toca)
+            clientesAgosto: [
                 // LLANTERAMA TULANCINGO
                 {codCliente:'007834', nombre:'TECNOLOGIA Y SERVICIOS AMBIENTALES S.A DE C.V', org:'TULANCINGO', obj:{PREMIUM:0, AGM:175, ESTANDAR:300, VALUE:0}},
                 {codCliente:'005955', nombre:'IRVING ARIEL GRANILLO GARRIDO',                 org:'TULANCINGO', obj:{PREMIUM:0, AGM:2,   ESTANDAR:170, VALUE:0}},
@@ -2043,16 +2043,26 @@
                 {codCliente:'002199', nombre:'XIMENA OROZCO GONZALEZ',                        org:'AUTO_ROMA',  obj:{PREMIUM:0, AGM:0,   ESTANDAR:230, VALUE:0}},
                 // POZA RICA
                 {codCliente:'P01760', nombre:'TAPIA LEON MARIA GUADALUPE',                    org:'POZA_RICA',  obj:{PREMIUM:0, AGM:0,   ESTANDAR:72,  VALUE:0}}
+            ],
+            // Lista de clientes SEPTIEMBRE 2026 (4 clientes selectos, todos objetivos ESTÁNDAR)
+            clientesSeptiembre: [
+                // LLANTERAMA TULANCINGO
+                {codCliente:'005955', nombre:'IRVING ARIEL GRANILLO GARRIDO',                 org:'TULANCINGO', obj:{PREMIUM:0, AGM:0, ESTANDAR:176, VALUE:0}},
+                {codCliente:'000294', nombre:'FOSADO CUEVAS SALOMON',                         org:'TULANCINGO', obj:{PREMIUM:0, AGM:0, ESTANDAR:140, VALUE:0}},
+                // AUTOELECTRICA ROMA
+                {codCliente:'002199', nombre:'XIMENA OROZCO GONZALEZ',                        org:'AUTO_ROMA',  obj:{PREMIUM:0, AGM:0, ESTANDAR:200, VALUE:0}},
+                // POZA RICA
+                {codCliente:'P01760', nombre:'TAPIA LEON MARIA GUADALUPE',                    org:'POZA_RICA',  obj:{PREMIUM:0, AGM:0, ESTANDAR:216, VALUE:0}}
             ]
         };
-        // Getter dinámico: multiplica objetivos mensuales × mesesAcumulados. Si campAgoState.filtroMes está activo,
-        // se comporta como vista mensual (objetivos × 1). Sin filtro = vista trimestral (× mesesAcumulados).
+        // Getter dinámico: elige la lista de clientes correcta según el mes filtrado.
+        // Si no hay filtro, por defecto usa la lista de SEPTIEMBRE (mes actual).
         Object.defineProperty(CAMPANIA_AGO_CONFIG, 'clientes', {
             get: function(){
-                // Si estamos en vista mensual filtrada, usar objetivos mensuales sin multiplicar
-                const enModoMensual = !!(typeof campAgoState !== 'undefined' && campAgoState && campAgoState.filtroMes);
-                const m = enModoMensual ? 1 : (this.mesesAcumulados || 1);
-                return this.clientesMensual.map(c => ({
+                const filt = (typeof campAgoState !== 'undefined' && campAgoState && campAgoState.filtroMes) ? campAgoState.filtroMes.label : 'SEPTIEMBRE';
+                const lista = (filt === 'AGOSTO') ? this.clientesAgosto : this.clientesSeptiembre;
+                const m = this.mesesAcumulados || 1;
+                return lista.map(c => ({
                     ...c,
                     obj: { PREMIUM: c.obj.PREMIUM*m, AGM: c.obj.AGM*m, ESTANDAR: c.obj.ESTANDAR*m, VALUE: c.obj.VALUE*m }
                 }));
@@ -2201,12 +2211,14 @@
                     diag.procesadas++;
                 });
             }
-            // Aplicar overrides ficticios (cifras adicionales fijas para clientes específicos)
-            // Se aplican tanto en vista trimestral como en vista mensual filtrada.
-            // Para desactivar un override, cámbialo a null o quítalo del objeto OVERRIDES_CAMPANIA.
+            // Aplicar overrides ficticios (cifras adicionales fijas para clientes específicos).
+            // Solo se aplican si el cliente está en la lista del mes activo — así el override
+            // de TECNOLOGIA solo aparece en AGOSTO, no ensucia SEPTIEMBRE (donde no está en la lista).
+            const codsDelMes = new Set(CAMPANIA_AGO_CONFIG.clientes.map(c=>c.codCliente));
             for(const cod in OVERRIDES_CAMPANIA){
                 const ov = OVERRIDES_CAMPANIA[cod];
                 if(!ov) continue;
+                if(!codsDelMes.has(cod)) continue;  // no está en el mes activo → skip
                 if(!campAgoState.byCli[cod]) campAgoState.byCli[cod] = {PREMIUM:0, AGM:0, ESTANDAR:0, VALUE:0};
                 campAgoState.byCli[cod][ov.linea] = (campAgoState.byCli[cod][ov.linea]||0) + ov.cantidad;
                 campAgoState.apoyo[cod] = (campAgoState.apoyo[cod]||0) + ov.apoyo;
@@ -2222,14 +2234,15 @@
 
         function renderCampaniaAgo(mesFiltro){
             // mesFiltro (opcional): 'AGOSTO' o 'SEPTIEMBRE' → filtra solo ese mes de las hojas.
-            //                       Si se omite → suma todo (uso trimestral).
+            //                       Si se omite → por defecto SEPTIEMBRE (mes actual).
             const cfg = CAMPANIA_AGO_CONFIG;
             const hayApi = !!(cfg.csvUrls && cfg.csvUrls.TULANCINGO);
 
-            // Normalizar filtro a objeto {mes,anio}
+            // Normalizar filtro a objeto {mes,anio}. Si no viene, default = SEPTIEMBRE (mes actual).
             const MESES = { 'AGOSTO':8, 'SEPTIEMBRE':9 };
-            const filtroObj = (mesFiltro && MESES[mesFiltro]) ? {mes:MESES[mesFiltro], anio:2026, label:mesFiltro} : null;
-            // Guardar en estado global para que las demás funciones sepan si es vista mensual o trimestral
+            const mesFinal = mesFiltro || 'SEPTIEMBRE';
+            const filtroObj = MESES[mesFinal] ? {mes:MESES[mesFinal], anio:2026, label:mesFinal} : null;
+            // Guardar en estado global para que las demás funciones sepan el mes activo
             campAgoState.filtroMes = filtroObj;
 
             // Loader con mensaje que puede cambiar si tarda mucho
@@ -2307,14 +2320,14 @@
             const cli = CAMPANIA_AGO_CONFIG.clientes;
             const orgNombre = {'TULANCINGO':'Llanterama Tulancingo', 'AUTO_ROMA':'Autoeléctrica Roma', 'POZA_RICA':'Llanterama Poza Rica'};
             const orgShort  = {'TULANCINGO':'Tulancingo', 'AUTO_ROMA':'Auto Roma', 'POZA_RICA':'Poza Rica'};
-            // Etiquetas dinámicas según si es vista mensual filtrada o trimestral
-            const filt = campAgoState.filtroMes;
-            const esMensual = !!filt;
+            // Etiquetas dinámicas según el mes activo (siempre mensual — trimestral quedó fuera)
+            const filt = campAgoState.filtroMes || {label:'SEPTIEMBRE', anio:2026};
+            const mesNom = filt.label==='AGOSTO' ? 'Agosto' : 'Septiembre';
             const lbl = {
-                tag:    esMensual ? `Estrategia especial · ${filt.label==='AGOSTO'?'Agosto':'Septiembre'} ${filt.anio}` : 'Estrategia trimestral · Jul – Ago – Sep 2026',
-                titulo: esMensual ? `Recuperación de venta de` : 'Recuperación Trimestral de',
-                sub:    esMensual ? `Objetivo (${filt.label} ${filt.anio}) vs facturado · seguimiento en tiempo real · <b>Financia Clarios</b>` : 'Objetivo TRIMESTRAL vs facturado · seguimiento en tiempo real · <b>Financia Clarios</b>',
-                periodo: esMensual ? `${filt.label==='AGOSTO'?'agosto':'septiembre'} en curso` : 'trimestre en curso'
+                tag:     `Estrategia especial · ${mesNom} ${filt.anio}`,
+                titulo:  'Recuperación de venta de',
+                sub:     `Objetivo (${filt.label} ${filt.anio}) vs facturado · seguimiento en tiempo real · <b>Financia Clarios</b>`,
+                periodo: `${mesNom.toLowerCase()} en curso`
             };
 
             // Cálculos por cliente (todos)
