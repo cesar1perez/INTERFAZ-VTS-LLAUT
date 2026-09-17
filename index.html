@@ -3089,9 +3089,373 @@
                 <h3 class="text-2xl font-black uppercase leading-none">${orgActual}</h3>
             </div>
             ${cards}
+
+            <div onclick="renderPromosResultados()" class="glass-btn surface rounded-2xl overflow-hidden mb-4 mt-6" style="border-left:6px solid #16a34a">
+                <div class="p-5 flex items-center gap-4">
+                    <div class="w-14 h-14 rounded-2xl flex items-center justify-center text-2xl text-white shrink-0 shadow-md" style="background:linear-gradient(135deg,#065f46,#16a34a)"><i class="fas fa-chart-column"></i></div>
+                    <div class="flex-1 min-w-0">
+                        <p class="text-[14px] font-black uppercase txt tracking-tight leading-tight">Resultados de promociones</p>
+                        <p class="text-[10px] font-bold uppercase tracking-widest mt-1" style="color:#16a34a">Desempeño por vendedor · en vivo <i class="fas fa-arrow-right text-[8px] ml-1"></i></p>
+                    </div>
+                </div>
+            </div>
+
             <p class="text-center text-[10px] font-bold muted mt-2 mb-10 leading-snug uppercase tracking-widest">Fuerza de Ventas · ${empresa}</p>`;
             document.getElementById('content-area').innerHTML = html;
             window.scrollTo(0,0);
+        }
+
+        /* ===================== RESULTADOS DE PROMOCIONES (por vendedor · en vivo) ===================== */
+        // Vendedores a rastrear. Clave única = codVend + almacen (para diferenciar los 003 de Auto Roma).
+        const PROMOS_VENDEDORES = [
+            // TULANCINGO (hoja campallante) - almacén se ignora, se toma cualquiera
+            {clave:'TUL-003', hoja:'TULANCINGO', codVend:'003', almacen:null, nombre:'Carlos C.',           orgLabel:'Llanterama Tulancingo'},
+            {clave:'TUL-006', hoja:'TULANCINGO', codVend:'006', almacen:null, nombre:'Miguel L.',           orgLabel:'Llanterama Tulancingo'},
+            {clave:'TUL-012', hoja:'TULANCINGO', codVend:'012', almacen:null, nombre:'Rubén L.',            orgLabel:'Llanterama Tulancingo'},
+            {clave:'TUL-023', hoja:'TULANCINGO', codVend:'023', almacen:null, nombre:'C.S. Río de las Av.', orgLabel:'Llanterama Tulancingo'},
+            // AUTOELECTRICA ROMA (hoja campaauto) - 003 se distingue por almacén
+            {clave:'AR-003-001', hoja:'AUTO_ROMA', codVend:'003', almacen:'001', nombre:'Colosio - Mayoreo', orgLabel:'Autoeléctrica Roma'},
+            {clave:'AR-003-003', hoja:'AUTO_ROMA', codVend:'003', almacen:'003', nombre:'Oscar F.',          orgLabel:'Autoeléctrica Roma'},
+            {clave:'AR-022',     hoja:'AUTO_ROMA', codVend:'022', almacen:null,  nombre:'Celene S.',         orgLabel:'Autoeléctrica Roma'},
+            {clave:'AR-023',     hoja:'AUTO_ROMA', codVend:'023', almacen:null,  nombre:'José Martín L.',    orgLabel:'Autoeléctrica Roma'}
+        ];
+
+        // Estado del módulo
+        const promosResState = { mesFiltro:'SEPTIEMBRE', data:null, loading:false, err:null };
+
+        // Fórmulas de escalones de las promociones — se llenan cuando lleguen los PDFs de septiembre.
+        // Cada función recibe {motobat, litrosLub, cajasLub, cajasGarrafa, cubetas19L, litrosHidraulico, regalos}
+        // y regresa {aprovechada:bool, escalonesCumplidos:number, faltaParaSiguiente:number|null}
+        const PROMOS_FORMULAS = {
+            // TODO (Septiembre 2026): pegar aquí escalones exactos cuando lleguen los PDFs
+            motobateria: {
+                descripcion: 'Escalón pendiente de definir con PDF de septiembre',
+                calcular: (m) => ({ aprovechada:m.motobat>0 && m.regalos>0, escalonesCumplidos:0, faltaParaSiguiente:null })
+            },
+            lubricante: {
+                descripcion: 'Escalón pendiente de definir con PDF de septiembre',
+                calcular: (m) => ({ aprovechada:(m.cajasLub+m.cajasGarrafa+m.cubetas19L)>0 && m.regalos>0, escalonesCumplidos:0, faltaParaSiguiente:null })
+            }
+        };
+
+        // Detección de línea de producto según Codigo/Clasificacion/Descripcion
+        function detectarLineaPromo(row){
+            const clasif = String(row['Clasificacion'] || row['CLASIFICACION'] || '').toUpperCase().trim();
+            const codigo = String(row['Codigo'] || row['CODIGO'] || '').toUpperCase().trim();
+            const desc   = String(row['Descripcion'] || row['DESCRIPCION'] || '').toUpperCase();
+            const importe = n(row['Importe'] || row['IMPORTE']);
+            const esRegalo = importe < 1; // < 1 peso = regalo/bonificación
+            // MOTOBATERÍA
+            if(clasif.includes('8 MOTOBAT') || clasif.includes('MOTOBAT')) return {linea:'MOTOBAT', esRegalo};
+            // HIDRÁULICO (código empieza con 025 002 01 o 0250201, con o sin espacios)
+            const codigoLimpio = codigo.replace(/\s+/g,'');
+            if(codigoLimpio.startsWith('0250201')) return {linea:'HIDRAULICO', esRegalo};
+            // LUBRICANTE (detectar por tamaño en descripción — orden importa: primero los grandes)
+            let subtipo = null;
+            if(/\b1000\s*L\b/.test(desc) || desc.includes('TOTEM')) subtipo = 'TOTEM1000L';
+            else if(/\b(208|200)\s*L\b/.test(desc) || desc.includes('TAMBO')) subtipo = 'TAMBO200L';
+            else if(/\b19\s*L\b/.test(desc) || desc.includes('CUBETA')) subtipo = 'CUBETA19L';
+            else if(/\b5\s*L\b/.test(desc) || desc.includes('GARRAFA')) subtipo = 'GARRAFA5L';
+            else if(/\b1\s*L\b/.test(desc) || desc.includes('BOTELLA')) subtipo = 'BOTELLA1L';
+            if(subtipo) return {linea:'LUBRICANTE', subtipo, esRegalo};
+            return {linea:null, esRegalo};
+        }
+
+        // Convierte Cantidad → cajas / cubetas / tambos / totems
+        function convertirEnvases(subtipo, cantidad){
+            if(subtipo === 'BOTELLA1L')  return { cajas: Math.floor(cantidad/12), litros: cantidad };     // 12 botellas = 1 caja
+            if(subtipo === 'GARRAFA5L')  return { cajas: Math.floor(cantidad/4),  litros: cantidad*5 };   // 4 garrafas = 1 caja de garrafas
+            if(subtipo === 'CUBETA19L')  return { cubetas: cantidad,              litros: cantidad*19 };
+            if(subtipo === 'TAMBO200L')  return { tambos: cantidad,               litros: cantidad*200 }; // 1 tambo = 200/208L
+            if(subtipo === 'TOTEM1000L') return { totems: cantidad,               litros: cantidad*1000 };
+            return {};
+        }
+
+        async function loadPromosResultados(){
+            promosResState.loading = true; promosResState.err = null;
+            try{
+                // Reutilizamos el fetcher de CSV ya probado
+                const cfg = CAMPANIA_AGO_CONFIG;
+                const [tulTxt, autoTxt] = await Promise.all([
+                    fetchCsvHoja(cfg.csvUrls.TULANCINGO),
+                    fetchCsvHoja(cfg.csvUrls.AUTO_ROMA)
+                ]);
+                const hojas = {
+                    TULANCINGO: Papa.parse(tulTxt,  {header:true, skipEmptyLines:true}).data,
+                    AUTO_ROMA:  Papa.parse(autoTxt, {header:true, skipEmptyLines:true}).data
+                };
+                promosResState.data = procesarPromosResultados(hojas, promosResState.mesFiltro);
+                return true;
+            }catch(e){
+                promosResState.err = e;
+                return false;
+            }finally{
+                promosResState.loading = false;
+            }
+        }
+
+        function procesarPromosResultados(hojas, mesFiltro){
+            const MESES = { 'AGOSTO':8, 'SEPTIEMBRE':9, 'OCTUBRE':10, 'NOVIEMBRE':11, 'DICIEMBRE':12, 'JULIO':7 };
+            const filtroMes = MESES[mesFiltro] ? {mes:MESES[mesFiltro], anio:2026} : null;
+
+            // Inicializar acumuladores por vendedor
+            const porVend = {};
+            PROMOS_VENDEDORES.forEach(v=>{
+                porVend[v.clave] = {
+                    ...v,
+                    motobat: 0,               // motobaterías vendidas
+                    cajasBotella: 0,          // cajas de 12 botellas 1L
+                    cajasGarrafa: 0,          // cajas de 4 garrafas 5L
+                    cubetas19L: 0,            // cubetas 19L
+                    tambos200L: 0,            // tambos 200/208L
+                    totems1000L: 0,           // totems 1000L
+                    litrosLubTotales: 0,      // total de litros de lubricante
+                    litrosLubRegalo: 0,       // litros regalados (importe < 1)
+                    litrosHidraulico: 0,      // litros de hidráulico vendidos
+                    facturasPromo: new Set(), // facturas donde se detectó promo
+                    facturasMotobat: new Set(),
+                    facturasLub: new Set(),
+                    clientesPromo: new Set(), // códigos de cliente que aprovecharon
+                    // Agrupador por factura para poder cruzar motobat vs regalo del mismo folio
+                    facturas: {}
+                };
+            });
+
+            // Recorrer las 2 hojas
+            for(const hoja in hojas){
+                const filas = hojas[hoja] || [];
+                filas.forEach(row=>{
+                    // Filtrar por mes usando la columna Fecha
+                    if(filtroMes){
+                        const f = parseFechaVenta(row['Fecha'] || row['FECHA'] || row['fecha']);
+                        if(!f || f.mes !== filtroMes.mes || f.anio !== filtroMes.anio) return;
+                    }
+                    // Identificar vendedor (Cod Vend 1 + Almacen si aplica)
+                    const codVend = String(row['Cod Vend 1'] || row['COD VEND 1'] || '').trim().padStart(3,'0');
+                    const almacen = String(row['Almacen'] || row['ALMACEN'] || '').trim().padStart(3,'0');
+                    const vendedor = PROMOS_VENDEDORES.find(v =>
+                        v.hoja === hoja &&
+                        v.codVend === codVend &&
+                        (v.almacen === null || v.almacen === almacen)
+                    );
+                    if(!vendedor) return;
+                    const acc = porVend[vendedor.clave];
+
+                    const linea = detectarLineaPromo(row);
+                    if(!linea.linea) return;
+
+                    const cantidad = n(row['Cantidad'] || row['CANTIDAD']);
+                    const factura = String(row['Factura'] || row['FACTURA'] || '').trim();
+                    const codCli  = String(row['Cod de cliente'] || row['COD DE CLIENTE'] || '').trim();
+                    if(!factura) return;
+
+                    // Inicializar la factura en el acumulador
+                    if(!acc.facturas[factura]) acc.facturas[factura] = { codCli, motobat:0, cajasBot:0, cajasGar:0, cubetas:0, tambos:0, totems:0, litrosLub:0, litrosLubRegalo:0, hidraulico:0 };
+                    const facAcc = acc.facturas[factura];
+
+                    if(linea.linea === 'MOTOBAT'){
+                        facAcc.motobat += cantidad;
+                        acc.motobat += cantidad;
+                        acc.facturasMotobat.add(factura);
+                    } else if(linea.linea === 'HIDRAULICO'){
+                        facAcc.hidraulico += cantidad;
+                        acc.litrosHidraulico += cantidad;
+                    } else if(linea.linea === 'LUBRICANTE'){
+                        const envases = convertirEnvases(linea.subtipo, cantidad);
+                        const litros = envases.litros || cantidad;
+                        facAcc.litrosLub += litros;
+                        acc.litrosLubTotales += litros;
+                        if(linea.esRegalo){
+                            facAcc.litrosLubRegalo += litros;
+                            acc.litrosLubRegalo += litros;
+                        } else {
+                            if(linea.subtipo === 'BOTELLA1L'){ facAcc.cajasBot += envases.cajas; acc.cajasBotella += envases.cajas; }
+                            else if(linea.subtipo === 'GARRAFA5L'){ facAcc.cajasGar += envases.cajas; acc.cajasGarrafa += envases.cajas; }
+                            else if(linea.subtipo === 'CUBETA19L'){ facAcc.cubetas += envases.cubetas; acc.cubetas19L += envases.cubetas; }
+                            else if(linea.subtipo === 'TAMBO200L'){ facAcc.tambos += envases.tambos; acc.tambos200L += envases.tambos; }
+                            else if(linea.subtipo === 'TOTEM1000L'){ facAcc.totems += envases.totems; acc.totems1000L += envases.totems; }
+                        }
+                        acc.facturasLub.add(factura);
+                    }
+                });
+            }
+
+            // Post-procesar: contar facturas con promo (motobat con regalo de lubricante en la misma factura,
+            // o compras de lubricante con litros regalados)
+            Object.values(porVend).forEach(acc=>{
+                Object.entries(acc.facturas).forEach(([fact, fa])=>{
+                    const tieneRegalo = fa.litrosLubRegalo > 0;
+                    if(tieneRegalo && (fa.motobat > 0 || fa.cajasBot > 0 || fa.cajasGar > 0 || fa.cubetas > 0 || fa.tambos > 0 || fa.totems > 0)){
+                        acc.facturasPromo.add(fact);
+                        if(fa.codCli) acc.clientesPromo.add(fa.codCli);
+                    }
+                });
+            });
+
+            return { porVend, generado: new Date() };
+        }
+
+        function renderPromosResultados(){
+            const html = `
+            ${backBtn("renderPromosAgosto()","Promociones")}
+            <div class="rounded-[2rem] p-6 mb-5 text-center text-white" style="background:linear-gradient(135deg,#065f46,#16a34a 50%,#22c55e);border-bottom:4px solid #bbf7d0">
+                <i class="fas fa-chart-column text-3xl mb-2" style="color:#bbf7d0"></i>
+                <p class="text-[10px] font-black uppercase tracking-[0.3em] mb-1" style="color:#bbf7d0">Desempeño por vendedor · en vivo</p>
+                <h2 class="text-2xl font-black uppercase tracking-tight leading-none">Resultados de Promociones</h2>
+            </div>
+
+            <div class="surface rounded-2xl p-4 mb-4">
+                <p class="text-[10px] font-black muted uppercase tracking-widest mb-2">Mes a consultar</p>
+                <div class="flex gap-2 flex-wrap">
+                    ${['SEPTIEMBRE','AGOSTO','JULIO'].map(m=>`
+                        <button onclick="promosResState.mesFiltro='${m}';renderPromosResultados()" class="px-4 py-2 rounded-xl text-[11px] font-black uppercase tracking-widest ${promosResState.mesFiltro===m?'chip-accent':'glass-btn'}">${m}</button>
+                    `).join('')}
+                </div>
+            </div>
+
+            <div id="promos-res-content">
+                <div class="surface rounded-2xl p-10 text-center">
+                    <div class="w-10 h-10 border-4 rounded-full animate-spin mx-auto mb-4" style="border-color:#16a34a;border-top-color:transparent"></div>
+                    <p class="text-[11px] font-black muted uppercase tracking-widest">Leyendo hojas del Google Sheet...</p>
+                </div>
+            </div>`;
+            document.getElementById('content-area').innerHTML = html;
+            window.scrollTo(0,0);
+
+            (async ()=>{
+                await loadPromosResultados();
+                pintarPromosResultados();
+            })();
+        }
+
+        function pintarPromosResultados(){
+            const cont = document.getElementById('promos-res-content');
+            if(!cont) return;
+
+            if(promosResState.err){
+                cont.innerHTML = `
+                    <div class="surface rounded-2xl p-8 text-center">
+                        <i class="fas fa-cloud-slash text-4xl mb-3" style="color:var(--bad)"></i>
+                        <p class="text-[13px] font-black uppercase txt mb-2">No se pudo conectar</p>
+                        <p class="text-[12px] muted mb-4 leading-relaxed">${String(promosResState.err.message || promosResState.err)}</p>
+                        <button onclick="renderPromosResultados()" class="glass-btn chip-accent px-8 py-3 rounded-xl text-[11px] font-black uppercase tracking-widest shadow-lg"><i class="fas fa-rotate mr-2"></i>Reintentar</button>
+                    </div>`;
+                return;
+            }
+
+            const data = promosResState.data;
+            if(!data){ cont.innerHTML = '<p class="text-center muted p-8">Sin datos</p>'; return; }
+
+            // Agrupar por organización para el diseño
+            const grupos = {
+                'Llanterama Tulancingo': [],
+                'Autoeléctrica Roma': []
+            };
+            Object.values(data.porVend).forEach(v=>{
+                if(grupos[v.orgLabel]) grupos[v.orgLabel].push(v);
+            });
+
+            // Totales globales
+            const totales = { motobat:0, cajasBotella:0, cajasGarrafa:0, cubetas19L:0, tambos200L:0, totems1000L:0, litrosLubRegalo:0, litrosHidraulico:0, facturasPromo:0 };
+            Object.values(data.porVend).forEach(v=>{
+                totales.motobat += v.motobat;
+                totales.cajasBotella += v.cajasBotella;
+                totales.cajasGarrafa += v.cajasGarrafa;
+                totales.cubetas19L += v.cubetas19L;
+                totales.tambos200L += v.tambos200L;
+                totales.totems1000L += v.totems1000L;
+                totales.litrosLubRegalo += v.litrosLubRegalo;
+                totales.litrosHidraulico += v.litrosHidraulico;
+                totales.facturasPromo += v.facturasPromo.size;
+            });
+
+            const fmtNum = n => Number(n).toLocaleString('es-MX');
+
+            let html = `
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4">
+                <div class="surface rounded-xl p-3 text-center">
+                    <p class="text-[9px] font-black muted uppercase tracking-widest">Motobaterías</p>
+                    <p class="text-2xl font-black" style="color:#dc2626">${fmtNum(totales.motobat)}</p>
+                </div>
+                <div class="surface rounded-xl p-3 text-center">
+                    <p class="text-[9px] font-black muted uppercase tracking-widest">Cajas lubr.</p>
+                    <p class="text-2xl font-black" style="color:#0891b2">${fmtNum(totales.cajasBotella+totales.cajasGarrafa)}</p>
+                </div>
+                <div class="surface rounded-xl p-3 text-center">
+                    <p class="text-[9px] font-black muted uppercase tracking-widest">Lts hidráulico</p>
+                    <p class="text-2xl font-black" style="color:#a67cff">${fmtNum(totales.litrosHidraulico)}</p>
+                </div>
+                <div class="surface rounded-xl p-3 text-center">
+                    <p class="text-[9px] font-black muted uppercase tracking-widest">Lts regalados</p>
+                    <p class="text-2xl font-black" style="color:#16a34a">${fmtNum(totales.litrosLubRegalo)}</p>
+                </div>
+            </div>`;
+
+            for(const orgLabel in grupos){
+                const vendedores = grupos[orgLabel];
+                if(vendedores.length === 0) continue;
+
+                html += `
+                <div class="mb-2 mt-5 p-3 rounded-xl" style="background:linear-gradient(90deg,#001529,#334155);color:#facc15">
+                    <p class="text-[11px] font-black uppercase tracking-widest"><i class="fas fa-warehouse mr-2"></i>${orgLabel}</p>
+                </div>
+                <div class="surface rounded-2xl overflow-hidden mb-4">
+                    <div style="overflow-x:auto;-webkit-overflow-scrolling:touch">
+                        <table class="w-full" style="border-collapse:collapse;font-size:11px;min-width:640px">
+                            <thead>
+                                <tr style="background:var(--surface-2)">
+                                    <th class="p-2 text-left font-black uppercase text-[9px] tracking-widest">Vendedor</th>
+                                    <th class="p-2 text-center font-black uppercase text-[9px] tracking-widest" style="color:#dc2626">Motobat</th>
+                                    <th class="p-2 text-center font-black uppercase text-[9px] tracking-widest" style="color:#0891b2">Cajas 1L</th>
+                                    <th class="p-2 text-center font-black uppercase text-[9px] tracking-widest" style="color:#0891b2">Cajas 5L</th>
+                                    <th class="p-2 text-center font-black uppercase text-[9px] tracking-widest" style="color:#0891b2">Cub 19L</th>
+                                    <th class="p-2 text-center font-black uppercase text-[9px] tracking-widest" style="color:#0891b2">Tambo 200L</th>
+                                    <th class="p-2 text-center font-black uppercase text-[9px] tracking-widest" style="color:#0891b2">Totem 1000L</th>
+                                    <th class="p-2 text-center font-black uppercase text-[9px] tracking-widest" style="color:#16a34a">Lts regalo</th>
+                                    <th class="p-2 text-center font-black uppercase text-[9px] tracking-widest" style="color:#a67cff">Lts hidr.</th>
+                                    <th class="p-2 text-center font-black uppercase text-[9px] tracking-widest" style="color:#facc15">Fact. promo</th>
+                                </tr>
+                            </thead>
+                            <tbody>`;
+
+                vendedores.forEach(v=>{
+                    html += `
+                        <tr style="border-top:1px solid var(--surface-2)">
+                            <td class="p-2">
+                                <p class="font-black txt text-[11px]">${v.nombre}</p>
+                                <p class="text-[9px] muted uppercase">Cod ${v.codVend}${v.almacen?' · Alm '+v.almacen:''}</p>
+                            </td>
+                            <td class="p-2 text-center font-black txt">${fmtNum(v.motobat)}</td>
+                            <td class="p-2 text-center font-black txt">${fmtNum(v.cajasBotella)}</td>
+                            <td class="p-2 text-center font-black txt">${fmtNum(v.cajasGarrafa)}</td>
+                            <td class="p-2 text-center font-black txt">${fmtNum(v.cubetas19L)}</td>
+                            <td class="p-2 text-center font-black txt">${fmtNum(v.tambos200L)}</td>
+                            <td class="p-2 text-center font-black txt">${fmtNum(v.totems1000L)}</td>
+                            <td class="p-2 text-center font-black" style="color:#16a34a">${fmtNum(v.litrosLubRegalo)}</td>
+                            <td class="p-2 text-center font-black" style="color:#a67cff">${fmtNum(v.litrosHidraulico)}</td>
+                            <td class="p-2 text-center font-black" style="color:#facc15">${v.facturasPromo.size}</td>
+                        </tr>`;
+                });
+
+                html += `
+                            </tbody>
+                        </table>
+                    </div>
+                </div>`;
+            }
+
+            html += `
+            <div class="surface rounded-2xl p-4 mb-4 text-[10px] muted leading-relaxed" style="border-left:4px solid #f97316">
+                <p class="font-black txt uppercase tracking-widest mb-1 text-[11px]"><i class="fas fa-info-circle mr-1" style="color:#f97316"></i>Notas del cálculo</p>
+                <p><b class="txt">Motobat:</b> filas con Clasificación "8 MOTOBAT".</p>
+                <p><b class="txt">Cajas 1L:</b> 12 botellas = 1 caja · <b class="txt">Cajas 5L:</b> 4 garrafas = 1 caja · <b class="txt">Cub 19L:</b> 1 cubeta = 1 unidad · <b class="txt">Tambo:</b> 200/208L = 1 tambo · <b class="txt">Totem:</b> 1000L = 1 totem.</p>
+                <p><b class="txt">Lts regalo:</b> filas de lubricante con Importe menor a $1.</p>
+                <p><b class="txt">Hidráulico:</b> Codigo empieza con "0250201" (con o sin espacios).</p>
+                <p><b class="txt">Fact. promo:</b> facturas con al menos 1 producto vendido + 1 regalo. La detección de "escalones cumplidos" se activará cuando lleguen los PDFs de septiembre.</p>
+            </div>
+            <p class="text-center text-[10px] muted mt-2 mb-6 uppercase tracking-widest">Actualizado: ${data.generado.toLocaleString('es-MX',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}</p>`;
+
+            cont.innerHTML = html;
         }
 
         /* ===================== HELPERS ===================== */
