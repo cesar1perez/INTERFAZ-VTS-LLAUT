@@ -3481,8 +3481,14 @@
                         if(fa.codCli) acc.clientesPromo.add(fa.codCli);
                     }
 
-                    // Desglose para auditoría: cualquier factura con regalo o motobat (para auditar)
-                    if(fa.litrosLubRegalo > 0 || fa.motobatRegalo > 0){
+                    // Desglose completo para auditoría: TODAS las facturas con actividad
+                    // (venta de motobat, cajas, cubetas, tambos, totems, hidráulico, o regalos)
+                    const tieneActividad = fa.motobat > 0 || fa.motobatRegalo > 0 ||
+                                           fa.cajasBot > 0 || fa.cajasGar > 0 ||
+                                           fa.cubetas > 0 || fa.cubetas300 > 0 ||
+                                           fa.tambos > 0 || fa.totems > 0 ||
+                                           fa.hidraulico > 0 || fa.litrosLubRegalo > 0;
+                    if(tieneActividad){
                         acc.facturasDetalle.push({
                             factura: fact,
                             codCli: fa.codCli,
@@ -3493,14 +3499,26 @@
                             cajasBot: fa.cajasBot, cajasGar: fa.cajasGar,
                             cubetas: fa.cubetas, cubetas300: fa.cubetas300,
                             tambos: fa.tambos, totems: fa.totems,
+                            hidraulico: fa.hidraulico || 0,
                             litrosLubRegalo: fa.litrosLubRegalo,
                             regalosDetalle: fa.regalosDetalle,
-                            secciones
+                            secciones,
+                            tieneRegalo: fa.litrosLubRegalo > 0 || fa.motobatRegalo > 0
                         });
                     }
                 });
-                // Ordenar desglose por litros regalados descendente (los más "sospechosos" primero)
-                acc.facturasDetalle.sort((a,b)=>b.litrosLubRegalo - a.litrosLubRegalo);
+                // Ordenar: primero facturas con regalo (promo aprovechada), luego el resto por importancia
+                acc.facturasDetalle.sort((a,b)=>{
+                    // Con regalo primero
+                    if(a.tieneRegalo && !b.tieneRegalo) return -1;
+                    if(!a.tieneRegalo && b.tieneRegalo) return 1;
+                    // Ambas con regalo: por litros regalados desc
+                    if(a.tieneRegalo && b.tieneRegalo) return b.litrosLubRegalo - a.litrosLubRegalo;
+                    // Ambas sin regalo: por total de actividad (motobat + cubetas + tambos + totems)
+                    const actA = a.motobat + a.cubetas + a.cubetas300 + a.tambos + a.totems;
+                    const actB = b.motobat + b.cubetas + b.cubetas300 + b.tambos + b.totems;
+                    return actB - actA;
+                });
             });
 
             // Convertir Sets a arrays para diagnóstico
@@ -3830,7 +3848,7 @@
                     <div style="flex:1;min-width:0">
                         <p style="font-size:9px;font-weight:900;color:#facc15;letter-spacing:2px;text-transform:uppercase">Desglose auditable · regalos por factura</p>
                         <p style="font-size:15px;font-weight:900;margin:2px 0 0">${v.nombre}</p>
-                        <p style="font-size:11px;font-weight:700;opacity:.75">${v.orgLabel} · Cod ${v.codVend}${v.almacen?' · Alm '+v.almacen:''} · ${v.facturasDetalle.length} facturas con regalo</p>
+                        <p style="font-size:11px;font-weight:700;opacity:.75">${v.orgLabel} · Cod ${v.codVend}${v.almacen?' · Alm '+v.almacen:''} · ${v.facturasDetalle.length} facturas (${v.facturasDetalle.filter(f=>f.tieneRegalo).length} con promo)</p>
                         <p style="font-size:10px;font-weight:700;margin-top:6px;padding:6px 10px;background:rgba(250,204,21,.12);border-left:3px solid #facc15;border-radius:4px;color:#fde68a"><b style="color:#facc15">Total vendido en el mes:</b> ${resumenVend}</p>
                     </div>
                     <button onclick="this.closest('[data-overlay]').remove()" style="background:rgba(255,255,255,.15);color:#fff;border:none;width:40px;height:40px;border-radius:10px;font-size:16px;cursor:pointer;flex-shrink:0;margin-left:10px">✕</button>
@@ -3856,7 +3874,8 @@
                                     f.cubetas?f.cubetas+' cub 19L':null,
                                     f.cubetas300?f.cubetas300+' cub 300LTH':null,
                                     f.tambos?f.tambos+' tambo':null,
-                                    f.totems?f.totems+' totem':null
+                                    f.totems?f.totems+' totem':null,
+                                    f.hidraulico?f.hidraulico+'L hidr.':null
                                 ].filter(Boolean).join(' · ') || '—';
                                 const desc = (f.regalosDetalle||[]).map(r=>`${r.desc} (${fmtNum(r.litros||r.cantidad)}${r.tipo==='motobat'?'pz':'L'} · $${r.importe.toFixed(2)})`).join('<br>') || '—';
                                 const s = f.secciones || {};
@@ -3870,9 +3889,12 @@
                                     f.litros4TRegalo?f.litros4TRegalo+'L 4T':null,
                                     (f.litrosLubRegalo - f.litros4TRegalo) > 0 ? (f.litrosLubRegalo - f.litros4TRegalo)+'L lub':null
                                 ].filter(Boolean).join(' · ') || '—';
+                                const filaStyle = f.tieneRegalo
+                                    ? 'border-top:1px solid var(--surface-2)'
+                                    : 'border-top:1px solid var(--surface-2);opacity:.68;background:rgba(148,163,184,.04)';
                                 return `
-                                <tr style="border-top:1px solid var(--surface-2)">
-                                    <td class="p-2 font-black txt">${f.factura}</td>
+                                <tr style="${filaStyle}">
+                                    <td class="p-2 font-black txt">${f.factura}${!f.tieneRegalo?'<br><span class="text-[8px] muted">sin promo</span>':''}</td>
                                     <td class="p-2 text-[10px]">
                                         <p class="font-black txt">${f.nombreCli || '(sin nombre)'}</p>
                                         <p class="muted text-[9px]">Cod ${f.codCli||'—'}</p>
