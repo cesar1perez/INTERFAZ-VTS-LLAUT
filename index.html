@@ -3175,13 +3175,24 @@
         }
 
         // Convierte Cantidad → cajas / cubetas / tambos / totems
+        // Conversión de cantidad (columna D) → unidades reales de envase, según cómo el sheet publica cada tipo.
+        // IMPORTANTE (per usuario 18-sep):
+        //   - 1L botella: cantidad = LITROS (= unidades). 12 litros = 1 caja.
+        //   - 5L garrafa: cantidad = UNIDADES de garrafa. 1 garrafa = 5 litros. 4 garrafas = 1 caja de garrafas.
+        //   - 19L cubeta: cantidad = LITROS. Ej: 57 litros = 3 cubetas (57÷19). Aplica también a 20KG.
+        //   - 208L / 200KG tambo: cantidad = LITROS. Ej: 208 = 1 tambo. 200 = 1 tambo.
+        //   - 1000L totem: cantidad = LITROS. Ej: 1000 = 1 totem.
         function convertirEnvases(subtipo, cantidad){
-            if(subtipo === 'BOTELLA1L')     return { cajas: Math.floor(cantidad/12), litros: cantidad };     // 12 botellas = 1 caja
-            if(subtipo === 'GARRAFA5L')     return { cajas: Math.floor(cantidad/4),  litros: cantidad*5 };   // 4 garrafas = 1 caja de garrafas
-            if(subtipo === 'CUBETA19L')     return { cubetas: cantidad,              litros: cantidad*19 };
-            if(subtipo === 'CUB19L_300LTH') return { cubetas300: cantidad,           litros: cantidad*19 }; // hidráulico 300 LTH
-            if(subtipo === 'TAMBO200L')     return { tambos: cantidad,               litros: cantidad*200 }; // 1 tambo = 200/208L
-            if(subtipo === 'TOTEM1000L')    return { totems: cantidad,               litros: cantidad*1000 };
+            const c = cantidad || 0;
+            // Divide cantidad (en litros) entre el tamaño del envase para obtener # unidades.
+            // Si cantidad < tamaño (ej: 1 en Cantidad para 1 cubeta), usar Math.max(1, ...) para no perderla.
+            const porTamano = (sz) => c <= 0 ? 0 : Math.max(1, Math.round(c/sz));
+            if(subtipo === 'BOTELLA1L')     return { cajas: Math.floor(c/12), litros: c };
+            if(subtipo === 'GARRAFA5L')     return { cajas: Math.floor(c/4),  litros: c*5 };  // cantidad = # garrafas
+            if(subtipo === 'CUBETA19L')     return { cubetas: porTamano(19),  litros: c };    // cantidad = litros → dividir
+            if(subtipo === 'CUB19L_300LTH') return { cubetas300: porTamano(19), litros: c };
+            if(subtipo === 'TAMBO200L')     return { tambos: porTamano(200),  litros: c };    // 208L o 200KG → dividir
+            if(subtipo === 'TOTEM1000L')    return { totems: porTamano(1000), litros: c };
             return {};
         }
 
