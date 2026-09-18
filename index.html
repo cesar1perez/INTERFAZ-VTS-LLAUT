@@ -3154,21 +3154,38 @@
             // LUBRICANTE — Clasificacion "7 LUBRICAN" es la FUENTE PRIMARIA.
             // El subtipo se detecta por descripción para conversión de envases.
             if(clasif.includes('7 LUBRICAN') || clasif.includes('LUBRICAN')){
-                let subtipo = 'BOTELLA1L'; // fallback default cuando no hay marcador claro
-                // HIDRÁULICO 300 LTH: SOLO cubetas 19L de este tipo (requiere "19L" y "300 LTH"/"HIDRAULICO 300")
+                // Extraer TAMAÑO de envase de la descripción usando detección robusta
+                // Busca patrones: "1000L", "1000 L", "1000LT", "1000 LTR", "208LT", "200KG", "19L", "20KG", "5L", "1L"
+                // IMPORTANTE: preferimos el número más grande — evita que "5W-30" se confunda con "5L"
+                //   (el "5" de 5W-30 no matchea porque no va seguido de L/LT/KG, solo W)
+                const tamanoRegex = /\b(\d+)\s*(L|LT|LTS|LTR|LITROS?|KG|KGS)\b/gi;
+                const tamanosValidos = [1, 5, 19, 20, 200, 208, 1000];
+                let tamano = null;
+                let m;
+                while((m = tamanoRegex.exec(desc)) !== null){
+                    const num = parseInt(m[1], 10);
+                    if(tamanosValidos.includes(num)){
+                        // Preferir el mayor (el envase real, no "5W-30" ni otro modificador)
+                        if(tamano === null || num > tamano) tamano = num;
+                    }
+                }
+                // Detectar HIDRÁULICO 300 LTH: SOLO si es cubeta 19L (no 20KG)
                 const es300LTH = desc.includes('300 LTH') || desc.includes('HIDRAULICO 300');
-                const es19L = /\b19\s*L\b/.test(desc);
-                if(es300LTH && es19L) subtipo = 'CUB19L_300LTH';
-                // TOTEM 1000L
-                else if(/\b1000\s*L\b/.test(desc) || desc.includes('TOTEM')) subtipo = 'TOTEM1000L';
-                // TAMBO: 208L o 200KG (o "TAMBO" en descripción)
-                else if(/\b208\s*L\b/.test(desc) || /\b200\s*KG/.test(desc) || desc.includes('TAMBO')) subtipo = 'TAMBO200L';
-                // CUBETA 19L o 20KG (ambas cuentan como cubeta para promo lubricante mayoreo)
-                else if(es19L || /\b20\s*KG/.test(desc) || desc.includes('CUBETA') || desc.includes('BIDON')) subtipo = 'CUBETA19L';
-                // GARRAFA 5L
-                else if(/\b5\s*L\b/.test(desc) || desc.includes('GARRAFA')) subtipo = 'GARRAFA5L';
-                // BOTELLA 1L
-                else if(/\b1\s*L\b/.test(desc) || desc.includes('BOTELLA')) subtipo = 'BOTELLA1L';
+                let subtipo = 'BOTELLA1L'; // fallback default
+                if(es300LTH && tamano === 19) subtipo = 'CUB19L_300LTH';
+                else if(tamano === 1000) subtipo = 'TOTEM1000L';
+                else if(tamano === 208 || tamano === 200) subtipo = 'TAMBO200L';
+                else if(tamano === 19 || tamano === 20) subtipo = 'CUBETA19L';
+                else if(tamano === 5) subtipo = 'GARRAFA5L';
+                else if(tamano === 1) subtipo = 'BOTELLA1L';
+                else {
+                    // Sin número + L/KG: usar palabras clave como fallback
+                    if(desc.includes('TOTEM')) subtipo = 'TOTEM1000L';
+                    else if(desc.includes('TAMBO')) subtipo = 'TAMBO200L';
+                    else if(desc.includes('CUBETA') || desc.includes('BIDON')) subtipo = 'CUBETA19L';
+                    else if(desc.includes('GARRAFA')) subtipo = 'GARRAFA5L';
+                    // else queda BOTELLA1L default
+                }
                 return {linea:'LUBRICANTE', subtipo, esRegalo};
             }
             return {linea:null, esRegalo};
