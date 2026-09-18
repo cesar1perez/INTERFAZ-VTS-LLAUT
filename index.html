@@ -3389,8 +3389,20 @@
                                 facAcc.cubetas300 += envases.cubetas300;
                                 acc.cubetas300LTH += envases.cubetas300;
                             }
-                            else if(linea.subtipo === 'TAMBO200L'){ facAcc.tambos += envases.tambos; acc.tambos200L += envases.tambos; }
-                            else if(linea.subtipo === 'TOTEM1000L'){ facAcc.totems += envases.totems; acc.totems1000L += envases.totems; }
+                            else if(linea.subtipo === 'TAMBO200L'){
+                                facAcc.tambos += envases.tambos;
+                                acc.tambos200L += envases.tambos;
+                                // Capturar descripción para auditar
+                                if(!facAcc.descsTambo) facAcc.descsTambo = [];
+                                facAcc.descsTambo.push(`${descRaw.slice(0,50)} (cant=${cantidad}, imp=$${n(row['Importe']||row['IMPORTE']).toFixed(2)})`);
+                            }
+                            else if(linea.subtipo === 'TOTEM1000L'){
+                                facAcc.totems += envases.totems;
+                                acc.totems1000L += envases.totems;
+                                // Capturar descripción para auditar
+                                if(!facAcc.descsTotem) facAcc.descsTotem = [];
+                                facAcc.descsTotem.push(`${descRaw.slice(0,50)} (cant=${cantidad}, imp=$${n(row['Importe']||row['IMPORTE']).toFixed(2)})`);
+                            }
                             // Registrar venta por descripción para detectar "mismo tipo"
                             if(unidades > 0){
                                 if(!facAcc.cajasPorDesc[claveDesc]) facAcc.cajasPorDesc[claveDesc] = {vendidas:0, regalo:0, subtipo:linea.subtipo};
@@ -3499,6 +3511,8 @@
                             cajasBot: fa.cajasBot, cajasGar: fa.cajasGar,
                             cubetas: fa.cubetas, cubetas300: fa.cubetas300,
                             tambos: fa.tambos, totems: fa.totems,
+                            descsTambo: fa.descsTambo || [],
+                            descsTotem: fa.descsTotem || [],
                             hidraulico: fa.hidraulico || 0,
                             litrosLubRegalo: fa.litrosLubRegalo,
                             regalosDetalle: fa.regalosDetalle,
@@ -3873,10 +3887,15 @@
                                     f.cajasGar?f.cajasGar+' cajas 5L':null,
                                     f.cubetas?f.cubetas+' cub 19L':null,
                                     f.cubetas300?f.cubetas300+' cub 300LTH':null,
-                                    f.tambos?f.tambos+' tambo':null,
-                                    f.totems?f.totems+' totem':null,
+                                    f.tambos?`<b style="color:#f97316">${f.tambos} tambo</b>`:null,
+                                    f.totems?`<b style="color:#f97316">${f.totems} totem</b>`:null,
                                     f.hidraulico?f.hidraulico+'L hidr.':null
                                 ].filter(Boolean).join(' · ') || '—';
+                                // Mostrar descripciones exactas de tambos/totems detectados (para auditar)
+                                const descsBigEnv = [];
+                                if(f.descsTotem && f.descsTotem.length) descsBigEnv.push('<b style="color:#f97316">TOTEM detectado:</b> ' + f.descsTotem.join(' | '));
+                                if(f.descsTambo && f.descsTambo.length) descsBigEnv.push('<b style="color:#f97316">TAMBO detectado:</b> ' + f.descsTambo.join(' | '));
+                                const auditTxt = descsBigEnv.length ? `<br><span class="text-[9px] italic" style="color:#f97316">${descsBigEnv.join('<br>')}</span>` : '';
                                 const desc = (f.regalosDetalle||[]).map(r=>`${r.desc} (${fmtNum(r.litros||r.cantidad)}${r.tipo==='motobat'?'pz':'L'} · $${r.importe.toFixed(2)})`).join('<br>') || '—';
                                 const s = f.secciones || {};
                                 const secList = [
@@ -3900,7 +3919,7 @@
                                         <p class="muted text-[9px]">Cod ${f.codCli||'—'}</p>
                                     </td>
                                     <td class="p-2 text-center font-black txt">${fmtNum(f.motobat)}</td>
-                                    <td class="p-2 text-center text-[10px] txt">${envases}</td>
+                                    <td class="p-2 text-center text-[10px] txt">${envases}${auditTxt}</td>
                                     <td class="p-2 text-center text-[10px] font-black" style="color:#16a34a">${regaloTxt}</td>
                                     <td class="p-2 text-center text-[10px] font-black" style="color:#facc15">${secList}</td>
                                     <td class="p-2 text-[10px] muted">${desc}</td>
