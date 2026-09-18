@@ -3653,93 +3653,7 @@
                 </details>`;
             }
 
-            let html = diagPanel + `
-            <!-- CIFRAS CRUDAS (para auditar de dónde salen las promos) -->
-            <div class="surface rounded-2xl p-4 mb-4" style="border-left:6px solid #64748b">
-                <p class="text-[10px] font-black uppercase tracking-widest mb-2 muted"><i class="fas fa-database mr-1"></i>Cifras crudas del sheet (auditoría)</p>
-                <div class="grid grid-cols-3 sm:grid-cols-6 gap-2">
-                    <div class="text-center p-2 rounded-lg surface-2">
-                        <p class="text-[8px] font-black muted uppercase">Motobat vend.</p>
-                        <p class="text-lg font-black" style="color:#dc2626">${fmtNum(tot.motobatVend)}</p>
-                    </div>
-                    <div class="text-center p-2 rounded-lg surface-2">
-                        <p class="text-[8px] font-black muted uppercase">Motobat gratis</p>
-                        <p class="text-lg font-black" style="color:#dc2626">${fmtNum(tot.motobatGratis)}</p>
-                    </div>
-                    <div class="text-center p-2 rounded-lg surface-2">
-                        <p class="text-[8px] font-black muted uppercase">Lts 4T LTH regalo</p>
-                        <p class="text-lg font-black" style="color:#16a34a">${fmtNum(tot.litros4T)}</p>
-                    </div>
-                    <div class="text-center p-2 rounded-lg surface-2">
-                        <p class="text-[8px] font-black muted uppercase">Otros lts regalo</p>
-                        <p class="text-lg font-black" style="color:#16a34a">${fmtNum(tot.litrosLubOtro)}</p>
-                    </div>
-                    <div class="text-center p-2 rounded-lg surface-2">
-                        <p class="text-[8px] font-black muted uppercase">Cajas lub. vend.</p>
-                        <p class="text-lg font-black" style="color:#0891b2">${fmtNum(tot.cajasBot + tot.cajasGar + tot.cubetas)}</p>
-                    </div>
-                    <div class="text-center p-2 rounded-lg surface-2">
-                        <p class="text-[8px] font-black muted uppercase">Tambos + Totems</p>
-                        <p class="text-lg font-black" style="color:#0891b2">${fmtNum(tot.tambos + tot.totems)}</p>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Bloques de resumen por promoción -->
-            <div class="surface rounded-2xl p-4 mb-4" style="border-left:6px solid #dc2626">
-                <p class="text-[10px] font-black uppercase tracking-widest mb-1" style="color:#dc2626"><i class="fas fa-motorcycle mr-1"></i>Promoción Motobatería</p>
-                <div class="grid grid-cols-2 gap-3 mt-2">
-                    <div class="text-center p-2 rounded-lg" style="background:rgba(220,38,38,.08)">
-                        <p class="text-[9px] font-black muted uppercase">Sección A</p>
-                        <p class="text-[9px] muted leading-tight mb-1">1-9 motobat + lts 4T</p>
-                        <p class="text-2xl font-black" style="color:#dc2626">${fmtNum(tot.motoA)}</p>
-                        <p class="text-[8px] muted uppercase">promos aprov.</p>
-                    </div>
-                    <div class="text-center p-2 rounded-lg" style="background:rgba(220,38,38,.08)">
-                        <p class="text-[9px] font-black muted uppercase">Sección B</p>
-                        <p class="text-[9px] muted leading-tight mb-1">10 motobat + 1 gratis + 10 lts 4T</p>
-                        <p class="text-2xl font-black" style="color:#dc2626">${fmtNum(tot.motoB)}</p>
-                        <p class="text-[8px] muted uppercase">promos aprov.</p>
-                    </div>
-                </div>
-            </div>
-
-            <div class="surface rounded-2xl p-4 mb-4" style="border-left:6px solid #0891b2">
-                <p class="text-[10px] font-black uppercase tracking-widest mb-1" style="color:#0891b2"><i class="fas fa-oil-can mr-1"></i>Promoción Lubricante</p>
-                <div class="grid grid-cols-2 sm:grid-cols-5 gap-2 mt-2">
-                    <div class="text-center p-2 rounded-lg" style="background:rgba(8,145,178,.08)">
-                        <p class="text-[9px] font-black muted uppercase">Sec 1</p>
-                        <p class="text-[8px] muted leading-tight mb-1">10 mismo tipo + 1</p>
-                        <p class="text-xl font-black" style="color:#0891b2">${fmtNum(tot.lub1)}</p>
-                    </div>
-                    <div class="text-center p-2 rounded-lg" style="background:rgba(8,145,178,.08)">
-                        <p class="text-[9px] font-black muted uppercase">Sec 2</p>
-                        <p class="text-[8px] muted leading-tight mb-1">10 mixtas + 1</p>
-                        <p class="text-xl font-black" style="color:#0891b2">${fmtNum(tot.lub2)}</p>
-                    </div>
-                    <div class="text-center p-2 rounded-lg" style="background:rgba(8,145,178,.08)">
-                        <p class="text-[9px] font-black muted uppercase">Sec 3</p>
-                        <p class="text-[8px] muted leading-tight mb-1">15 mismo tipo + 2</p>
-                        <p class="text-xl font-black" style="color:#0891b2">${fmtNum(tot.lub3)}</p>
-                    </div>
-                    <div class="text-center p-2 rounded-lg" style="background:rgba(8,145,178,.08)">
-                        <p class="text-[9px] font-black muted uppercase">Sec 4</p>
-                        <p class="text-[8px] muted leading-tight mb-1">15 mixtas + 2</p>
-                        <p class="text-xl font-black" style="color:#0891b2">${fmtNum(tot.lub4)}</p>
-                    </div>
-                    <div class="text-center p-2 rounded-lg col-span-2 sm:col-span-1" style="background:rgba(8,145,178,.08)">
-                        <p class="text-[9px] font-black muted uppercase">Sec 5</p>
-                        <p class="text-[8px] muted leading-tight mb-1">1 tambo/totem + regalo</p>
-                        <p class="text-xl font-black" style="color:#0891b2">${fmtNum(tot.lub5)}</p>
-                    </div>
-                </div>
-            </div>
-
-            <div class="surface rounded-2xl p-4 mb-4" style="border-left:6px solid #22c55e">
-                <p class="text-[10px] font-black uppercase tracking-widest mb-1" style="color:#22c55e"><i class="fas fa-droplet mr-1"></i>Hidráulico 300 LTH · Cubetas 19L vendidas</p>
-                <p class="text-3xl font-black mt-1" style="color:#22c55e">${fmtNum(tot.cub300)} <span class="text-[10px] muted uppercase">cubetas</span></p>
-                <p class="text-[10px] muted">Total de cubetas 19L vendidas por vendedor (identificadas por "19L" + "300 LTH" en descripción).</p>
-            </div>`;
+            let html = diagPanel;
 
             // Tabla por vendedor: PROMOS APROVECHADAS por sección
             for(const orgLabel in grupos){
@@ -3800,11 +3714,14 @@
                         <tr style="background:var(--surface-2)">
                             <td class="p-1 text-center text-[9px] muted" title="Motobat vendidas">${fmtNum(v.motobat)}<br><span class="text-[7px]">vend</span></td>
                             <td class="p-1 text-center text-[9px] muted" title="Motobat gratis">${fmtNum(v.motobatGratis||0)}<br><span class="text-[7px]">grat</span></td>
-                            <td class="p-1 text-center text-[9px] muted" colspan="5" title="Cajas vendidas + Litros 4T regalo + Otros lts regalo">
-                                <span style="color:#0891b2">${fmtNum(totalCajasVend)} cajas</span> ·
-                                <span style="color:#16a34a">${fmtNum(v.litros4TLTHRegalo||0)}L 4T</span> ·
-                                <span style="color:#16a34a">${fmtNum(v.litrosLubRegaloOtro||0)}L otros</span>
-                                ${v.tambos200L||v.totems1000L?`· <span style="color:#0891b2">${fmtNum(v.tambos200L)}T ${fmtNum(v.totems1000L)}Tot</span>`:''}
+                            <td class="p-1 text-center text-[9px] muted" colspan="5" title="Cifras crudas del vendedor">
+                                ${[
+                                    totalCajasVend>0?`<span style="color:#0891b2">${fmtNum(totalCajasVend)} cajas</span>`:null,
+                                    v.litros4TLTHRegalo>0?`<span style="color:#16a34a">${fmtNum(v.litros4TLTHRegalo)}L 4T</span>`:null,
+                                    v.litrosLubRegaloOtro>0?`<span style="color:#16a34a">${fmtNum(v.litrosLubRegaloOtro)}L otros</span>`:null,
+                                    v.tambos200L>0?`<span style="color:#f97316">${fmtNum(v.tambos200L)} tambo</span>`:null,
+                                    v.totems1000L>0?`<span style="color:#f97316">${fmtNum(v.totems1000L)} totem</span>`:null
+                                ].filter(Boolean).join(' · ') || '<span class="text-[8px]">sin actividad relevante</span>'}
                             </td>
                         </tr>`;
                 });
