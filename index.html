@@ -3146,21 +3146,31 @@
             const desc   = String(row['Descripcion'] || row['DESCRIPCION'] || '').toUpperCase();
             const importe = n(row['Importe'] || row['IMPORTE']);
             const esRegalo = importe < 1; // < 1 peso = regalo/bonificación
-            // MOTOBATERÍA
+            // MOTOBATERÍA — Clasificacion "8 MOTOBAT"
             if(clasif.includes('8 MOTOBAT') || clasif.includes('MOTOBAT')) return {linea:'MOTOBAT', esRegalo};
-            // HIDRÁULICO (código empieza con 025 002 01 o 0250201, con o sin espacios)
+            // HIDRÁULICO Road Master (código Roadmaster 0250201)
             const codigoLimpio = codigo.replace(/\s+/g,'');
             if(codigoLimpio.startsWith('0250201')) return {linea:'HIDRAULICO', esRegalo};
-            // LUBRICANTE (detectar por tamaño en descripción — orden importa: primero los especiales, luego los grandes)
-            let subtipo = null;
-            // HIDRAULICO 300 LTH — cubeta 19L de este tipo específico (promo precio especial)
-            if(desc.includes('300 LTH') || desc.includes('HIDRAULICO 300')) subtipo = 'CUB19L_300LTH';
-            else if(/\b1000\s*L\b/.test(desc) || desc.includes('TOTEM')) subtipo = 'TOTEM1000L';
-            else if(/\b(208|200)\s*L\b/.test(desc) || desc.includes('TAMBO')) subtipo = 'TAMBO200L';
-            else if(/\b19\s*L\b/.test(desc) || desc.includes('CUBETA')) subtipo = 'CUBETA19L';
-            else if(/\b5\s*L\b/.test(desc) || desc.includes('GARRAFA')) subtipo = 'GARRAFA5L';
-            else if(/\b1\s*L\b/.test(desc) || desc.includes('BOTELLA')) subtipo = 'BOTELLA1L';
-            if(subtipo) return {linea:'LUBRICANTE', subtipo, esRegalo};
+            // LUBRICANTE — Clasificacion "7 LUBRICAN" es la FUENTE PRIMARIA.
+            // El subtipo se detecta por descripción para conversión de envases.
+            if(clasif.includes('7 LUBRICAN') || clasif.includes('LUBRICAN')){
+                let subtipo = 'BOTELLA1L'; // fallback default cuando no hay marcador claro
+                // HIDRÁULICO 300 LTH: SOLO cubetas 19L de este tipo (requiere "19L" y "300 LTH"/"HIDRAULICO 300")
+                const es300LTH = desc.includes('300 LTH') || desc.includes('HIDRAULICO 300');
+                const es19L = /\b19\s*L\b/.test(desc);
+                if(es300LTH && es19L) subtipo = 'CUB19L_300LTH';
+                // TOTEM 1000L
+                else if(/\b1000\s*L\b/.test(desc) || desc.includes('TOTEM')) subtipo = 'TOTEM1000L';
+                // TAMBO: 208L o 200KG (o "TAMBO" en descripción)
+                else if(/\b208\s*L\b/.test(desc) || /\b200\s*KG/.test(desc) || desc.includes('TAMBO')) subtipo = 'TAMBO200L';
+                // CUBETA 19L o 20KG (ambas cuentan como cubeta para promo lubricante mayoreo)
+                else if(es19L || /\b20\s*KG/.test(desc) || desc.includes('CUBETA') || desc.includes('BIDON')) subtipo = 'CUBETA19L';
+                // GARRAFA 5L
+                else if(/\b5\s*L\b/.test(desc) || desc.includes('GARRAFA')) subtipo = 'GARRAFA5L';
+                // BOTELLA 1L
+                else if(/\b1\s*L\b/.test(desc) || desc.includes('BOTELLA')) subtipo = 'BOTELLA1L';
+                return {linea:'LUBRICANTE', subtipo, esRegalo};
+            }
             return {linea:null, esRegalo};
         }
 
@@ -3207,32 +3217,38 @@
             PROMOS_VENDEDORES.forEach(v=>{
                 porVend[v.clave] = {
                     ...v,
-                    motobat: 0,
+                    // ---- CIFRAS CRUDAS (para auditar de dónde salen las promos) ----
+                    motobat: 0,                // motobat VENDIDAS (importe >= 1)
+                    motobatGratis: 0,          // motobat REGALADAS (importe < 1) → requerido para Sec B
+                    litros4TLTHRegalo: 0,      // litros 4T LTH REGALADOS (para promo motobat)
+                    litrosLubRegaloOtro: 0,    // otros litros lubricante regalados (no 4T LTH)
+                    // Cajas VENDIDAS por tipo de envase
                     cajasBotella: 0, cajasGarrafa: 0,
-                    cubetas19L: 0, cubetas300LTH: 0, importe300LTH: 0,
+                    cubetas19L: 0, cubetas300LTH: 0, importe300LTH: 0, preciosUnit300LTH: [],
                     tambos200L: 0, totems1000L: 0,
-                    litrosLubTotales: 0, litrosLubRegalo: 0,
+                    // Regalos de lubricante por envase
+                    cajasBotRegalo: 0, cajasGarRegalo: 0, cubetasRegalo: 0,
+                    // Hidráulico Road Master (código 0250201)
                     litrosHidraulico: 0,
                     facturasPromo: new Set(),
                     facturasMotobat: new Set(),
                     facturasLub: new Set(),
                     clientesPromo: new Set(),
                     facturasDetalle: [],
-                    // PROMOCIONES APROVECHADAS POR SECCIÓN (según PDFs Sep 2026)
-                    promoMotoA: 0,   // Motobat sec A: 1 motobat por cada litro 4T LTH regalado (sin llegar a 10)
-                    promoMotoB: 0,   // Motobat sec B: 10 motobat + 1 motobat gratis + 10 lts 4T LTH (escalones de 10)
-                    // Lubricante:
-                    promoLub1: 0,    // Sec 1: 10 cajas mismo tipo → 1 gratis
-                    promoLub2: 0,    // Sec 2: 10 cajas MIXTAS → 1 gratis
-                    promoLub3: 0,    // Sec 3: 15 cajas mismo tipo → 2 gratis
-                    promoLub4: 0,    // Sec 4: 15 cajas MIXTAS → 2 gratis
-                    promoLub5: 0,    // Sec 5: 1 tambo 208L/180kg → 10% adic. o 1 cubeta/bidón gratis
+                    // ---- PROMOS APROVECHADAS POR SECCIÓN ----
+                    promoMotoA: 0,  // Sec A: 1-9 motobat facturadas + lts 4T LTH regalados ≥ #motobat en la MISMA factura
+                    promoMotoB: 0,  // Sec B: por cada 10 motobat + 1 motobat gratis + 10 lts 4T LTH regalados
+                    promoLub1: 0,   // Sec 1: 10 cajas mismo tipo + 1 caja regalo del mismo tipo
+                    promoLub2: 0,   // Sec 2: 10 cajas MIXTAS + 1 caja regalo
+                    promoLub3: 0,   // Sec 3: 15 cajas mismo tipo + 2 cajas regalo del mismo tipo
+                    promoLub4: 0,   // Sec 4: 15 cajas MIXTAS + 2 cajas regalo
+                    promoLub5: 0,   // Sec 5: 1 tambo/totem + regalo (cubeta o 10% adic.)
                     facturas: {}
                 };
             });
 
             // DIAGNÓSTICO: rastrear cuántas filas se descartan y por qué
-            const diag = { totalFilas:0, sinFecha:0, otroMes:0, sinVendedor:0, sinLinea:0, sinFactura:0, procesadas:0, ejemploCodVend:new Set(), ejemploClasif:new Set() };
+            const diag = { totalFilas:0, sinFecha:0, otroMes:0, sinVendedor:0, sinLinea:0, sinFactura:0, procesadas:0, ejemploCodVend:new Set(), ejemploClasif:new Set(), conteoLinea:{MOTOBAT:0, LUBRICANTE:0, HIDRAULICO:0, OTRA:0} };
             // Recorrer las 2 hojas
             for(const hoja in hojas){
                 const filas = hojas[hoja] || [];
@@ -3265,7 +3281,8 @@
                     if(diag.ejemploClasif.size < 20 && clasifRaw) diag.ejemploClasif.add(clasifRaw);
 
                     const linea = detectarLineaPromo(row);
-                    if(!linea.linea){ diag.sinLinea++; return; }
+                    if(!linea.linea){ diag.sinLinea++; diag.conteoLinea.OTRA++; return; }
+                    diag.conteoLinea[linea.linea] = (diag.conteoLinea[linea.linea]||0) + 1;
 
                     const cantidad = n(row['Cantidad'] || row['CANTIDAD']);
                     const factura = String(row['Factura'] || row['FACTURA'] || '').trim();
@@ -3294,6 +3311,7 @@
                     if(linea.linea === 'MOTOBAT'){
                         if(linea.esRegalo){
                             facAcc.motobatRegalo += cantidad;
+                            acc.motobatGratis += cantidad;
                             facAcc.regalosDetalle.push({desc: descRaw.slice(0,60), cantidad, litros:0, importe: n(row['Importe'] || row['IMPORTE']), tipo:'motobat'});
                         } else {
                             facAcc.motobat += cantidad;
@@ -3307,10 +3325,8 @@
                         const envases = convertirEnvases(linea.subtipo, cantidad);
                         const litros = envases.litros || cantidad;
                         facAcc.litrosLub += litros;
-                        acc.litrosLubTotales += litros;
 
                         // Contar unidades base (cajas/cubetas/bidones) por envase
-                        // Cada envase cuenta como "1 unidad de mayoreo" para las secciones 1-4
                         let unidades = 0;
                         if(linea.subtipo === 'BOTELLA1L')  unidades = envases.cajas || 0;
                         else if(linea.subtipo === 'GARRAFA5L') unidades = envases.cajas || 0;
@@ -3321,17 +3337,21 @@
 
                         if(linea.esRegalo){
                             facAcc.litrosLubRegalo += litros;
-                            acc.litrosLubRegalo += litros;
                             facAcc.regalosDetalle.push({desc: descRaw.slice(0,60), cantidad, litros, importe: n(row['Importe'] || row['IMPORTE']), tipo:'lub', es4TLTH});
                             // Contar regalo por envase
-                            if(linea.subtipo === 'BOTELLA1L')  facAcc.cajasBotRegalo += unidades;
-                            else if(linea.subtipo === 'GARRAFA5L') facAcc.cajasGarRegalo += unidades;
-                            else if(linea.subtipo === 'CUBETA19L' || linea.subtipo === 'CUB19L_300LTH') facAcc.cubetasRegalo += unidades;
+                            if(linea.subtipo === 'BOTELLA1L')  { facAcc.cajasBotRegalo += unidades; acc.cajasBotRegalo += unidades; }
+                            else if(linea.subtipo === 'GARRAFA5L') { facAcc.cajasGarRegalo += unidades; acc.cajasGarRegalo += unidades; }
+                            else if(linea.subtipo === 'CUBETA19L' || linea.subtipo === 'CUB19L_300LTH') { facAcc.cubetasRegalo += unidades; acc.cubetasRegalo += unidades; }
                             // Registrar regalo por descripción
                             if(!facAcc.cajasPorDesc[claveDesc]) facAcc.cajasPorDesc[claveDesc] = {vendidas:0, regalo:0, subtipo:linea.subtipo};
                             facAcc.cajasPorDesc[claveDesc].regalo += unidades;
-                            // Los litros 4T LTH regalados son especiales (promo motobat)
-                            if(es4TLTH) facAcc.litros4TRegalo += litros;
+                            // Los litros 4T LTH regalados son ESPECIALES (promo motobat)
+                            if(es4TLTH){
+                                facAcc.litros4TRegalo += litros;
+                                acc.litros4TLTHRegalo += litros;
+                            } else {
+                                acc.litrosLubRegaloOtro += litros;
+                            }
                         } else {
                             if(linea.subtipo === 'BOTELLA1L'){ facAcc.cajasBot += envases.cajas; acc.cajasBotella += envases.cajas; }
                             else if(linea.subtipo === 'GARRAFA5L'){ facAcc.cajasGar += envases.cajas; acc.cajasGarrafa += envases.cajas; }
@@ -3339,16 +3359,6 @@
                             else if(linea.subtipo === 'CUB19L_300LTH'){
                                 facAcc.cubetas300 += envases.cubetas300;
                                 acc.cubetas300LTH += envases.cubetas300;
-                                const impLinea = n(row['Importe'] || row['IMPORTE']);
-                                acc.importe300LTH += impLinea;
-                                // Precio unitario de esta línea (importe / cantidad) para calcular precio típico
-                                if(cantidad > 0){
-                                    const precioUnit = impLinea / cantidad;
-                                    if(precioUnit > 100){ // filtrar regalos/errores
-                                        if(!acc.preciosUnit300LTH) acc.preciosUnit300LTH = [];
-                                        acc.preciosUnit300LTH.push(precioUnit);
-                                    }
-                                }
                             }
                             else if(linea.subtipo === 'TAMBO200L'){ facAcc.tambos += envases.tambos; acc.tambos200L += envases.tambos; }
                             else if(linea.subtipo === 'TOTEM1000L'){ facAcc.totems += envases.totems; acc.totems1000L += envases.totems; }
@@ -3530,8 +3540,13 @@
                 if(grupos[v.orgLabel]) grupos[v.orgLabel].push(v);
             });
 
-            // Totales globales (por sección de promo)
-            const tot = { motoA:0, motoB:0, lub1:0, lub2:0, lub3:0, lub4:0, lub5:0, cub300:0 };
+            // Totales globales (por sección de promo + cifras crudas)
+            const tot = {
+                motoA:0, motoB:0, lub1:0, lub2:0, lub3:0, lub4:0, lub5:0, cub300:0,
+                // Raw
+                motobatVend:0, motobatGratis:0, litros4T:0, litrosLubOtro:0,
+                cajasBot:0, cajasGar:0, cubetas:0, tambos:0, totems:0, hidraulico:0
+            };
             Object.values(data.porVend).forEach(v=>{
                 tot.motoA += v.promoMotoA;
                 tot.motoB += v.promoMotoB;
@@ -3541,6 +3556,16 @@
                 tot.lub4 += v.promoLub4;
                 tot.lub5 += v.promoLub5;
                 tot.cub300 += v.cubetas300LTH;
+                tot.motobatVend += v.motobat;
+                tot.motobatGratis += v.motobatGratis || 0;
+                tot.litros4T += v.litros4TLTHRegalo || 0;
+                tot.litrosLubOtro += v.litrosLubRegaloOtro || 0;
+                tot.cajasBot += v.cajasBotella;
+                tot.cajasGar += v.cajasGarrafa;
+                tot.cubetas += v.cubetas19L;
+                tot.tambos += v.tambos200L;
+                tot.totems += v.totems1000L;
+                tot.hidraulico += v.litrosHidraulico;
             });
 
             const fmtNum = n => Number(n).toLocaleString('es-MX');
@@ -3558,6 +3583,7 @@
                     <div class="mt-3 leading-relaxed muted">
                         <p><b class="txt">Filas leídas:</b> ${fmtNum(dg.totalFilas)} · <b class="txt">Procesadas:</b> ${fmtNum(dg.procesadas)}</p>
                         <p><b>Descartadas:</b> sin fecha ${dg.sinFecha}, otro mes ${dg.otroMes}, sin vendedor ${dg.sinVendedor}, sin línea válida ${dg.sinLinea}, sin factura ${dg.sinFactura}</p>
+                        <p><b>Clasificación detectada:</b> <span style="color:#dc2626">${dg.conteoLinea?.MOTOBAT||0} motobat</span> · <span style="color:#0891b2">${dg.conteoLinea?.LUBRICANTE||0} lubricante</span> · <span style="color:#a67cff">${dg.conteoLinea?.HIDRAULICO||0} hidráulico</span> · <span class="muted">${dg.conteoLinea?.OTRA||0} otras</span></p>
                         <p class="mt-2"><b class="txt">Códigos de vendedor detectados en las hojas:</b><br><code class="text-[10px]" style="color:#0891b2">${(dg.ejemploCodVend||[]).join(' · ') || 'ninguno'}</code></p>
                         <p class="mt-2"><b class="txt">Ejemplos de "Clasificacion" leídos:</b><br><code class="text-[10px]" style="color:#0891b2">${(dg.ejemploClasif||[]).join(' · ') || 'ninguno'}</code></p>
                         <p class="mt-2 text-[9px] italic">Si tu vendedor no aparece arriba, es que su código no coincide con lo configurado. Si "8 MOTOBAT" no aparece, la clasificación viene con otro nombre.</p>
@@ -3566,6 +3592,37 @@
             }
 
             let html = diagPanel + `
+            <!-- CIFRAS CRUDAS (para auditar de dónde salen las promos) -->
+            <div class="surface rounded-2xl p-4 mb-4" style="border-left:6px solid #64748b">
+                <p class="text-[10px] font-black uppercase tracking-widest mb-2 muted"><i class="fas fa-database mr-1"></i>Cifras crudas del sheet (auditoría)</p>
+                <div class="grid grid-cols-3 sm:grid-cols-6 gap-2">
+                    <div class="text-center p-2 rounded-lg surface-2">
+                        <p class="text-[8px] font-black muted uppercase">Motobat vend.</p>
+                        <p class="text-lg font-black" style="color:#dc2626">${fmtNum(tot.motobatVend)}</p>
+                    </div>
+                    <div class="text-center p-2 rounded-lg surface-2">
+                        <p class="text-[8px] font-black muted uppercase">Motobat gratis</p>
+                        <p class="text-lg font-black" style="color:#dc2626">${fmtNum(tot.motobatGratis)}</p>
+                    </div>
+                    <div class="text-center p-2 rounded-lg surface-2">
+                        <p class="text-[8px] font-black muted uppercase">Lts 4T LTH regalo</p>
+                        <p class="text-lg font-black" style="color:#16a34a">${fmtNum(tot.litros4T)}</p>
+                    </div>
+                    <div class="text-center p-2 rounded-lg surface-2">
+                        <p class="text-[8px] font-black muted uppercase">Otros lts regalo</p>
+                        <p class="text-lg font-black" style="color:#16a34a">${fmtNum(tot.litrosLubOtro)}</p>
+                    </div>
+                    <div class="text-center p-2 rounded-lg surface-2">
+                        <p class="text-[8px] font-black muted uppercase">Cajas lub. vend.</p>
+                        <p class="text-lg font-black" style="color:#0891b2">${fmtNum(tot.cajasBot + tot.cajasGar + tot.cubetas)}</p>
+                    </div>
+                    <div class="text-center p-2 rounded-lg surface-2">
+                        <p class="text-[8px] font-black muted uppercase">Tambos + Totems</p>
+                        <p class="text-lg font-black" style="color:#0891b2">${fmtNum(tot.tambos + tot.totems)}</p>
+                    </div>
+                </div>
+            </div>
+
             <!-- Bloques de resumen por promoción -->
             <div class="surface rounded-2xl p-4 mb-4" style="border-left:6px solid #dc2626">
                 <p class="text-[10px] font-black uppercase tracking-widest mb-1" style="color:#dc2626"><i class="fas fa-motorcycle mr-1"></i>Promoción Motobatería</p>
@@ -3619,7 +3676,7 @@
             <div class="surface rounded-2xl p-4 mb-4" style="border-left:6px solid #22c55e">
                 <p class="text-[10px] font-black uppercase tracking-widest mb-1" style="color:#22c55e"><i class="fas fa-droplet mr-1"></i>Hidráulico 300 LTH · Cubetas 19L vendidas</p>
                 <p class="text-3xl font-black mt-1" style="color:#22c55e">${fmtNum(tot.cub300)} <span class="text-[10px] muted uppercase">cubetas</span></p>
-                <p class="text-[10px] muted">Precio especial $1,049 desde 20 cubetas por mes. Mínimo 5 por factura por semana.</p>
+                <p class="text-[10px] muted">Total de cubetas 19L vendidas por vendedor (identificadas por "19L" + "300 LTH" en descripción).</p>
             </div>`;
 
             // Tabla por vendedor: PROMOS APROVECHADAS por sección
@@ -3655,17 +3712,11 @@
                             <tbody>`;
 
                 vendedores.forEach(v=>{
-                    // Precio típico 300 LTH: usar mediana de precios unitarios reales (>$100)
-                    // para evitar que regalos o descuentos distorsionen el promedio
-                    let precioProm300 = 0;
-                    if(v.preciosUnit300LTH && v.preciosUnit300LTH.length > 0){
-                        const sorted = v.preciosUnit300LTH.slice().sort((a,b)=>a-b);
-                        precioProm300 = sorted[Math.floor(sorted.length/2)]; // mediana
-                    }
                     const val = (n,color)=>n>0?`<span class="font-black" style="color:${color}">${fmtNum(n)}</span>`:'<span class="text-[10px] muted">—</span>';
+                    const totalCajasVend = v.cajasBotella + v.cajasGarrafa + v.cubetas19L;
                     html += `
-                        <tr style="border-top:1px solid var(--surface-2)">
-                            <td class="p-2">
+                        <tr style="border-top:2px solid var(--surface-2)">
+                            <td class="p-2" rowspan="2">
                                 <p class="font-black txt text-[11px]">${v.nombre}</p>
                                 <p class="text-[9px] muted uppercase">Cod ${v.codVend}${v.almacen?' · Alm '+v.almacen:''}</p>
                             </td>
@@ -3676,12 +3727,22 @@
                             <td class="p-2 text-center">${val(v.promoLub3,'#0891b2')}</td>
                             <td class="p-2 text-center">${val(v.promoLub4,'#0891b2')}</td>
                             <td class="p-2 text-center">${val(v.promoLub5,'#0891b2')}</td>
-                            <td class="p-2 text-center">
-                                <p class="font-black text-[11px]" style="color:#22c55e">${fmtNum(v.cubetas300LTH)}</p>
-                                ${v.cubetas300LTH>0?`<p class="text-[8px] muted">$${precioProm300.toLocaleString('es-MX',{maximumFractionDigits:0})}/pza</p>`:''}
+                            <td class="p-2 text-center" rowspan="2">
+                                <p class="font-black text-[13px]" style="color:#22c55e">${fmtNum(v.cubetas300LTH)}</p>
+                                <p class="text-[8px] muted">cubetas 19L</p>
                             </td>
-                            <td class="p-2 text-center">
+                            <td class="p-2 text-center" rowspan="2">
                                 ${v.facturasDetalle.length>0?`<button onclick="verDesglosePromos('${v.clave}')" class="glass-btn px-2 py-1 rounded text-[9px] font-black uppercase" style="background:rgba(59,130,246,.15);color:#3b82f6"><i class="fas fa-magnifying-glass mr-1"></i>Ver</button>`:'<span class="text-[9px] muted">—</span>'}
+                            </td>
+                        </tr>
+                        <tr style="background:var(--surface-2)">
+                            <td class="p-1 text-center text-[9px] muted" title="Motobat vendidas">${fmtNum(v.motobat)}<br><span class="text-[7px]">vend</span></td>
+                            <td class="p-1 text-center text-[9px] muted" title="Motobat gratis">${fmtNum(v.motobatGratis||0)}<br><span class="text-[7px]">grat</span></td>
+                            <td class="p-1 text-center text-[9px] muted" colspan="5" title="Cajas vendidas + Litros 4T regalo + Otros lts regalo">
+                                <span style="color:#0891b2">${fmtNum(totalCajasVend)} cajas</span> ·
+                                <span style="color:#16a34a">${fmtNum(v.litros4TLTHRegalo||0)}L 4T</span> ·
+                                <span style="color:#16a34a">${fmtNum(v.litrosLubRegaloOtro||0)}L otros</span>
+                                ${v.tambos200L||v.totems1000L?`· <span style="color:#0891b2">${fmtNum(v.tambos200L)}T ${fmtNum(v.totems1000L)}Tot</span>`:''}
                             </td>
                         </tr>`;
                 });
@@ -3703,7 +3764,9 @@
                 <p><b class="txt" style="color:#0891b2">LUBRICANTE · Sec 3:</b> 15 cajas del <b>mismo tipo</b> + 2 cajas gratis = 1 promo.</p>
                 <p><b class="txt" style="color:#0891b2">LUBRICANTE · Sec 4:</b> 15 cajas <b>mixtas</b> + 2 cajas gratis (menor precio) = 1 promo.</p>
                 <p><b class="txt" style="color:#0891b2">LUBRICANTE · Sec 5:</b> 1 tambo 208L o totem + regalo (10% adicional o 1 cubeta/bidón sin costo) = 1 promo por tambo.</p>
-                <p><b class="txt" style="color:#22c55e">HIDRÁULICO 300 LTH:</b> total de cubetas 19L vendidas (identificadas por "300 LTH" o "HIDRAULICO 300" en la descripción). Precio especial $1,049 desde 20 cubetas al mes.</p>
+                <p><b class="txt" style="color:#22c55e">HIDRÁULICO 300 LTH:</b> total de cubetas 19L vendidas por vendedor. Se detectan cuando la descripción contiene "19L" y "300 LTH" (o "HIDRAULICO 300"). Solo cuenta cubetas VENDIDAS (importe >= $1).</p>
+                <p><b class="txt">Cubetas 20Kg</b> cuentan como CUBETA normal (Sec 1-4 lubricante), NO como hidráulico 300 LTH.</p>
+                <p><b class="txt">Tambos</b> se identifican por "208L" o "200 KG" en descripción.</p>
                 <p class="mt-2"><b class="txt">Nota:</b> "Mismo tipo" = descripción idéntica del producto en el sheet. Regalo = fila con importe menor a $1.</p>
             </div>
             <p class="text-center text-[10px] muted mt-2 mb-6 uppercase tracking-widest">Actualizado: ${data.generado.toLocaleString('es-MX',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}</p>`;
