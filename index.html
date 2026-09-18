@@ -3315,12 +3315,13 @@
                     const cantidad = n(row['Cantidad'] || row['CANTIDAD']);
                     const factura = String(row['Factura'] || row['FACTURA'] || '').trim();
                     const codCli  = String(row['Cod de cliente'] || row['COD DE CLIENTE'] || '').trim();
+                    const nombreCli = String(row['Cliente'] || row['CLIENTE'] || '').trim();
                     if(!factura){ diag.sinFactura++; return; }
                     diag.procesadas++;
 
                     // Inicializar la factura en el acumulador
                     if(!acc.facturas[factura]) acc.facturas[factura] = {
-                        codCli,
+                        codCli, nombreCli,
                         motobat:0,          // motobat vendidas (importe > 0)
                         motobatRegalo:0,    // motobat regaladas (importe < 1)
                         litros4TRegalo:0,   // litros de aceite 4T LTH regalados
@@ -3485,6 +3486,7 @@
                         acc.facturasDetalle.push({
                             factura: fact,
                             codCli: fa.codCli,
+                            nombreCli: fa.nombreCli || '',
                             motobat: fa.motobat,
                             motobatRegalo: fa.motobatRegalo,
                             litros4TRegalo: fa.litros4TRegalo,
@@ -3811,14 +3813,27 @@
             // Modal con desglose de facturas con regalo
             const overlay = document.createElement('div');
             overlay.style.cssText = 'position:fixed;inset:0;background:rgba(12,31,68,.9);z-index:99999;display:flex;flex-direction:column;padding:12px;overflow:auto';
+            // Resumen crudo de lo vendido por el vendedor (para header del modal)
+            const totalCajas = (v.cajasBotella||0) + (v.cajasGarrafa||0);
+            const totalCubetas = (v.cubetas19L||0) + (v.cubetas300LTH||0);
+            const resumenVend = [
+                v.motobat?fmtNum(v.motobat)+' motobat':null,
+                totalCajas?fmtNum(totalCajas)+' cajas':null,
+                totalCubetas?fmtNum(totalCubetas)+' cubetas (19L+300LTH)':null,
+                v.tambos200L?fmtNum(v.tambos200L)+' tambos':null,
+                v.totems1000L?fmtNum(v.totems1000L)+' totems':null,
+                v.litrosHidraulico?fmtNum(v.litrosHidraulico)+'L hidr.':null
+            ].filter(Boolean).join(' · ') || 'sin ventas registradas';
+
             overlay.innerHTML = `
                 <div class="flex items-center justify-between mb-3" style="color:#fff">
-                    <div>
+                    <div style="flex:1;min-width:0">
                         <p style="font-size:9px;font-weight:900;color:#facc15;letter-spacing:2px;text-transform:uppercase">Desglose auditable · regalos por factura</p>
                         <p style="font-size:15px;font-weight:900;margin:2px 0 0">${v.nombre}</p>
                         <p style="font-size:11px;font-weight:700;opacity:.75">${v.orgLabel} · Cod ${v.codVend}${v.almacen?' · Alm '+v.almacen:''} · ${v.facturasDetalle.length} facturas con regalo</p>
+                        <p style="font-size:10px;font-weight:700;margin-top:6px;padding:6px 10px;background:rgba(250,204,21,.12);border-left:3px solid #facc15;border-radius:4px;color:#fde68a"><b style="color:#facc15">Total vendido en el mes:</b> ${resumenVend}</p>
                     </div>
-                    <button onclick="this.closest('[data-overlay]').remove()" style="background:rgba(255,255,255,.15);color:#fff;border:none;width:40px;height:40px;border-radius:10px;font-size:16px;cursor:pointer">✕</button>
+                    <button onclick="this.closest('[data-overlay]').remove()" style="background:rgba(255,255,255,.15);color:#fff;border:none;width:40px;height:40px;border-radius:10px;font-size:16px;cursor:pointer;flex-shrink:0;margin-left:10px">✕</button>
                 </div>
                 <div class="surface rounded-2xl overflow-hidden" style="flex:1;overflow-y:auto">
                     <table class="w-full" style="border-collapse:collapse;font-size:11px">
@@ -3858,7 +3873,10 @@
                                 return `
                                 <tr style="border-top:1px solid var(--surface-2)">
                                     <td class="p-2 font-black txt">${f.factura}</td>
-                                    <td class="p-2 muted text-[10px]">${f.codCli||'—'}</td>
+                                    <td class="p-2 text-[10px]">
+                                        <p class="font-black txt">${f.nombreCli || '(sin nombre)'}</p>
+                                        <p class="muted text-[9px]">Cod ${f.codCli||'—'}</p>
+                                    </td>
                                     <td class="p-2 text-center font-black txt">${fmtNum(f.motobat)}</td>
                                     <td class="p-2 text-center text-[10px] txt">${envases}</td>
                                     <td class="p-2 text-center text-[10px] font-black" style="color:#16a34a">${regaloTxt}</td>
