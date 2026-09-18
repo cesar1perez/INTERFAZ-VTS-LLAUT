@@ -2928,11 +2928,11 @@
             return `
             <div class="promo-doc">
                 <div class="promo-doc-head" style="background:linear-gradient(135deg,#001529,#0c1f44)">
-                    <p class="promo-doc-tag">Ventas Mayoreo · Agosto 2026</p>
+                    <p class="promo-doc-tag">Ventas Mayoreo · Septiembre 2026</p>
                     <h3 class="promo-doc-title"><i class="fas fa-motorcycle mr-2" style="color:#fca5a5"></i>Promoción de Motobatería</h3>
                 </div>
                 <div class="promo-doc-body">
-                    <p class="promo-doc-intro">Estimados, en el mes de <b>Agosto 2026</b> estaremos otorgando las siguientes promociones en <b>venta mayoreo</b>:</p>
+                    <p class="promo-doc-intro">Estimados, en el mes de <b>Septiembre 2026</b> estaremos otorgando las siguientes promociones en <b>venta mayoreo</b>:</p>
 
                     <div class="promo-highlight" style="background:linear-gradient(135deg,#dc2626,#991b1b)">
                         <p class="promo-highlight-txt">Por cada <span>1 motobatería</span><br>1 litro de <span>aceite 4T LTH</span> sin costo</p>
@@ -2958,11 +2958,11 @@
             return `
             <div class="promo-doc">
                 <div class="promo-doc-head" style="background:linear-gradient(135deg,#7c2d12,#c2410c)">
-                    <p class="promo-doc-tag">Ventas Mayoreo · Agosto 2026</p>
+                    <p class="promo-doc-tag">Ventas Mayoreo · Septiembre 2026</p>
                     <h3 class="promo-doc-title"><i class="fas fa-oil-can mr-2" style="color:#fed7aa"></i>Promoción de Lubricante</h3>
                 </div>
                 <div class="promo-doc-body">
-                    <p class="promo-doc-intro">Estimados, en el mes de <b>Agosto 2026</b> estaremos otorgando las siguientes promociones en <b>venta mayoreo</b>:</p>
+                    <p class="promo-doc-intro">Estimados, en el mes de <b>Septiembre 2026</b> estaremos otorgando las siguientes promociones en <b>venta mayoreo</b>:</p>
 
                     <p class="promo-section-title" style="color:#c2410c"><i class="fas fa-layer-group mr-1"></i>Lubricante General</p>
                     <ol class="promo-reglas-num">
@@ -3082,7 +3082,7 @@
                 <i class="fas fa-tags text-4xl mb-3" style="color:#cffafe"></i>
                 <p class="text-[10px] font-black uppercase tracking-[0.3em] mb-1" style="color:#cffafe">Promociones vigentes · Ventas Mayoreo</p>
                 <h2 class="text-3xl font-black uppercase tracking-tight leading-none">Promociones del Mes</h2>
-                <p class="text-[11px] font-bold uppercase mt-2" style="color:#cffafe">Agosto 2026</p>
+                <p class="text-[11px] font-bold uppercase mt-2" style="color:#cffafe">Septiembre 2026</p>
             </div>
             <div class="rounded-[1.75rem] p-5 mb-5 text-white" style="background:${barra}">
                 <p class="text-[10px] font-black uppercase tracking-[0.3em]" style="color:#facc15">Empresa</p>
@@ -3207,23 +3207,26 @@
             PROMOS_VENDEDORES.forEach(v=>{
                 porVend[v.clave] = {
                     ...v,
-                    motobat: 0,               // motobaterías vendidas
-                    cajasBotella: 0,          // cajas de 12 botellas 1L
-                    cajasGarrafa: 0,          // cajas de 4 garrafas 5L
-                    cubetas19L: 0,            // cubetas 19L normales
-                    cubetas300LTH: 0,         // cubetas 19L HIDRAULICO 300 LTH (promo precio especial)
-                    importe300LTH: 0,         // importe total facturado de 300 LTH (para calcular precio prom.)
-                    tambos200L: 0,            // tambos 200/208L
-                    totems1000L: 0,           // totems 1000L
-                    litrosLubTotales: 0,      // total de litros de lubricante
-                    litrosLubRegalo: 0,       // litros regalados (importe < 1)
-                    litrosHidraulico: 0,      // litros de hidráulico vendidos (por código 0250201)
-                    facturasPromo: new Set(), // facturas donde se detectó promo
+                    motobat: 0,
+                    cajasBotella: 0, cajasGarrafa: 0,
+                    cubetas19L: 0, cubetas300LTH: 0, importe300LTH: 0,
+                    tambos200L: 0, totems1000L: 0,
+                    litrosLubTotales: 0, litrosLubRegalo: 0,
+                    litrosHidraulico: 0,
+                    facturasPromo: new Set(),
                     facturasMotobat: new Set(),
                     facturasLub: new Set(),
-                    clientesPromo: new Set(), // códigos de cliente que aprovecharon
-                    facturasDetalle: [],      // lista de facturas con regalo para auditar (botón desglose)
-                    // Agrupador por factura para poder cruzar motobat vs regalo del mismo folio
+                    clientesPromo: new Set(),
+                    facturasDetalle: [],
+                    // PROMOCIONES APROVECHADAS POR SECCIÓN (según PDFs Sep 2026)
+                    promoMotoA: 0,   // Motobat sec A: 1 motobat por cada litro 4T LTH regalado (sin llegar a 10)
+                    promoMotoB: 0,   // Motobat sec B: 10 motobat + 1 motobat gratis + 10 lts 4T LTH (escalones de 10)
+                    // Lubricante:
+                    promoLub1: 0,    // Sec 1: 10 cajas mismo tipo → 1 gratis
+                    promoLub2: 0,    // Sec 2: 10 cajas MIXTAS → 1 gratis
+                    promoLub3: 0,    // Sec 3: 15 cajas mismo tipo → 2 gratis
+                    promoLub4: 0,    // Sec 4: 15 cajas MIXTAS → 2 gratis
+                    promoLub5: 0,    // Sec 5: 1 tambo 208L/180kg → 10% adic. o 1 cubeta/bidón gratis
                     facturas: {}
                 };
             });
@@ -3257,12 +3260,31 @@
                     if(!factura) return;
 
                     // Inicializar la factura en el acumulador
-                    if(!acc.facturas[factura]) acc.facturas[factura] = { codCli, motobat:0, cajasBot:0, cajasGar:0, cubetas:0, cubetas300:0, tambos:0, totems:0, litrosLub:0, litrosLubRegalo:0, hidraulico:0, regalosDetalle:[] };
+                    if(!acc.facturas[factura]) acc.facturas[factura] = {
+                        codCli,
+                        motobat:0,          // motobat vendidas (importe > 0)
+                        motobatRegalo:0,    // motobat regaladas (importe < 1)
+                        litros4TRegalo:0,   // litros de aceite 4T LTH regalados
+                        cajasBot:0, cajasGar:0, cubetas:0, cubetas300:0, tambos:0, totems:0,
+                        cajasBotRegalo:0, cajasGarRegalo:0, cubetasRegalo:0,
+                        // Agrupar cajas de lubricante POR DESCRIPCIÓN para detectar "mismo tipo" en secciones 1-2
+                        cajasPorDesc: {},     // { "MOBIL SUPER 4T": {vendidas: 12, regalo: 1}, ... }
+                        litrosLub:0, litrosLubRegalo:0, hidraulico:0, regalosDetalle:[]
+                    };
                     const facAcc = acc.facturas[factura];
 
+                    const descRaw = String(row['Descripcion'] || row['DESCRIPCION'] || '').trim();
+                    // Aceite 4T LTH: detección para promo motobat (regalo específico)
+                    const es4TLTH = /4\s*T/i.test(descRaw) && /LTH/i.test(descRaw);
+
                     if(linea.linea === 'MOTOBAT'){
-                        facAcc.motobat += cantidad;
-                        acc.motobat += cantidad;
+                        if(linea.esRegalo){
+                            facAcc.motobatRegalo += cantidad;
+                            facAcc.regalosDetalle.push({desc: descRaw.slice(0,60), cantidad, litros:0, importe: n(row['Importe'] || row['IMPORTE']), tipo:'motobat'});
+                        } else {
+                            facAcc.motobat += cantidad;
+                            acc.motobat += cantidad;
+                        }
                         acc.facturasMotobat.add(factura);
                     } else if(linea.linea === 'HIDRAULICO'){
                         facAcc.hidraulico += cantidad;
@@ -3272,12 +3294,30 @@
                         const litros = envases.litros || cantidad;
                         facAcc.litrosLub += litros;
                         acc.litrosLubTotales += litros;
+
+                        // Contar unidades base (cajas/cubetas/bidones) por envase
+                        // Cada envase cuenta como "1 unidad de mayoreo" para las secciones 1-4
+                        let unidades = 0;
+                        if(linea.subtipo === 'BOTELLA1L')  unidades = envases.cajas || 0;
+                        else if(linea.subtipo === 'GARRAFA5L') unidades = envases.cajas || 0;
+                        else if(linea.subtipo === 'CUBETA19L' || linea.subtipo === 'CUB19L_300LTH') unidades = envases.cubetas || envases.cubetas300 || 0;
+
+                        // Clave "mismo tipo" = descripción normalizada del producto
+                        const claveDesc = descRaw.toUpperCase().replace(/\s+/g,' ').trim();
+
                         if(linea.esRegalo){
                             facAcc.litrosLubRegalo += litros;
                             acc.litrosLubRegalo += litros;
-                            // Capturar descripción para desglose auditable
-                            const descRaw = row['Descripcion'] || row['DESCRIPCION'] || '';
-                            facAcc.regalosDetalle.push({desc: String(descRaw).slice(0,60), cantidad, litros, importe: n(row['Importe'] || row['IMPORTE'])});
+                            facAcc.regalosDetalle.push({desc: descRaw.slice(0,60), cantidad, litros, importe: n(row['Importe'] || row['IMPORTE']), tipo:'lub', es4TLTH});
+                            // Contar regalo por envase
+                            if(linea.subtipo === 'BOTELLA1L')  facAcc.cajasBotRegalo += unidades;
+                            else if(linea.subtipo === 'GARRAFA5L') facAcc.cajasGarRegalo += unidades;
+                            else if(linea.subtipo === 'CUBETA19L' || linea.subtipo === 'CUB19L_300LTH') facAcc.cubetasRegalo += unidades;
+                            // Registrar regalo por descripción
+                            if(!facAcc.cajasPorDesc[claveDesc]) facAcc.cajasPorDesc[claveDesc] = {vendidas:0, regalo:0, subtipo:linea.subtipo};
+                            facAcc.cajasPorDesc[claveDesc].regalo += unidades;
+                            // Los litros 4T LTH regalados son especiales (promo motobat)
+                            if(es4TLTH) facAcc.litros4TRegalo += litros;
                         } else {
                             if(linea.subtipo === 'BOTELLA1L'){ facAcc.cajasBot += envases.cajas; acc.cajasBotella += envases.cajas; }
                             else if(linea.subtipo === 'GARRAFA5L'){ facAcc.cajasGar += envases.cajas; acc.cajasGarrafa += envases.cajas; }
@@ -3289,44 +3329,115 @@
                             }
                             else if(linea.subtipo === 'TAMBO200L'){ facAcc.tambos += envases.tambos; acc.tambos200L += envases.tambos; }
                             else if(linea.subtipo === 'TOTEM1000L'){ facAcc.totems += envases.totems; acc.totems1000L += envases.totems; }
+                            // Registrar venta por descripción para detectar "mismo tipo"
+                            if(unidades > 0){
+                                if(!facAcc.cajasPorDesc[claveDesc]) facAcc.cajasPorDesc[claveDesc] = {vendidas:0, regalo:0, subtipo:linea.subtipo};
+                                facAcc.cajasPorDesc[claveDesc].vendidas += unidades;
+                            }
                         }
                         acc.facturasLub.add(factura);
                     }
                 });
             }
 
-            // Post-procesar: contar facturas con promo y armar desglose auditable de regalos
+            // Post-procesar: contar PROMOS APROVECHADAS POR SECCIÓN según PDFs Sep 2026
             Object.values(porVend).forEach(acc=>{
                 Object.entries(acc.facturas).forEach(([fact, fa])=>{
-                    const tieneRegalo = fa.litrosLubRegalo > 0;
-                    if(tieneRegalo && (fa.motobat > 0 || fa.cajasBot > 0 || fa.cajasGar > 0 || fa.cubetas > 0 || fa.cubetas300 > 0 || fa.tambos > 0 || fa.totems > 0)){
+                    const secciones = { motoA:0, motoB:0, lub1:0, lub2:0, lub3:0, lub4:0, lub5:0 };
+
+                    /* ===== MOTOBATERÍA ===== */
+                    // Sec B (10+1 gratis + 10 lts 4T): escalones de 10.
+                    // Cada escalón requiere: 10 motobat facturadas + al menos 1 motobat gratis + al menos 10 lts 4T LTH regalados.
+                    // Fórmula literal: contar cuántos "paquetes de 10" cumplen las 3 condiciones.
+                    const escalonesPorFactura = Math.min(
+                        Math.floor(fa.motobat / 10),
+                        fa.motobatRegalo,
+                        Math.floor(fa.litros4TRegalo / 10)
+                    );
+                    secciones.motoB = escalonesPorFactura;
+
+                    // Motobat que YA se usaron en Sec B
+                    const motobatUsadasEnB = escalonesPorFactura * 10;
+                    const motobatRestantes = fa.motobat - motobatUsadasEnB;
+                    const litros4TUsadosEnB = escalonesPorFactura * 10;
+                    const litros4TRestantes = fa.litros4TRegalo - litros4TUsadosEnB;
+
+                    // Sec A (1 motobat = 1 lt 4T LTH gratis, sin llegar a 10):
+                    // 1 factura = 1 promo Sec A si tiene motobat restantes (<10) + litros 4T restantes >= motobat restantes
+                    if(motobatRestantes > 0 && motobatRestantes < 10 && litros4TRestantes >= motobatRestantes){
+                        secciones.motoA = 1;
+                    }
+
+                    /* ===== LUBRICANTE ===== */
+                    // Agrupar por descripción del producto
+                    const descs = Object.entries(fa.cajasPorDesc);
+                    const totalUnidadesLub = descs.reduce((s,[,v])=>s+v.vendidas,0);
+                    const totalRegaloLub = descs.reduce((s,[,v])=>s+v.regalo,0);
+
+                    // Buscar si alguna descripción sola alcanza 10 o 15 (mismo tipo)
+                    let mismoTipo10 = false, mismoTipo15 = false;
+                    descs.forEach(([, v])=>{
+                        if(v.vendidas >= 15) mismoTipo15 = true;
+                        else if(v.vendidas >= 10) mismoTipo10 = true;
+                    });
+
+                    // Sec 3: 15 cajas MISMO TIPO + al menos 2 regalos
+                    if(mismoTipo15 && totalRegaloLub >= 2){
+                        secciones.lub3 = 1;
+                    }
+                    // Sec 1: 10 cajas MISMO TIPO + al menos 1 regalo (y no cumple sec 3)
+                    else if((mismoTipo10 || mismoTipo15) && totalRegaloLub >= 1){
+                        secciones.lub1 = 1;
+                    }
+                    // Sec 4: 15 cajas MIXTAS (suma de tipos distintos) + 2 regalos
+                    else if(totalUnidadesLub >= 15 && totalRegaloLub >= 2 && descs.filter(([,v])=>v.vendidas>0).length >= 2){
+                        secciones.lub4 = 1;
+                    }
+                    // Sec 2: 10 cajas MIXTAS + 1 regalo
+                    else if(totalUnidadesLub >= 10 && totalRegaloLub >= 1 && descs.filter(([,v])=>v.vendidas>0).length >= 2){
+                        secciones.lub2 = 1;
+                    }
+
+                    // Sec 5: 1 tambo 208L (o TOTEM que también aplica) + regalo de cubeta/bidón o litros
+                    if((fa.tambos > 0 || fa.totems > 0) && (fa.cubetasRegalo > 0 || fa.litrosLubRegalo > 0)){
+                        secciones.lub5 = Math.max(fa.tambos, 1);
+                    }
+
+                    // Acumular al vendedor
+                    acc.promoMotoA += secciones.motoA;
+                    acc.promoMotoB += secciones.motoB;
+                    acc.promoLub1  += secciones.lub1;
+                    acc.promoLub2  += secciones.lub2;
+                    acc.promoLub3  += secciones.lub3;
+                    acc.promoLub4  += secciones.lub4;
+                    acc.promoLub5  += secciones.lub5;
+
+                    // Marcar factura como "con promo" si al menos una sección se aprovechó
+                    const algunaAprov = Object.values(secciones).some(x=>x>0);
+                    if(algunaAprov){
                         acc.facturasPromo.add(fact);
                         if(fa.codCli) acc.clientesPromo.add(fa.codCli);
                     }
-                    // Desglose para auditoría: cualquier factura con regalo
-                    if(tieneRegalo){
+
+                    // Desglose para auditoría: cualquier factura con regalo o motobat (para auditar)
+                    if(fa.litrosLubRegalo > 0 || fa.motobatRegalo > 0){
                         acc.facturasDetalle.push({
                             factura: fact,
                             codCli: fa.codCli,
                             motobat: fa.motobat,
-                            cajasBot: fa.cajasBot,
-                            cajasGar: fa.cajasGar,
-                            cubetas: fa.cubetas,
-                            cubetas300: fa.cubetas300,
-                            tambos: fa.tambos,
-                            totems: fa.totems,
+                            motobatRegalo: fa.motobatRegalo,
+                            litros4TRegalo: fa.litros4TRegalo,
+                            cajasBot: fa.cajasBot, cajasGar: fa.cajasGar,
+                            cubetas: fa.cubetas, cubetas300: fa.cubetas300,
+                            tambos: fa.tambos, totems: fa.totems,
                             litrosLubRegalo: fa.litrosLubRegalo,
-                            regalosDetalle: fa.regalosDetalle
+                            regalosDetalle: fa.regalosDetalle,
+                            secciones
                         });
                     }
                 });
                 // Ordenar desglose por litros regalados descendente (los más "sospechosos" primero)
                 acc.facturasDetalle.sort((a,b)=>b.litrosLubRegalo - a.litrosLubRegalo);
-                // Calcular esperados de motobat según fórmula del PDF Sep 2026
-                const espMotobat = PROMOS_FORMULAS.motobateria.calcular(acc.motobat);
-                acc.litrosEsperadosMotobat = espMotobat.litrosEsperados;
-                acc.motobatEsperadosGratis = espMotobat.motobatEsperadosGratis;
-                acc.diffLitros4T = acc.litrosLubRegalo - espMotobat.litrosEsperados; // + sobrante, - faltante
             });
 
             return { porVend, generado: new Date() };
@@ -3392,43 +3503,79 @@
                 if(grupos[v.orgLabel]) grupos[v.orgLabel].push(v);
             });
 
-            // Totales globales
-            const totales = { motobat:0, cajasBotella:0, cajasGarrafa:0, cubetas19L:0, cubetas300LTH:0, tambos200L:0, totems1000L:0, litrosLubRegalo:0, litrosHidraulico:0, facturasPromo:0 };
+            // Totales globales (por sección de promo)
+            const tot = { motoA:0, motoB:0, lub1:0, lub2:0, lub3:0, lub4:0, lub5:0, cub300:0 };
             Object.values(data.porVend).forEach(v=>{
-                totales.motobat += v.motobat;
-                totales.cajasBotella += v.cajasBotella;
-                totales.cajasGarrafa += v.cajasGarrafa;
-                totales.cubetas19L += v.cubetas19L;
-                totales.cubetas300LTH += v.cubetas300LTH;
-                totales.tambos200L += v.tambos200L;
-                totales.totems1000L += v.totems1000L;
-                totales.litrosLubRegalo += v.litrosLubRegalo;
-                totales.litrosHidraulico += v.litrosHidraulico;
-                totales.facturasPromo += v.facturasPromo.size;
+                tot.motoA += v.promoMotoA;
+                tot.motoB += v.promoMotoB;
+                tot.lub1 += v.promoLub1;
+                tot.lub2 += v.promoLub2;
+                tot.lub3 += v.promoLub3;
+                tot.lub4 += v.promoLub4;
+                tot.lub5 += v.promoLub5;
+                tot.cub300 += v.cubetas300LTH;
             });
 
             const fmtNum = n => Number(n).toLocaleString('es-MX');
 
             let html = `
-            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4">
-                <div class="surface rounded-xl p-3 text-center">
-                    <p class="text-[9px] font-black muted uppercase tracking-widest">Motobaterías</p>
-                    <p class="text-2xl font-black" style="color:#dc2626">${fmtNum(totales.motobat)}</p>
+            <!-- Bloques de resumen por promoción -->
+            <div class="surface rounded-2xl p-4 mb-4" style="border-left:6px solid #dc2626">
+                <p class="text-[10px] font-black uppercase tracking-widest mb-1" style="color:#dc2626"><i class="fas fa-motorcycle mr-1"></i>Promoción Motobatería</p>
+                <div class="grid grid-cols-2 gap-3 mt-2">
+                    <div class="text-center p-2 rounded-lg" style="background:rgba(220,38,38,.08)">
+                        <p class="text-[9px] font-black muted uppercase">Sección A</p>
+                        <p class="text-[9px] muted leading-tight mb-1">1-9 motobat + lts 4T</p>
+                        <p class="text-2xl font-black" style="color:#dc2626">${fmtNum(tot.motoA)}</p>
+                        <p class="text-[8px] muted uppercase">promos aprov.</p>
+                    </div>
+                    <div class="text-center p-2 rounded-lg" style="background:rgba(220,38,38,.08)">
+                        <p class="text-[9px] font-black muted uppercase">Sección B</p>
+                        <p class="text-[9px] muted leading-tight mb-1">10 motobat + 1 gratis + 10 lts 4T</p>
+                        <p class="text-2xl font-black" style="color:#dc2626">${fmtNum(tot.motoB)}</p>
+                        <p class="text-[8px] muted uppercase">promos aprov.</p>
+                    </div>
                 </div>
-                <div class="surface rounded-xl p-3 text-center">
-                    <p class="text-[9px] font-black muted uppercase tracking-widest">Cajas lubr.</p>
-                    <p class="text-2xl font-black" style="color:#0891b2">${fmtNum(totales.cajasBotella+totales.cajasGarrafa)}</p>
+            </div>
+
+            <div class="surface rounded-2xl p-4 mb-4" style="border-left:6px solid #0891b2">
+                <p class="text-[10px] font-black uppercase tracking-widest mb-1" style="color:#0891b2"><i class="fas fa-oil-can mr-1"></i>Promoción Lubricante</p>
+                <div class="grid grid-cols-2 sm:grid-cols-5 gap-2 mt-2">
+                    <div class="text-center p-2 rounded-lg" style="background:rgba(8,145,178,.08)">
+                        <p class="text-[9px] font-black muted uppercase">Sec 1</p>
+                        <p class="text-[8px] muted leading-tight mb-1">10 mismo tipo + 1</p>
+                        <p class="text-xl font-black" style="color:#0891b2">${fmtNum(tot.lub1)}</p>
+                    </div>
+                    <div class="text-center p-2 rounded-lg" style="background:rgba(8,145,178,.08)">
+                        <p class="text-[9px] font-black muted uppercase">Sec 2</p>
+                        <p class="text-[8px] muted leading-tight mb-1">10 mixtas + 1</p>
+                        <p class="text-xl font-black" style="color:#0891b2">${fmtNum(tot.lub2)}</p>
+                    </div>
+                    <div class="text-center p-2 rounded-lg" style="background:rgba(8,145,178,.08)">
+                        <p class="text-[9px] font-black muted uppercase">Sec 3</p>
+                        <p class="text-[8px] muted leading-tight mb-1">15 mismo tipo + 2</p>
+                        <p class="text-xl font-black" style="color:#0891b2">${fmtNum(tot.lub3)}</p>
+                    </div>
+                    <div class="text-center p-2 rounded-lg" style="background:rgba(8,145,178,.08)">
+                        <p class="text-[9px] font-black muted uppercase">Sec 4</p>
+                        <p class="text-[8px] muted leading-tight mb-1">15 mixtas + 2</p>
+                        <p class="text-xl font-black" style="color:#0891b2">${fmtNum(tot.lub4)}</p>
+                    </div>
+                    <div class="text-center p-2 rounded-lg col-span-2 sm:col-span-1" style="background:rgba(8,145,178,.08)">
+                        <p class="text-[9px] font-black muted uppercase">Sec 5</p>
+                        <p class="text-[8px] muted leading-tight mb-1">1 tambo/totem + regalo</p>
+                        <p class="text-xl font-black" style="color:#0891b2">${fmtNum(tot.lub5)}</p>
+                    </div>
                 </div>
-                <div class="surface rounded-xl p-3 text-center">
-                    <p class="text-[9px] font-black muted uppercase tracking-widest">Lts hidráulico</p>
-                    <p class="text-2xl font-black" style="color:#a67cff">${fmtNum(totales.litrosHidraulico)}</p>
-                </div>
-                <div class="surface rounded-xl p-3 text-center">
-                    <p class="text-[9px] font-black muted uppercase tracking-widest">Lts regalados</p>
-                    <p class="text-2xl font-black" style="color:#16a34a">${fmtNum(totales.litrosLubRegalo)}</p>
-                </div>
+            </div>
+
+            <div class="surface rounded-2xl p-4 mb-4" style="border-left:6px solid #22c55e">
+                <p class="text-[10px] font-black uppercase tracking-widest mb-1" style="color:#22c55e"><i class="fas fa-droplet mr-1"></i>Hidráulico 300 LTH · Cubetas 19L vendidas</p>
+                <p class="text-3xl font-black mt-1" style="color:#22c55e">${fmtNum(tot.cub300)} <span class="text-[10px] muted uppercase">cubetas</span></p>
+                <p class="text-[10px] muted">Precio especial $1,049 desde 20 cubetas por mes. Mínimo 5 por factura por semana.</p>
             </div>`;
 
+            // Tabla por vendedor: PROMOS APROVECHADAS por sección
             for(const orgLabel in grupos){
                 const vendedores = grupos[orgLabel];
                 if(vendedores.length === 0) continue;
@@ -3439,57 +3586,47 @@
                 </div>
                 <div class="surface rounded-2xl overflow-hidden mb-4">
                     <div style="overflow-x:auto;-webkit-overflow-scrolling:touch">
-                        <table class="w-full" style="border-collapse:collapse;font-size:11px;min-width:1000px">
+                        <table class="w-full" style="border-collapse:collapse;font-size:11px;min-width:900px">
                             <thead>
                                 <tr style="background:var(--surface-2)">
-                                    <th class="p-2 text-left font-black uppercase text-[9px] tracking-widest">Vendedor</th>
-                                    <th class="p-2 text-center font-black uppercase text-[9px] tracking-widest" style="color:#dc2626">Motobat</th>
-                                    <th class="p-2 text-center font-black uppercase text-[9px] tracking-widest" style="color:#f59e0b">Lts 4T esp.</th>
-                                    <th class="p-2 text-center font-black uppercase text-[9px] tracking-widest" style="color:#0891b2">Cajas 1L</th>
-                                    <th class="p-2 text-center font-black uppercase text-[9px] tracking-widest" style="color:#0891b2">Cajas 5L</th>
-                                    <th class="p-2 text-center font-black uppercase text-[9px] tracking-widest" style="color:#0891b2">Cub 19L</th>
-                                    <th class="p-2 text-center font-black uppercase text-[9px] tracking-widest" style="color:#22c55e">Cub 300 LTH</th>
-                                    <th class="p-2 text-center font-black uppercase text-[9px] tracking-widest" style="color:#0891b2">Tambo 200L</th>
-                                    <th class="p-2 text-center font-black uppercase text-[9px] tracking-widest" style="color:#0891b2">Totem 1000L</th>
-                                    <th class="p-2 text-center font-black uppercase text-[9px] tracking-widest" style="color:#16a34a">Lts regalo</th>
-                                    <th class="p-2 text-center font-black uppercase text-[9px] tracking-widest" style="color:#a67cff">Lts hidr.</th>
-                                    <th class="p-2 text-center font-black uppercase text-[9px] tracking-widest" style="color:#facc15">Fact. promo</th>
-                                    <th class="p-2 text-center font-black uppercase text-[9px] tracking-widest">Detalle</th>
+                                    <th class="p-2 text-left font-black uppercase text-[9px] tracking-widest" rowspan="2">Vendedor</th>
+                                    <th class="p-2 text-center font-black uppercase text-[9px] tracking-widest" style="color:#dc2626" colspan="2">Motobatería</th>
+                                    <th class="p-2 text-center font-black uppercase text-[9px] tracking-widest" style="color:#0891b2" colspan="5">Lubricante</th>
+                                    <th class="p-2 text-center font-black uppercase text-[9px] tracking-widest" style="color:#22c55e" rowspan="2">Cub 300<br>LTH</th>
+                                    <th class="p-2 text-center font-black uppercase text-[9px] tracking-widest" rowspan="2">Detalle</th>
+                                </tr>
+                                <tr style="background:var(--surface-2)">
+                                    <th class="p-1 text-center font-black text-[8px]" style="color:#dc2626">Sec A</th>
+                                    <th class="p-1 text-center font-black text-[8px]" style="color:#dc2626">Sec B</th>
+                                    <th class="p-1 text-center font-black text-[8px]" style="color:#0891b2">Sec 1</th>
+                                    <th class="p-1 text-center font-black text-[8px]" style="color:#0891b2">Sec 2</th>
+                                    <th class="p-1 text-center font-black text-[8px]" style="color:#0891b2">Sec 3</th>
+                                    <th class="p-1 text-center font-black text-[8px]" style="color:#0891b2">Sec 4</th>
+                                    <th class="p-1 text-center font-black text-[8px]" style="color:#0891b2">Sec 5</th>
                                 </tr>
                             </thead>
                             <tbody>`;
 
                 vendedores.forEach(v=>{
-                    // Precio promedio 300 LTH (para mostrar si se acerca a $1,049)
                     const precioProm300 = v.cubetas300LTH > 0 ? (v.importe300LTH / v.cubetas300LTH) : 0;
-                    // Diferencia entre litros regalados vs esperados (según fórmula motobat)
-                    const diff4T = v.diffLitros4T || 0;
-                    const diffColor = diff4T > 0 ? '#f59e0b' : (diff4T < 0 ? '#dc2626' : '#16a34a');
-                    const diffTexto = diff4T === 0 && v.motobat === 0 ? '—' : (diff4T > 0 ? '+'+fmtNum(diff4T) : fmtNum(diff4T));
-
+                    const val = (n,color)=>n>0?`<span class="font-black" style="color:${color}">${fmtNum(n)}</span>`:'<span class="text-[10px] muted">—</span>';
                     html += `
                         <tr style="border-top:1px solid var(--surface-2)">
                             <td class="p-2">
                                 <p class="font-black txt text-[11px]">${v.nombre}</p>
                                 <p class="text-[9px] muted uppercase">Cod ${v.codVend}${v.almacen?' · Alm '+v.almacen:''}</p>
                             </td>
-                            <td class="p-2 text-center font-black txt">${fmtNum(v.motobat)}</td>
-                            <td class="p-2 text-center">
-                                <p class="font-black text-[10px]" style="color:#f59e0b">${fmtNum(v.litrosEsperadosMotobat||0)}</p>
-                                <p class="text-[9px]" style="color:${diffColor}">Δ ${diffTexto}</p>
-                            </td>
-                            <td class="p-2 text-center font-black txt">${fmtNum(v.cajasBotella)}</td>
-                            <td class="p-2 text-center font-black txt">${fmtNum(v.cajasGarrafa)}</td>
-                            <td class="p-2 text-center font-black txt">${fmtNum(v.cubetas19L)}</td>
+                            <td class="p-2 text-center">${val(v.promoMotoA,'#dc2626')}</td>
+                            <td class="p-2 text-center">${val(v.promoMotoB,'#dc2626')}</td>
+                            <td class="p-2 text-center">${val(v.promoLub1,'#0891b2')}</td>
+                            <td class="p-2 text-center">${val(v.promoLub2,'#0891b2')}</td>
+                            <td class="p-2 text-center">${val(v.promoLub3,'#0891b2')}</td>
+                            <td class="p-2 text-center">${val(v.promoLub4,'#0891b2')}</td>
+                            <td class="p-2 text-center">${val(v.promoLub5,'#0891b2')}</td>
                             <td class="p-2 text-center">
                                 <p class="font-black text-[11px]" style="color:#22c55e">${fmtNum(v.cubetas300LTH)}</p>
                                 ${v.cubetas300LTH>0?`<p class="text-[8px] muted">$${precioProm300.toLocaleString('es-MX',{maximumFractionDigits:0})}/pza</p>`:''}
                             </td>
-                            <td class="p-2 text-center font-black txt">${fmtNum(v.tambos200L)}</td>
-                            <td class="p-2 text-center font-black txt">${fmtNum(v.totems1000L)}</td>
-                            <td class="p-2 text-center font-black" style="color:#16a34a">${fmtNum(v.litrosLubRegalo)}</td>
-                            <td class="p-2 text-center font-black" style="color:#a67cff">${fmtNum(v.litrosHidraulico)}</td>
-                            <td class="p-2 text-center font-black" style="color:#facc15">${v.facturasPromo.size}</td>
                             <td class="p-2 text-center">
                                 ${v.facturasDetalle.length>0?`<button onclick="verDesglosePromos('${v.clave}')" class="glass-btn px-2 py-1 rounded text-[9px] font-black uppercase" style="background:rgba(59,130,246,.15);color:#3b82f6"><i class="fas fa-magnifying-glass mr-1"></i>Ver</button>`:'<span class="text-[9px] muted">—</span>'}
                             </td>
@@ -3505,12 +3642,16 @@
 
             html += `
             <div class="surface rounded-2xl p-4 mb-4 text-[10px] muted leading-relaxed" style="border-left:4px solid #f97316">
-                <p class="font-black txt uppercase tracking-widest mb-1 text-[11px]"><i class="fas fa-info-circle mr-1" style="color:#f97316"></i>Reglas de cálculo · Septiembre 2026</p>
-                <p><b class="txt">Motobat:</b> filas con Clasificación "8 MOTOBAT". <b class="txt">Lts 4T esp.:</b> 1 lt por cada motobat + 10 lts extra por cada 10 motobat. La columna Δ muestra la diferencia con los litros efectivamente regalados.</p>
-                <p><b class="txt">Cajas 1L:</b> 12 botellas = 1 caja · <b class="txt">Cajas 5L:</b> 4 garrafas = 1 caja · <b class="txt">Cub 19L:</b> 1 cubeta = 1 unidad · <b class="txt">Tambo:</b> 200/208L = 1 tambo · <b class="txt">Totem:</b> 1000L = 1 totem.</p>
-                <p><b class="txt">Cub 300 LTH:</b> cubeta 19L Hidráulico 300 LTH (promo precio especial $1,049 desde 20 cubetas). Se detecta por "300 LTH" o "HIDRAULICO 300" en la descripción. El precio bajo cada dato es el promedio facturado.</p>
-                <p><b class="txt">Lts regalo:</b> filas de lubricante con Importe menor a $1. <b class="txt">Hidráulico:</b> Codigo empieza con "0250201".</p>
-                <p><b class="txt">Fact. promo:</b> facturas con al menos 1 producto vendido + 1 regalo. <b class="txt">Detalle:</b> muestra por factura qué se regaló para auditar posibles falsos positivos.</p>
+                <p class="font-black txt uppercase tracking-widest mb-1 text-[11px]"><i class="fas fa-info-circle mr-1" style="color:#f97316"></i>Reglas de conteo · Septiembre 2026</p>
+                <p><b class="txt" style="color:#dc2626">MOTOBATERÍA · Sec A:</b> 1-9 motobat facturadas en la factura + igual número de litros de aceite 4T LTH sin costo = <b class="txt">1 promo aprovechada</b>.</p>
+                <p><b class="txt" style="color:#dc2626">MOTOBATERÍA · Sec B:</b> Por cada 10 motobat + 1 motobat gratis + 10 lts de 4T LTH en la misma factura = <b class="txt">1 promo aprovechada</b>. Si son 20 motobat + 2 gratis + 20 lts = 2 promos, etc.</p>
+                <p><b class="txt" style="color:#0891b2">LUBRICANTE · Sec 1:</b> 10 cajas/cubetas/bidones del <b>mismo tipo</b> + 1 caja gratis = 1 promo.</p>
+                <p><b class="txt" style="color:#0891b2">LUBRICANTE · Sec 2:</b> 10 cajas <b>mixtas</b> + 1 caja gratis (la de menor precio) = 1 promo.</p>
+                <p><b class="txt" style="color:#0891b2">LUBRICANTE · Sec 3:</b> 15 cajas del <b>mismo tipo</b> + 2 cajas gratis = 1 promo.</p>
+                <p><b class="txt" style="color:#0891b2">LUBRICANTE · Sec 4:</b> 15 cajas <b>mixtas</b> + 2 cajas gratis (menor precio) = 1 promo.</p>
+                <p><b class="txt" style="color:#0891b2">LUBRICANTE · Sec 5:</b> 1 tambo 208L o totem + regalo (10% adicional o 1 cubeta/bidón sin costo) = 1 promo por tambo.</p>
+                <p><b class="txt" style="color:#22c55e">HIDRÁULICO 300 LTH:</b> total de cubetas 19L vendidas (identificadas por "300 LTH" o "HIDRAULICO 300" en la descripción). Precio especial $1,049 desde 20 cubetas al mes.</p>
+                <p class="mt-2"><b class="txt">Nota:</b> "Mismo tipo" = descripción idéntica del producto en el sheet. Regalo = fila con importe menor a $1.</p>
             </div>
             <p class="text-center text-[10px] muted mt-2 mb-6 uppercase tracking-widest">Actualizado: ${data.generado.toLocaleString('es-MX',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}</p>`;
 
@@ -3543,7 +3684,8 @@
                                 <th class="p-2 text-left font-black uppercase text-[9px]">Cliente</th>
                                 <th class="p-2 text-center font-black uppercase text-[9px]" style="color:#dc2626">Motobat</th>
                                 <th class="p-2 text-center font-black uppercase text-[9px]" style="color:#0891b2">Cajas/Cub/T</th>
-                                <th class="p-2 text-center font-black uppercase text-[9px]" style="color:#16a34a">Lts regalo</th>
+                                <th class="p-2 text-center font-black uppercase text-[9px]" style="color:#16a34a">Regalo (mot./4T/lub)</th>
+                                <th class="p-2 text-center font-black uppercase text-[9px]" style="color:#facc15">Sección</th>
                                 <th class="p-2 text-left font-black uppercase text-[9px]">Descripción del regalo</th>
                             </tr>
                         </thead>
@@ -3557,14 +3699,26 @@
                                     f.tambos?f.tambos+' tambo':null,
                                     f.totems?f.totems+' totem':null
                                 ].filter(Boolean).join(' · ') || '—';
-                                const desc = (f.regalosDetalle||[]).map(r=>`${r.desc} (${fmtNum(r.litros)}L · $${r.importe.toFixed(2)})`).join('<br>') || '—';
+                                const desc = (f.regalosDetalle||[]).map(r=>`${r.desc} (${fmtNum(r.litros||r.cantidad)}${r.tipo==='motobat'?'pz':'L'} · $${r.importe.toFixed(2)})`).join('<br>') || '—';
+                                const s = f.secciones || {};
+                                const secList = [
+                                    s.motoA?'Mot-A':null, s.motoB?`Mot-B×${s.motoB}`:null,
+                                    s.lub1?'Lub-1':null, s.lub2?'Lub-2':null, s.lub3?'Lub-3':null, s.lub4?'Lub-4':null,
+                                    s.lub5?`Lub-5×${s.lub5}`:null
+                                ].filter(Boolean).join(' · ') || '<span class="text-[10px] muted">—</span>';
+                                const regaloTxt = [
+                                    f.motobatRegalo?f.motobatRegalo+' motobat':null,
+                                    f.litros4TRegalo?f.litros4TRegalo+'L 4T':null,
+                                    (f.litrosLubRegalo - f.litros4TRegalo) > 0 ? (f.litrosLubRegalo - f.litros4TRegalo)+'L lub':null
+                                ].filter(Boolean).join(' · ') || '—';
                                 return `
                                 <tr style="border-top:1px solid var(--surface-2)">
                                     <td class="p-2 font-black txt">${f.factura}</td>
                                     <td class="p-2 muted text-[10px]">${f.codCli||'—'}</td>
                                     <td class="p-2 text-center font-black txt">${fmtNum(f.motobat)}</td>
                                     <td class="p-2 text-center text-[10px] txt">${envases}</td>
-                                    <td class="p-2 text-center font-black" style="color:#16a34a">${fmtNum(f.litrosLubRegalo)}</td>
+                                    <td class="p-2 text-center text-[10px] font-black" style="color:#16a34a">${regaloTxt}</td>
+                                    <td class="p-2 text-center text-[10px] font-black" style="color:#facc15">${secList}</td>
                                     <td class="p-2 text-[10px] muted">${desc}</td>
                                 </tr>`;
                             }).join('')}
