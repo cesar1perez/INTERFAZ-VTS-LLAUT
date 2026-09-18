@@ -3231,33 +3231,47 @@
                 };
             });
 
+            // DIAGNÓSTICO: rastrear cuántas filas se descartan y por qué
+            const diag = { totalFilas:0, sinFecha:0, otroMes:0, sinVendedor:0, sinLinea:0, sinFactura:0, procesadas:0, ejemploCodVend:new Set(), ejemploClasif:new Set() };
             // Recorrer las 2 hojas
             for(const hoja in hojas){
                 const filas = hojas[hoja] || [];
                 filas.forEach(row=>{
+                    diag.totalFilas++;
                     // Filtrar por mes usando la columna Fecha
                     if(filtroMes){
                         const f = parseFechaVenta(row['Fecha'] || row['FECHA'] || row['fecha']);
-                        if(!f || f.mes !== filtroMes.mes || f.anio !== filtroMes.anio) return;
+                        if(!f){ diag.sinFecha++; return; }
+                        if(f.mes !== filtroMes.mes || f.anio !== filtroMes.anio){ diag.otroMes++; return; }
                     }
-                    // Identificar vendedor (Cod Vend 1 + Almacen si aplica)
-                    const codVend = String(row['Cod Vend 1'] || row['COD VEND 1'] || '').trim().padStart(3,'0');
-                    const almacen = String(row['Almacen'] || row['ALMACEN'] || '').trim().padStart(3,'0');
+                    // Identificar vendedor. Cod Vend 1 puede venir como número (3) o texto ("003" / "3").
+                    // Normalizamos SIEMPRE a 3 dígitos con padStart.
+                    let codVendRaw = row['Cod Vend 1'] || row['COD VEND 1'] || row['Cod Vend'] || '';
+                    const codVend = String(codVendRaw).replace(/\D/g,'').padStart(3,'0');
+                    let almacenRaw = row['Almacen'] || row['ALMACEN'] || '';
+                    const almacen = String(almacenRaw).replace(/\D/g,'').padStart(3,'0');
+                    // Capturar ejemplos para diagnóstico
+                    if(diag.ejemploCodVend.size < 20 && codVend !== '000') diag.ejemploCodVend.add(hoja+':'+codVend+(almacen!=='000'?'/'+almacen:''));
                     const vendedor = PROMOS_VENDEDORES.find(v =>
                         v.hoja === hoja &&
                         v.codVend === codVend &&
                         (v.almacen === null || v.almacen === almacen)
                     );
-                    if(!vendedor) return;
+                    if(!vendedor){ diag.sinVendedor++; return; }
                     const acc = porVend[vendedor.clave];
 
+                    // Capturar ejemplos de clasificación para diagnóstico
+                    const clasifRaw = String(row['Clasificacion'] || row['CLASIFICACION'] || '').trim();
+                    if(diag.ejemploClasif.size < 20 && clasifRaw) diag.ejemploClasif.add(clasifRaw);
+
                     const linea = detectarLineaPromo(row);
-                    if(!linea.linea) return;
+                    if(!linea.linea){ diag.sinLinea++; return; }
 
                     const cantidad = n(row['Cantidad'] || row['CANTIDAD']);
                     const factura = String(row['Factura'] || row['FACTURA'] || '').trim();
                     const codCli  = String(row['Cod de cliente'] || row['COD DE CLIENTE'] || '').trim();
-                    if(!factura) return;
+                    if(!factura){ diag.sinFactura++; return; }
+                    diag.procesadas++;
 
                     // Inicializar la factura en el acumulador
                     if(!acc.facturas[factura]) acc.facturas[factura] = {
@@ -3325,7 +3339,16 @@
                             else if(linea.subtipo === 'CUB19L_300LTH'){
                                 facAcc.cubetas300 += envases.cubetas300;
                                 acc.cubetas300LTH += envases.cubetas300;
-                                acc.importe300LTH += n(row['Importe'] || row['IMPORTE']);
+                                const impLinea = n(row['Importe'] || row['IMPORTE']);
+                                acc.importe300LTH += impLinea;
+                                // Precio unitario de esta línea (importe / cantidad) para calcular precio típico
+                                if(cantidad > 0){
+                                    const precioUnit = impLinea / cantidad;
+                                    if(precioUnit > 100){ // filtrar regalos/errores
+                                        if(!acc.preciosUnit300LTH) acc.preciosUnit300LTH = [];
+                                        acc.preciosUnit300LTH.push(precioUnit);
+                                    }
+                                }
                             }
                             else if(linea.subtipo === 'TAMBO200L'){ facAcc.tambos += envases.tambos; acc.tambos200L += envases.tambos; }
                             else if(linea.subtipo === 'TOTEM1000L'){ facAcc.totems += envases.totems; acc.totems1000L += envases.totems; }
@@ -3440,7 +3463,11 @@
                 acc.facturasDetalle.sort((a,b)=>b.litrosLubRegalo - a.litrosLubRegalo);
             });
 
-            return { porVend, generado: new Date() };
+            // Convertir Sets a arrays para diagnóstico
+            diag.ejemploCodVend = Array.from(diag.ejemploCodVend).slice(0,15);
+            diag.ejemploClasif = Array.from(diag.ejemploClasif).slice(0,15);
+            console.log('[PROMOS] Diagnóstico:', diag);
+            return { porVend, generado: new Date(), diag };
         }
 
         function renderPromosResultados(){
@@ -3517,8 +3544,28 @@
             });
 
             const fmtNum = n => Number(n).toLocaleString('es-MX');
+            const dg = data.diag || {};
 
-            let html = `
+            // Panel diagnóstico: muestra qué está leyendo el sheet, para debug
+            let diagPanel = '';
+            if(dg.totalFilas !== undefined){
+                const noSirvenVend = dg.sinVendedor > (dg.totalFilas * 0.5);
+                const noSirveClasif = dg.procesadas < 5 && dg.sinLinea > 100;
+                const hayAlerta = noSirvenVend || noSirveClasif || dg.procesadas === 0;
+                diagPanel = `
+                <details ${hayAlerta?'open':''} class="surface rounded-2xl p-3 mb-4 text-[10px]" style="border-left:4px solid ${hayAlerta?'#dc2626':'#94a3b8'}">
+                    <summary class="cursor-pointer font-black txt uppercase tracking-widest text-[10px]"><i class="fas fa-microscope mr-1" style="color:${hayAlerta?'#dc2626':'#0891b2'}"></i>Diagnóstico de lectura ${hayAlerta?'· ⚠️ revisa':''}</summary>
+                    <div class="mt-3 leading-relaxed muted">
+                        <p><b class="txt">Filas leídas:</b> ${fmtNum(dg.totalFilas)} · <b class="txt">Procesadas:</b> ${fmtNum(dg.procesadas)}</p>
+                        <p><b>Descartadas:</b> sin fecha ${dg.sinFecha}, otro mes ${dg.otroMes}, sin vendedor ${dg.sinVendedor}, sin línea válida ${dg.sinLinea}, sin factura ${dg.sinFactura}</p>
+                        <p class="mt-2"><b class="txt">Códigos de vendedor detectados en las hojas:</b><br><code class="text-[10px]" style="color:#0891b2">${(dg.ejemploCodVend||[]).join(' · ') || 'ninguno'}</code></p>
+                        <p class="mt-2"><b class="txt">Ejemplos de "Clasificacion" leídos:</b><br><code class="text-[10px]" style="color:#0891b2">${(dg.ejemploClasif||[]).join(' · ') || 'ninguno'}</code></p>
+                        <p class="mt-2 text-[9px] italic">Si tu vendedor no aparece arriba, es que su código no coincide con lo configurado. Si "8 MOTOBAT" no aparece, la clasificación viene con otro nombre.</p>
+                    </div>
+                </details>`;
+            }
+
+            let html = diagPanel + `
             <!-- Bloques de resumen por promoción -->
             <div class="surface rounded-2xl p-4 mb-4" style="border-left:6px solid #dc2626">
                 <p class="text-[10px] font-black uppercase tracking-widest mb-1" style="color:#dc2626"><i class="fas fa-motorcycle mr-1"></i>Promoción Motobatería</p>
@@ -3608,7 +3655,13 @@
                             <tbody>`;
 
                 vendedores.forEach(v=>{
-                    const precioProm300 = v.cubetas300LTH > 0 ? (v.importe300LTH / v.cubetas300LTH) : 0;
+                    // Precio típico 300 LTH: usar mediana de precios unitarios reales (>$100)
+                    // para evitar que regalos o descuentos distorsionen el promedio
+                    let precioProm300 = 0;
+                    if(v.preciosUnit300LTH && v.preciosUnit300LTH.length > 0){
+                        const sorted = v.preciosUnit300LTH.slice().sort((a,b)=>a-b);
+                        precioProm300 = sorted[Math.floor(sorted.length/2)]; // mediana
+                    }
                     const val = (n,color)=>n>0?`<span class="font-black" style="color:${color}">${fmtNum(n)}</span>`:'<span class="text-[10px] muted">—</span>';
                     html += `
                         <tr style="border-top:1px solid var(--surface-2)">
