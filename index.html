@@ -3196,6 +3196,7 @@
         // IMPORTANTE (per usuario 18-sep):
         //   - 1L botella: cantidad = LITROS (= unidades). 12 litros = 1 caja.
         //   - 5L garrafa: cantidad = UNIDADES de garrafa. 1 garrafa = 5 litros. 4 garrafas = 1 caja de garrafas.
+        //   - 5L garrafa: cantidad = LITROS. Ej: 15 litros = 3 garrafas (15÷5). 4 garrafas = 1 caja.
         //   - 19L cubeta: cantidad = LITROS. Ej: 57 litros = 3 cubetas (57÷19). Aplica también a 20KG.
         //   - 208L / 200KG tambo: cantidad = LITROS. Ej: 208 = 1 tambo. 200 = 1 tambo.
         //   - 1000L totem: cantidad = LITROS. Ej: 1000 = 1 totem.
@@ -3204,11 +3205,18 @@
             // Divide cantidad (en litros) entre el tamaño del envase para obtener # unidades.
             // Si cantidad < tamaño (ej: 1 en Cantidad para 1 cubeta), usar Math.max(1, ...) para no perderla.
             const porTamano = (sz) => c <= 0 ? 0 : Math.max(1, Math.round(c/sz));
-            if(subtipo === 'BOTELLA1L')     return { cajas: Math.floor(c/12), litros: c };
-            if(subtipo === 'GARRAFA5L')     return { cajas: Math.floor(c/4),  litros: c*5 };  // cantidad = # garrafas
-            if(subtipo === 'CUBETA19L')     return { cubetas: porTamano(19),  litros: c };    // cantidad = litros → dividir
+            if(subtipo === 'BOTELLA1L'){
+                // 1L: c litros = c botellas. 12 botellas = 1 caja.
+                return { cajas: Math.floor(c/12), litros: c, garrafas: 0 };
+            }
+            if(subtipo === 'GARRAFA5L'){
+                // 5L garrafa: c litros / 5 = # garrafas. 4 garrafas = 1 caja de garrafas.
+                const garrafas = porTamano(5);
+                return { cajas: Math.floor(garrafas/4), garrafas, litros: c };
+            }
+            if(subtipo === 'CUBETA19L')     return { cubetas: porTamano(19),  litros: c };
             if(subtipo === 'CUB19L_300LTH') return { cubetas300: porTamano(19), litros: c };
-            if(subtipo === 'TAMBO200L')     return { tambos: porTamano(200),  litros: c };    // 208L o 200KG → dividir
+            if(subtipo === 'TAMBO200L')     return { tambos: porTamano(200),  litros: c };
             if(subtipo === 'TOTEM1000L')    return { totems: porTamano(1000), litros: c };
             return {};
         }
@@ -3252,6 +3260,8 @@
                     litrosLubRegaloOtro: 0,    // otros litros lubricante regalados (no 4T LTH)
                     // Cajas VENDIDAS por tipo de envase
                     cajasBotella: 0, cajasGarrafa: 0,
+                    // Garrafas sueltas (5L, cuando no llegan a caja de 4)
+                    garrafasSueltas: 0,
                     cubetas19L: 0, cubetas300LTH: 0, importe300LTH: 0, preciosUnit300LTH: [],
                     tambos200L: 0, totems1000L: 0,
                     // Regalos de lubricante por envase
@@ -3383,7 +3393,11 @@
                             }
                         } else {
                             if(linea.subtipo === 'BOTELLA1L'){ facAcc.cajasBot += envases.cajas; acc.cajasBotella += envases.cajas; }
-                            else if(linea.subtipo === 'GARRAFA5L'){ facAcc.cajasGar += envases.cajas; acc.cajasGarrafa += envases.cajas; }
+                            else if(linea.subtipo === 'GARRAFA5L'){
+                                facAcc.cajasGar += envases.cajas;
+                                acc.cajasGarrafa += envases.cajas;
+                                acc.garrafasSueltas += envases.garrafas;  // total de garrafas (independiente de cajas)
+                            }
                             else if(linea.subtipo === 'CUBETA19L'){ facAcc.cubetas += envases.cubetas; acc.cubetas19L += envases.cubetas; }
                             else if(linea.subtipo === 'CUB19L_300LTH'){
                                 facAcc.cubetas300 += envases.cubetas300;
@@ -3689,7 +3703,10 @@
 
                 vendedores.forEach(v=>{
                     const val = (n,color)=>n>0?`<span class="font-black" style="color:${color}">${fmtNum(n)}</span>`:'<span class="text-[10px] muted">—</span>';
-                    const totalCajasVend = v.cajasBotella + v.cajasGarrafa + v.cubetas19L;
+                    // Cifras crudas separadas: cajas 1L, garrafas sueltas 5L, cubetas 19L
+                    const cajas1L = v.cajasBotella || 0;
+                    const garrafas5L = v.garrafasSueltas || 0;
+                    const cubetas = v.cubetas19L || 0;
                     html += `
                         <tr style="border-top:2px solid var(--surface-2)">
                             <td class="p-2" rowspan="2">
@@ -3716,9 +3733,11 @@
                             <td class="p-1 text-center text-[9px] muted" title="Motobat gratis">${fmtNum(v.motobatGratis||0)}<br><span class="text-[7px]">grat</span></td>
                             <td class="p-1 text-center text-[9px] muted" colspan="5" title="Cifras crudas del vendedor">
                                 ${[
-                                    totalCajasVend>0?`<span style="color:#0891b2">${fmtNum(totalCajasVend)} cajas</span>`:null,
-                                    v.litros4TLTHRegalo>0?`<span style="color:#16a34a">${fmtNum(v.litros4TLTHRegalo)}L 4T</span>`:null,
-                                    v.litrosLubRegaloOtro>0?`<span style="color:#16a34a">${fmtNum(v.litrosLubRegaloOtro)}L otros</span>`:null,
+                                    cajas1L>0?`<span style="color:#0891b2">${fmtNum(cajas1L)} cajas 1L</span>`:null,
+                                    garrafas5L>0?`<span style="color:#0891b2">${fmtNum(garrafas5L)} garrafas 5L</span>`:null,
+                                    cubetas>0?`<span style="color:#0891b2">${fmtNum(cubetas)} cubetas 19L</span>`:null,
+                                    v.litros4TLTHRegalo>0?`<span style="color:#16a34a">${fmtNum(v.litros4TLTHRegalo)}L 4T regalo</span>`:null,
+                                    v.litrosLubRegaloOtro>0?`<span style="color:#16a34a">${fmtNum(v.litrosLubRegaloOtro)}L otros regalo</span>`:null,
                                     v.tambos200L>0?`<span style="color:#f97316">${fmtNum(v.tambos200L)} tambo</span>`:null,
                                     v.totems1000L>0?`<span style="color:#f97316">${fmtNum(v.totems1000L)} totem</span>`:null
                                 ].filter(Boolean).join(' · ') || '<span class="text-[8px]">sin actividad relevante</span>'}
@@ -3763,11 +3782,16 @@
             const overlay = document.createElement('div');
             overlay.style.cssText = 'position:fixed;inset:0;background:rgba(12,31,68,.9);z-index:99999;display:flex;flex-direction:column;padding:12px;overflow:auto';
             // Resumen crudo de lo vendido por el vendedor (para header del modal)
-            const totalCajas = (v.cajasBotella||0) + (v.cajasGarrafa||0);
             const totalCubetas = (v.cubetas19L||0) + (v.cubetas300LTH||0);
+            // Cajas de 1L (botellas) — vendidas por caja de 12
+            const cajas1L = v.cajasBotella||0;
+            // Garrafas 5L — mostrar total de garrafas, y cuántas cajas completó (4 garrafas = 1 caja)
+            const garrafas = v.garrafasSueltas||0;
+            const cajasGarrafa = v.cajasGarrafa||0;
             const resumenVend = [
                 v.motobat?fmtNum(v.motobat)+' motobat':null,
-                totalCajas?fmtNum(totalCajas)+' cajas':null,
+                cajas1L?fmtNum(cajas1L)+' cajas 1L':null,
+                garrafas?fmtNum(garrafas)+' garrafas 5L'+(cajasGarrafa?' ('+fmtNum(cajasGarrafa)+' cajas de garrafas)':''):null,
                 totalCubetas?fmtNum(totalCubetas)+' cubetas (19L+300LTH)':null,
                 v.tambos200L?fmtNum(v.tambos200L)+' tambos':null,
                 v.totems1000L?fmtNum(v.totems1000L)+' totems':null,
