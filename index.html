@@ -252,6 +252,8 @@
         .promo-reglas-num{padding-left:22px;margin:8px 0;color:#334155}
         .promo-reglas-num li{font-size:12.5px;line-height:1.6;padding:5px 0;color:#334155}
         .promo-reglas-num li b{color:#0c1f44}
+        .promo-res-btn{display:inline-flex;align-items:center;gap:6px;background:#facc15;color:#0c1f44;font-size:10px;font-weight:900;letter-spacing:1.5px;text-transform:uppercase;padding:8px 14px;border-radius:999px;border:0;box-shadow:0 4px 12px rgba(0,0,0,.18);cursor:pointer;color:#fff !important;background:rgba(255,255,255,.22);border:1px solid rgba(255,255,255,.4)}
+        .promo-res-btn:hover{background:rgba(255,255,255,.35)}
     </style>
 </head>
 <body>
@@ -2928,19 +2930,21 @@
             return `
             <div class="promo-doc">
                 <div class="promo-doc-head" style="background:linear-gradient(135deg,#001529,#0c1f44)">
-                    <p class="promo-doc-tag">Ventas Mayoreo · Agosto 2026</p>
+                    <p class="promo-doc-tag">Ventas Mayoreo · Septiembre 2026</p>
                     <h3 class="promo-doc-title"><i class="fas fa-motorcycle mr-2" style="color:#fca5a5"></i>Promoción de Motobatería</h3>
                 </div>
                 <div class="promo-doc-body">
-                    <p class="promo-doc-intro">Estimados, en el mes de <b>Agosto 2026</b> estaremos otorgando las siguientes promociones en <b>venta mayoreo</b>:</p>
+                    <p class="promo-doc-intro">Estimados, en el mes de <b>Septiembre 2026</b> estaremos otorgando las siguientes promociones en <b>venta mayoreo</b>:</p>
 
-                    <div class="promo-highlight" style="background:linear-gradient(135deg,#dc2626,#991b1b)">
+                    <div class="promo-highlight" style="background:linear-gradient(135deg,#dc2626,#991b1b);position:relative">
                         <p class="promo-highlight-txt">Por cada <span>1 motobatería</span><br>1 litro de <span>aceite 4T LTH</span> sin costo</p>
+                        <div style="text-align:center;margin-top:10px"><button onclick="abrirResultadoPromo('motobat_1L4T')" class="promo-res-btn"><i class="fas fa-chart-column mr-1"></i>Ver resultados</button></div>
                     </div>
 
-                    <div class="promo-highlight" style="background:linear-gradient(135deg,#1e3a8a,#1d4ed8)">
+                    <div class="promo-highlight" style="background:linear-gradient(135deg,#1e3a8a,#1d4ed8);position:relative">
                         <p class="promo-highlight-txt">Por cada <span>10 motobaterías</span><br>1 motobatería adicional sin costo</p>
                         <p class="promo-highlight-sub">(la de menor precio)</p>
+                        <div style="text-align:center;margin-top:10px"><button onclick="abrirResultadoPromo('motobat_10x1')" class="promo-res-btn"><i class="fas fa-chart-column mr-1"></i>Ver resultados</button></div>
                     </div>
 
                     <ul class="promo-reglas">
@@ -2958,11 +2962,11 @@
             return `
             <div class="promo-doc">
                 <div class="promo-doc-head" style="background:linear-gradient(135deg,#7c2d12,#c2410c)">
-                    <p class="promo-doc-tag">Ventas Mayoreo · Agosto 2026</p>
+                    <p class="promo-doc-tag">Ventas Mayoreo · Septiembre 2026</p>
                     <h3 class="promo-doc-title"><i class="fas fa-oil-can mr-2" style="color:#fed7aa"></i>Promoción de Lubricante</h3>
                 </div>
                 <div class="promo-doc-body">
-                    <p class="promo-doc-intro">Estimados, en el mes de <b>Agosto 2026</b> estaremos otorgando las siguientes promociones en <b>venta mayoreo</b>:</p>
+                    <p class="promo-doc-intro">Estimados, en el mes de <b>Septiembre 2026</b> estaremos otorgando las siguientes promociones en <b>venta mayoreo</b>:</p>
 
                     <p class="promo-section-title" style="color:#c2410c"><i class="fas fa-layer-group mr-1"></i>Lubricante General</p>
                     <ol class="promo-reglas-num">
@@ -2972,10 +2976,12 @@
                         <li>Por <b>15 cajas / cubetas / bidón MIXTAS</b> → <b>2 adicionales sin costo</b> (la de menor precio).</li>
                         <li>Por <b>1 tambo de 208 L o 180 kg</b> → <b>10% adicional</b> o <b>1 cubeta / bidón sin costo</b> del mismo tipo.</li>
                     </ol>
+                    <div style="text-align:center;margin:8px 0 4px"><button onclick="abrirResultadoPromo('lub_general')" class="promo-res-btn" style="background:#c2410c"><i class="fas fa-chart-column mr-1"></i>Ver resultados · Lubricante General</button></div>
 
                     <p class="promo-section-title" style="color:#0891b2;margin-top:20px"><i class="fas fa-star mr-1"></i>Precio Especial · Cubeta 19 L Hidráulico 300 LTH</p>
                     <div class="promo-highlight" style="background:linear-gradient(135deg,#0e7490,#0891b2)">
                         <p class="promo-highlight-txt">Precio especial <span>$1,049.00</span><br>a partir de <span>20 cubetas</span></p>
+                        <div style="text-align:center;margin-top:10px"><button onclick="abrirResultadoPromo('cub_300lth')" class="promo-res-btn"><i class="fas fa-chart-column mr-1"></i>Ver resultados</button></div>
                     </div>
                     <ul class="promo-reglas">
                         <li><i class="fas fa-info-circle" style="color:#0891b2"></i>Se puede dar el precio desde <b>5 cubetas mínimo</b> por factura y por semana, para cubrir el mínimo de <b>20 cubetas por mes</b>.</li>
@@ -2987,6 +2993,7 @@
                         <li>Por <b>5 cajas de garrafa</b> → <b>2 garrafas de regalo</b> (media caja) del mismo tipo o del menor precio.</li>
                         <li>Por <b>5 cubetas / bidones / cajas mixtas</b> → <b>6 litros sin costo del lubricante DX3</b> o un <b>5% adicional</b>.</li>
                     </ol>
+                    <div style="text-align:center;margin:8px 0 4px"><button onclick="abrirResultadoPromo('bajo_potencial')" class="promo-res-btn" style="background:#9333ea"><i class="fas fa-chart-column mr-1"></i>Ver resultados · Bajo Potencial</button></div>
                 </div>
                 <div class="promo-doc-foot">Saludos cordiales · Fuerza de Ventas</div>
             </div>`;
@@ -3058,6 +3065,131 @@
             `;
             overlay.onclick = (e)=>{ if(e.target===overlay) overlay.remove(); };
             document.body.appendChild(overlay);
+        }
+
+        // Modal específico por promo, reutiliza promosResState
+        async function abrirResultadoPromo(promoKey){
+            // Mostrar modal cargando
+            const overlay = document.createElement('div');
+            overlay.style.cssText = 'position:fixed;inset:0;background:rgba(12,31,68,.95);z-index:99999;display:flex;flex-direction:column;padding:12px;overflow-y:auto';
+            overlay.innerHTML = `<div style="color:#fff;text-align:center;padding:40px"><div class="w-10 h-10 border-4 rounded-full animate-spin mx-auto mb-4" style="border-color:#facc15;border-top-color:transparent"></div><p class="text-[11px] font-black uppercase tracking-widest">Calculando resultados...</p></div>`;
+            overlay.onclick = (e)=>{ if(e.target===overlay) overlay.remove(); };
+            document.body.appendChild(overlay);
+            // Cargar datos si no están
+            if(!promosResState.data){
+                const ok = await loadPromosResultados();
+                if(!ok){ overlay.innerHTML = `<div style="color:#fff;padding:40px;text-align:center"><p>Error al cargar</p><button onclick="this.closest('div').parentElement.remove()" style="margin-top:12px;padding:8px 20px;background:#facc15;border:0;border-radius:8px;font-weight:900">Cerrar</button></div>`; return; }
+            }
+            const data = promosResState.data;
+            const fmtNum = n => Math.round(Number(n)||0).toLocaleString('es-MX');
+            const mes = promosResState.mesFiltro || 'SEPTIEMBRE';
+
+            // Definiciones de cada promo: título, columnas y extractor
+            const PROMO_MODAL_DEFS = {
+                motobat_1L4T: {
+                    titulo: '1 motobat = 1 lt aceite 4T LTH',
+                    subt: 'Cuenta las motobaterías vendidas y los litros de lubricante regalados (importe < $1).',
+                    color: '#dc2626',
+                    cols: [
+                        {h:'Motobat', get: v => fmtNum(v.motobat), color:'#dc2626'},
+                        {h:'Lts 4T esperados', get: v => fmtNum(v.litrosEsperadosMotobat||0), color:'#f59e0b'},
+                        {h:'Lts regalo real', get: v => fmtNum(v.litrosLubRegalo), color:'#16a34a'},
+                        {h:'Δ', get: v => { const d=v.diffLitros4T||0; return `<span style="color:${d>0?'#f59e0b':d<0?'#dc2626':'#16a34a'}">${d>0?'+':''}${fmtNum(d)}</span>`; }}
+                    ]
+                },
+                motobat_10x1: {
+                    titulo: '10 motobat = 1 motobat gratis',
+                    subt: 'Cada 10 motobaterías vendidas dan derecho a 1 motobatería adicional sin costo (la de menor precio).',
+                    color: '#1d4ed8',
+                    cols: [
+                        {h:'Motobat vendidas', get: v => fmtNum(v.motobat), color:'#dc2626'},
+                        {h:'Motobat gratis esperadas', get: v => fmtNum(Math.floor(v.motobat/10)), color:'#1d4ed8'}
+                    ]
+                },
+                lub_general: {
+                    titulo: 'Lubricante General — cajas / cubetas / tambo',
+                    subt: 'Conteo total de envases vendidos para evaluar las promociones 10/15 y tambo del mismo tipo.',
+                    color: '#c2410c',
+                    cols: [
+                        {h:'Cajas 1L', get: v => fmtNum(v.cajasBotella), color:'#0891b2'},
+                        {h:'Cajas 5L', get: v => fmtNum(v.cajasGarrafa), color:'#0891b2'},
+                        {h:'Cub 19L (otros)', get: v => fmtNum(v.cubetas19L), color:'#0891b2'},
+                        {h:'Tambo 200L', get: v => fmtNum(v.tambos200L), color:'#0891b2'},
+                        {h:'Totem 1000L', get: v => fmtNum(v.totems1000L), color:'#0891b2'}
+                    ]
+                },
+                cub_300lth: {
+                    titulo: 'Cubeta 19 L Hidráulico 300 LTH · $1,049 desde 20 cubetas',
+                    subt: 'Cubetas 19L de HIDRÁULICO 300 ISO / LTH vendidas. Se marca ✓ si el vendedor alcanzó el mínimo de 20 cubetas/mes.',
+                    color: '#0891b2',
+                    cols: [
+                        {h:'Cub 300 LTH', get: v => `<b style="color:#22c55e;font-size:14px">${fmtNum(v.cubetas300LTH)}</b>`},
+                        {h:'Litros', get: v => fmtNum(Math.round(v.cubetas300LTH*19))},
+                        {h:'Precio prom.', get: v => v.cubetas300LTH>0?`$${Math.round(v.importe300LTH/v.cubetas300LTH).toLocaleString('es-MX')}`:'—'},
+                        {h:'≥ 20 cub', get: v => v.cubetas300LTH>=20?'<span style="color:#16a34a;font-weight:900">✓</span>':`<span style="color:#dc2626">${Math.max(0,20-Math.round(v.cubetas300LTH))} faltantes</span>`}
+                    ]
+                },
+                bajo_potencial: {
+                    titulo: 'Bajo Potencial · solo venta de contado',
+                    subt: 'Estadísticas para las 3 reglas (5 cajas 1L, 5 cajas 5L, 5 cubetas mixtas). El filtro por “clientes de bajo potencial” se está desarrollando; por ahora se muestran los conteos generales que sirven de referencia.',
+                    color: '#9333ea',
+                    cols: [
+                        {h:'Cajas 1L', get: v => fmtNum(v.cajasBotella), color:'#0891b2'},
+                        {h:'Cajas 5L', get: v => fmtNum(v.cajasGarrafa), color:'#0891b2'},
+                        {h:'Cub 19L', get: v => fmtNum(v.cubetas19L), color:'#0891b2'},
+                        {h:'Lts regalo', get: v => fmtNum(v.litrosLubRegalo), color:'#16a34a'}
+                    ]
+                }
+            };
+
+            const def = PROMO_MODAL_DEFS[promoKey];
+            if(!def){ overlay.remove(); alert('Promo no reconocida: '+promoKey); return; }
+
+            // Agrupar por organización
+            const grupos = { 'Llanterama Tulancingo': [], 'Autoeléctrica Roma': [] };
+            Object.values(data.porVend).forEach(v=>{ if(grupos[v.orgLabel]) grupos[v.orgLabel].push(v); });
+
+            let tablas = '';
+            for(const org in grupos){
+                const vs = grupos[org];
+                if(!vs.length) continue;
+                let rows = vs.map(v => `
+                    <tr style="border-top:1px solid #e2e8f0">
+                        <td style="padding:8px 10px">
+                            <p style="font-weight:900;font-size:12px;color:#0c1f44;margin:0">${v.nombre}</p>
+                            <p style="font-size:9px;color:#64748b;margin:0;text-transform:uppercase">Cod ${v.codVend}${v.almacen?' · Alm '+v.almacen:''}</p>
+                        </td>
+                        ${def.cols.map(c=>`<td style="padding:8px 10px;text-align:center;font-weight:800;color:${c.color||'#0c1f44'}">${c.get(v)}</td>`).join('')}
+                    </tr>`).join('');
+                tablas += `
+                <p style="font-size:10px;font-weight:900;color:#facc15;letter-spacing:2px;text-transform:uppercase;margin:16px 0 6px"><i class="fas fa-warehouse mr-1"></i>${org}</p>
+                <div style="background:#fff;border-radius:14px;overflow:hidden">
+                <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px;min-width:${420+def.cols.length*90}px">
+                    <thead><tr style="background:#f1f5f9">
+                        <th style="padding:10px;text-align:left;font-size:9px;text-transform:uppercase;letter-spacing:1.5px;color:#0c1f44">Vendedor</th>
+                        ${def.cols.map(c=>`<th style="padding:10px;text-align:center;font-size:9px;text-transform:uppercase;letter-spacing:1.5px;color:${c.color||'#0c1f44'}">${c.h}</th>`).join('')}
+                    </tr></thead>
+                    <tbody>${rows}</tbody>
+                </table></div>
+                </div>`;
+            }
+
+            overlay.innerHTML = `
+                <div style="max-width:820px;margin:0 auto;width:100%">
+                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;gap:12px">
+                        <div>
+                            <p style="font-size:10px;font-weight:900;color:#facc15;letter-spacing:2px;text-transform:uppercase;margin:0">Resultados · ${mes} 2026</p>
+                            <p style="font-size:15px;font-weight:900;color:#fff;margin:2px 0 0">${def.titulo}</p>
+                        </div>
+                        <button onclick="this.closest('div[style*=fixed]').remove()" style="width:40px;height:40px;border-radius:999px;background:rgba(255,255,255,.15);color:#fff;border:0;font-size:18px;cursor:pointer">✕</button>
+                    </div>
+                    <div style="background:linear-gradient(135deg,${def.color},${def.color}dd);color:#fff;border-radius:14px;padding:12px 16px;margin-bottom:12px;font-size:11.5px;line-height:1.5">
+                        <i class="fas fa-info-circle mr-1"></i>${def.subt}
+                    </div>
+                    ${tablas}
+                    <p style="color:#94a3b8;font-size:9px;text-align:center;margin-top:12px;text-transform:uppercase;letter-spacing:2px">Actualizado: ${data.generado.toLocaleString('es-MX',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}</p>
+                </div>`;
+            overlay.onclick = (e)=>{ if(e.target===overlay) overlay.remove(); };
         }
 
         function renderPromosAgosto(){
