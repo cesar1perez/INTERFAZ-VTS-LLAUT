@@ -3587,7 +3587,7 @@
             {clave:'AR-003-001',  hoja:'AUTO_ROMA',  codVend:'003', almacen:'001', nombre:'Colosio-Mayoreo',      tienda:'CS Colosio',           color:'#16a34a'},
             {clave:'AR-003-003',  hoja:'AUTO_ROMA',  codVend:'003', almacen:'003', nombre:'CS CD Sahagún Mayoreo',tienda:'CD Sahagún',           color:'#eab308'},
             {clave:'AR-022',      hoja:'AUTO_ROMA',  codVend:'022', almacen:null,  nombre:'Celene Soto',          tienda:'CS Tizayuca',          color:'#ec4899'},
-            {clave:'AR-023',      hoja:'AUTO_ROMA',  codVend:'023', almacen:null,  nombre:'José Martín López',    tienda:'Autoeléctrica Roma',   color:'#f97316'}
+            {clave:'AR-023',      hoja:'AUTO_ROMA',  codVend:'023', almacen:null,  nombre:'José Martín López',    tienda:'CS Tizayuca',          color:'#f97316'}
         ];
 
         // Clasificaciones para categorizar productos por día
@@ -3664,12 +3664,16 @@
                     if(!porFecha[fechaKey].porVend[vendedor.clave]){
                         porFecha[fechaKey].porVend[vendedor.clave] = {
                             importe:0, costo:0,
-                            cats: {acum:0, lub:0, moto:0, filt:0, llan:0, casc:0}
+                            cats: {acum:0, lub:0, moto:0, filt:0, llan:0, casc:0},
+                            clientes: {}
                         };
                     }
                     const acc = porFecha[fechaKey].porVend[vendedor.clave];
                     acc.importe += importe;
                     acc.costo += costo;
+                    // Cliente único
+                    const codCli = String(row['Cod de cliente']||row['COD DE CLIENTE']||row['Cod Cliente']||row['COD CLIENTE']||'').trim();
+                    if(codCli) acc.clientes[codCli] = true;
                     // Categorizar por clasificación
                     for(const cat of FACT_DIA_CATEGORIAS){
                         if(cat.match(clasif)){ acc.cats[cat.key] += cantidad; break; }
@@ -3748,9 +3752,9 @@
             const primerDiaSemana = new Date(anioSel, mesSel-1, 1).getDay(); // 0=dom, 6=sab
 
             // Agrupador por día
-            const totMes = { importe:0, costo:0, cats:{acum:0,lub:0,moto:0,filt:0,llan:0,casc:0} };
-            const porDia = {}; // dia (1-31) → {importe,costo,cats,porVend:{}}
-            for(let d=1; d<=diasDelMes; d++) porDia[d] = { importe:0, costo:0, cats:{acum:0,lub:0,moto:0,filt:0,llan:0,casc:0}, porVend:{} };
+            const totMes = { importe:0, costo:0, cats:{acum:0,lub:0,moto:0,filt:0,llan:0,casc:0}, clientes:{} };
+            const porDia = {}; // dia (1-31) → {importe,costo,cats,porVend:{},clientes:{}}
+            for(let d=1; d<=diasDelMes; d++) porDia[d] = { importe:0, costo:0, cats:{acum:0,lub:0,moto:0,filt:0,llan:0,casc:0}, porVend:{}, clientes:{} };
 
             for(let d=1; d<=diasDelMes; d++){
                 const fechaKey = `${anioSel}-${String(mesSel).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
@@ -3763,6 +3767,7 @@
                     porDia[d].costo += v.costo;
                     porDia[d].porVend[claveVend] = v;
                     for(const k in v.cats) porDia[d].cats[k] += v.cats[k];
+                    if(v.clientes) for(const c in v.clientes){ porDia[d].clientes[c]=true; totMes.clientes[c]=true; }
                     totMes.importe += v.importe;
                     totMes.costo += v.costo;
                     for(const k in v.cats) totMes.cats[k] += v.cats[k];
@@ -3802,10 +3807,12 @@
             const hoyKey = `${hoyDate.getFullYear()}-${String(hoyDate.getMonth()+1).padStart(2,'0')}-${String(hoyDate.getDate()).padStart(2,'0')}`;
             const numVendActivos = vendedoresActivos.length;
 
-            let calHtml = '<div class="grid grid-cols-7 gap-2 mb-2">';
+            const nombresDiasLargo = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+            const fmtMoney = v => '$' + Math.round(v).toLocaleString('es-MX');
+            let calHtml = '<div class="grid grid-cols-7 gap-1.5 mb-1.5">';
             nombresDiasSemana.forEach(d => calHtml += `<div class="text-center text-[10px] font-black muted uppercase tracking-widest py-1">${d}</div>`);
             calHtml += '</div>';
-            calHtml += '<div class="grid grid-cols-7 gap-2">';
+            calHtml += '<div class="grid grid-cols-7 gap-1.5">';
             for(let i=0; i<primerDiaSemana; i++) calHtml += '<div></div>';
 
             for(let d=1; d<=diasDelMes; d++){
@@ -3815,56 +3822,72 @@
                 const esFuturo = fechaKey > hoyKey;
                 const hayVenta = info.importe > 0;
                 const vendsEseDia = Object.keys(info.porVend).length;
-                // Domingo: normalmente no hay ventas — no lo pintemos como "rojo"
-                const dow = new Date(anioSel, mesSel-1, d).getDay(); // 0=dom
+                const dow = new Date(anioSel, mesSel-1, d).getDay();
                 const esDomingo = dow === 0;
+                const utilDia = info.importe - info.costo;
+                const nClientes = Object.keys(info.clientes||{}).length;
 
-                // Determinar color/estado
-                let bg, textColor, badgeBg, badgeColor;
+                // Franja superior según estado
+                let stripe, bg, dayNumColor;
                 if(esHoy){
-                    // HOY: fondo negro/navy, texto blanco
-                    bg = 'linear-gradient(135deg,#0c1f44,#001529)';
-                    textColor = '#facc15';
-                    badgeBg = '#facc15';
-                    badgeColor = '#0c1f44';
+                    stripe = '#facc15';
+                    bg = 'linear-gradient(180deg,rgba(12,31,68,.06),var(--surface))';
+                    dayNumColor = '#0c1f44';
                 } else if(esFuturo){
-                    // Futuro: azul muy claro
-                    bg = 'rgba(59,130,246,.10)';
-                    textColor = '#3b82f6';
-                    badgeBg = '#3b82f6';
-                    badgeColor = '#fff';
-                } else if(hayVenta && vendsEseDia === numVendActivos){
-                    // Todos facturaron: verde claro
-                    bg = 'rgba(22,163,74,.14)';
-                    textColor = '#16a34a';
-                    badgeBg = '#16a34a';
-                    badgeColor = '#fff';
-                } else if(hayVenta){
-                    // Facturación parcial: amarillo
-                    bg = 'rgba(234,179,8,.18)';
-                    textColor = '#a16207';
-                    badgeBg = '#eab308';
-                    badgeColor = '#fff';
-                } else if(esDomingo){
-                    // Domingo sin ventas: blanco
+                    stripe = '#3b82f6';
                     bg = 'var(--surface)';
-                    textColor = 'var(--muted)';
-                    badgeBg = '';
-                    badgeColor = '';
+                    dayNumColor = '#3b82f6';
+                } else if(hayVenta && vendsEseDia === numVendActivos){
+                    stripe = '#16a34a';
+                    bg = 'var(--surface)';
+                    dayNumColor = '#16a34a';
+                } else if(hayVenta){
+                    stripe = '#eab308';
+                    bg = 'var(--surface)';
+                    dayNumColor = '#a16207';
+                } else if(esDomingo){
+                    stripe = '#cbd5e1';
+                    bg = 'var(--surface)';
+                    dayNumColor = 'var(--muted)';
                 } else {
-                    // Día laboral pasado sin facturación: rojo claro
-                    bg = 'rgba(220,38,38,.14)';
-                    textColor = '#dc2626';
-                    badgeBg = '#dc2626';
-                    badgeColor = '#fff';
+                    stripe = '#dc2626';
+                    bg = 'var(--surface)';
+                    dayNumColor = '#dc2626';
                 }
-                const badgeContent = hayVenta ? fmtMoneyShort(info.importe) : (esFuturo || esDomingo ? '' : '0');
-                const badgeHtml = badgeContent ? `<div class="absolute -top-2 -right-1 rounded-full px-2 py-0.5 text-[10px] font-black shadow-md" style="background:${badgeBg};color:${badgeColor}">${badgeContent}</div>` : '';
+
+                // Contenido inline
+                let bodyHtml = '';
+                if(hayVenta){
+                    const catRow = (label, val, color) => val > 0
+                        ? `<div class="flex justify-between items-center text-[9px] leading-tight"><span class="muted">${label}</span><span class="font-black" style="color:${color}">${val}</span></div>`
+                        : '';
+                    bodyHtml = `
+                        <div class="text-[10px] font-black leading-tight" style="color:var(--txt)">${fmtMoney(info.importe)}</div>
+                        <div class="text-[9px] font-black leading-tight" style="color:#16a34a">Util ${fmtMoney(utilDia)}</div>
+                        <div class="text-[9px] leading-tight muted">${nClientes} clientes</div>
+                        <div class="mt-0.5 space-y-0.5">
+                            ${catRow('Acum.', info.cats.acum, '#3aa6ff')}
+                            ${catRow('Lubric.', info.cats.lub, '#0891b2')}
+                            ${catRow('Motobat', info.cats.moto, '#dc2626')}
+                            ${catRow('Filtros', info.cats.filt, '#16a34a')}
+                            ${catRow('Llantas', info.cats.llan, '#64748b')}
+                            ${catRow('Cascos', info.cats.casc, '#a67cff')}
+                        </div>`;
+                } else if(esFuturo){
+                    bodyHtml = `<div class="text-[9px] muted text-center mt-2">—</div>`;
+                } else if(esDomingo){
+                    bodyHtml = `<div class="text-[9px] muted text-center mt-2">Domingo</div>`;
+                } else {
+                    bodyHtml = `<div class="text-[9px] font-black text-center mt-2" style="color:#dc2626">Sin venta</div>`;
+                }
 
                 calHtml += `
-                <div onclick="factDiaState.diaAbierto='${fechaKey}';pintarFacturacionDia()" class="glass-btn rounded-2xl relative flex items-center justify-center" style="background:${bg};aspect-ratio:1;${esHoy?'':'border:1px solid var(--surface-2)'}">
-                    ${badgeHtml}
-                    <span class="text-2xl font-black" style="color:${textColor}">${d}</span>
+                <div onclick="factDiaState.diaAbierto='${fechaKey}';pintarFacturacionDia()" class="rounded-xl cursor-pointer overflow-hidden flex flex-col" style="background:${bg};border:1px solid var(--surface-2);border-top:3px solid ${stripe};min-height:130px">
+                    <div class="flex items-baseline justify-between px-1.5 pt-1">
+                        <span class="text-lg font-black leading-none" style="color:${dayNumColor}">${d}</span>
+                        <span class="text-[8px] font-black uppercase muted">${nombresDiasLargo[dow]}</span>
+                    </div>
+                    <div class="px-1.5 pb-1.5 pt-1 flex-1">${bodyHtml}</div>
                 </div>`;
             }
             calHtml += '</div>';
