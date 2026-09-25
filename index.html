@@ -3808,7 +3808,6 @@
             const numVendActivos = vendedoresActivos.length;
 
             const nombresDiasLargo = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
-            const fmtMoney = v => '$' + Math.round(v).toLocaleString('es-MX');
             let calHtml = '<div class="grid grid-cols-7 gap-1.5 mb-1.5">';
             nombresDiasSemana.forEach(d => calHtml += `<div class="text-center text-[10px] font-black muted uppercase tracking-widest py-1">${d}</div>`);
             calHtml += '</div>';
