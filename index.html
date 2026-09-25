@@ -3789,40 +3789,95 @@
                 return `<button onclick="factDiaSetVendedor(${arg})" class="px-3 py-1.5 rounded-lg text-[9px] font-black uppercase" style="background:${activo?v.color:'var(--surface-2)'};color:${activo?'#fff':'var(--txt)'}">${v.nombre}</button>`;
             };
 
-            // ---- CALENDARIO ----
-            const nombresDiasSemana = ['DOM','LUN','MAR','MIÉ','JUE','VIE','SÁB'];
-            let calHtml = '<div class="grid grid-cols-7 gap-1 mb-1">';
-            nombresDiasSemana.forEach(d=> calHtml += `<div class="text-center text-[9px] font-black muted uppercase tracking-widest py-1">${d}</div>`);
+            // ---- CALENDARIO ESTILO AGENDA (celdas grandes, badge de importe, color por nivel) ----
+            // Función para abreviar importe: 30928 → $31k, 369245 → $369k, 1234567 → $1.2M
+            const fmtMoneyShort = v => {
+                if(v >= 1_000_000) return '$' + (v/1_000_000).toFixed(1).replace('.0','') + 'M';
+                if(v >= 1000) return '$' + Math.round(v/1000) + 'k';
+                if(v > 0) return '$' + Math.round(v);
+                return '';
+            };
+            const nombresDiasSemana = ['D','L','M','M','J','V','S'];
+            const hoyDate = new Date();
+            const hoyKey = `${hoyDate.getFullYear()}-${String(hoyDate.getMonth()+1).padStart(2,'0')}-${String(hoyDate.getDate()).padStart(2,'0')}`;
+            const numVendActivos = vendedoresActivos.length;
+
+            let calHtml = '<div class="grid grid-cols-7 gap-2 mb-2">';
+            nombresDiasSemana.forEach(d => calHtml += `<div class="text-center text-[10px] font-black muted uppercase tracking-widest py-1">${d}</div>`);
             calHtml += '</div>';
-            calHtml += '<div class="grid grid-cols-7 gap-1">';
-            // Celdas vacías antes del día 1
+            calHtml += '<div class="grid grid-cols-7 gap-2">';
             for(let i=0; i<primerDiaSemana; i++) calHtml += '<div></div>';
-            const hoyKey = new Date().toISOString().slice(0,10);
+
             for(let d=1; d<=diasDelMes; d++){
                 const info = porDia[d];
                 const fechaKey = `${anioSel}-${String(mesSel).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
                 const esHoy = fechaKey === hoyKey;
+                const esFuturo = fechaKey > hoyKey;
                 const hayVenta = info.importe > 0;
-                const util = info.importe - info.costo;
-                const utilPct = info.importe > 0 ? Math.round((util/info.importe)*100) : 0;
-                // Lista de productos vendidos ese día
-                const listaProd = FACT_DIA_CATEGORIAS.filter(c=>info.cats[c.key]>0).map(c=>
-                    `<div class="flex items-center justify-between text-[8.5px]"><span style="color:${c.color}"><i class="fas ${c.icon} mr-1"></i>${c.label}</span><b class="txt">${fmtNum(info.cats[c.key])}</b></div>`
-                ).join('');
+                const vendsEseDia = Object.keys(info.porVend).length;
+                // Domingo: normalmente no hay ventas — no lo pintemos como "rojo"
+                const dow = new Date(anioSel, mesSel-1, d).getDay(); // 0=dom
+                const esDomingo = dow === 0;
+
+                // Determinar color/estado
+                let bg, textColor, badgeBg, badgeColor;
+                if(esHoy){
+                    // HOY: fondo negro/navy, texto blanco
+                    bg = 'linear-gradient(135deg,#0c1f44,#001529)';
+                    textColor = '#facc15';
+                    badgeBg = '#facc15';
+                    badgeColor = '#0c1f44';
+                } else if(esFuturo){
+                    // Futuro: azul muy claro
+                    bg = 'rgba(59,130,246,.10)';
+                    textColor = '#3b82f6';
+                    badgeBg = '#3b82f6';
+                    badgeColor = '#fff';
+                } else if(hayVenta && vendsEseDia === numVendActivos){
+                    // Todos facturaron: verde claro
+                    bg = 'rgba(22,163,74,.14)';
+                    textColor = '#16a34a';
+                    badgeBg = '#16a34a';
+                    badgeColor = '#fff';
+                } else if(hayVenta){
+                    // Facturación parcial: amarillo
+                    bg = 'rgba(234,179,8,.18)';
+                    textColor = '#a16207';
+                    badgeBg = '#eab308';
+                    badgeColor = '#fff';
+                } else if(esDomingo){
+                    // Domingo sin ventas: blanco
+                    bg = 'var(--surface)';
+                    textColor = 'var(--muted)';
+                    badgeBg = '';
+                    badgeColor = '';
+                } else {
+                    // Día laboral pasado sin facturación: rojo claro
+                    bg = 'rgba(220,38,38,.14)';
+                    textColor = '#dc2626';
+                    badgeBg = '#dc2626';
+                    badgeColor = '#fff';
+                }
+                const badgeContent = hayVenta ? fmtMoneyShort(info.importe) : (esFuturo || esDomingo ? '' : '0');
+                const badgeHtml = badgeContent ? `<div class="absolute -top-2 -right-1 rounded-full px-2 py-0.5 text-[10px] font-black shadow-md" style="background:${badgeBg};color:${badgeColor}">${badgeContent}</div>` : '';
+
                 calHtml += `
-                <div onclick="factDiaState.diaAbierto='${fechaKey}';pintarFacturacionDia()" class="rounded-xl p-2 glass-btn ${hayVenta?'surface':'surface-2'}" style="min-height:100px;${esHoy?'border:2px solid var(--accent)':''};${hayVenta?'border-left:3px solid #16a34a':''}">
-                    <div class="flex items-center justify-between mb-1">
-                        <span class="text-[10px] font-black txt ${esHoy?'':'muted'}">${d}</span>
-                        ${esHoy?'<span class="text-[7px] font-black uppercase tracking-widest px-1 rounded chip-accent">HOY</span>':''}
-                    </div>
-                    ${hayVenta ? `
-                        <p class="text-[12px] font-black txt leading-tight" style="color:#16a34a">${fmtMoney(info.importe)}</p>
-                        <p class="text-[9px] muted mb-1">util. ${fmtMoney(util)} (${utilPct}%)</p>
-                        <div class="space-y-0.5">${listaProd}</div>
-                    ` : '<p class="text-[9px] muted mt-3 text-center">—</p>'}
+                <div onclick="factDiaState.diaAbierto='${fechaKey}';pintarFacturacionDia()" class="glass-btn rounded-2xl relative flex items-center justify-center" style="background:${bg};aspect-ratio:1;${esHoy?'':'border:1px solid var(--surface-2)'}">
+                    ${badgeHtml}
+                    <span class="text-2xl font-black" style="color:${textColor}">${d}</span>
                 </div>`;
             }
             calHtml += '</div>';
+
+            // Leyenda de colores
+            const legendaHtml = `
+            <div class="flex flex-wrap items-center justify-center gap-2 mt-4 text-[9px] uppercase font-black">
+                <span class="flex items-center gap-1"><span class="w-3 h-3 rounded" style="background:rgba(22,163,74,.4);border:1px solid #16a34a"></span><span class="muted">Todos facturaron</span></span>
+                <span class="flex items-center gap-1"><span class="w-3 h-3 rounded" style="background:rgba(234,179,8,.4);border:1px solid #eab308"></span><span class="muted">Parcial</span></span>
+                <span class="flex items-center gap-1"><span class="w-3 h-3 rounded" style="background:rgba(220,38,38,.3);border:1px solid #dc2626"></span><span class="muted">Sin venta</span></span>
+                <span class="flex items-center gap-1"><span class="w-3 h-3 rounded" style="background:rgba(59,130,246,.25);border:1px solid #3b82f6"></span><span class="muted">Próximos</span></span>
+                <span class="flex items-center gap-1"><span class="w-3 h-3 rounded" style="background:#0c1f44"></span><span class="muted">Hoy</span></span>
+            </div>`;
 
             // ---- MODAL DE DIA ABIERTO ----
             let modalHtml = '';
@@ -3874,58 +3929,61 @@
                 </div>`;
             }
 
+            // Calcular mes anterior / siguiente para navegación con flechas
+            const prevMes = mesSel === 1 ? {m:12, a:anioSel-1} : {m:mesSel-1, a:anioSel};
+            const nextMes = mesSel === 12 ? {m:1, a:anioSel+1} : {m:mesSel+1, a:anioSel};
+
+            // Opciones del dropdown de vendedor
+            const optVendedores = FACT_DIA_VENDEDORES.filter(v => !factDiaState.filtroTienda || v.tienda === factDiaState.filtroTienda);
+            const dropdownVend = `
+                <select onchange="factDiaSetVendedor(this.value||null)" class="w-full py-2 px-3 rounded-xl font-black text-[12px] surface txt border-0" style="background:var(--surface);color:var(--txt)">
+                    <option value="" ${factDiaState.filtroVendedor===null?'selected':''}>👥 Todos los vendedores</option>
+                    ${optVendedores.map(v=>`<option value="${v.clave}" ${factDiaState.filtroVendedor===v.clave?'selected':''}>${v.nombre} · ${v.tienda}</option>`).join('')}
+                </select>`;
+
             cont.innerHTML = `
-            <!-- KPIs del mes seleccionado -->
+            <!-- KPIs del mes -->
             <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
                 <div class="surface rounded-xl p-3 text-center" style="border-left:4px solid #16a34a">
-                    <p class="text-[9px] font-black muted uppercase">Facturado mes</p>
-                    <p class="text-lg font-black" style="color:#16a34a">${fmtMoney(totMes.importe)}</p>
+                    <p class="text-[9px] font-black muted uppercase">Facturado</p>
+                    <p class="text-base font-black" style="color:#16a34a">${fmtMoney(totMes.importe)}</p>
                 </div>
                 <div class="surface rounded-xl p-3 text-center" style="border-left:4px solid #eab308">
-                    <p class="text-[9px] font-black muted uppercase">Costo mes</p>
-                    <p class="text-lg font-black" style="color:#eab308">${fmtMoney(totMes.costo)}</p>
+                    <p class="text-[9px] font-black muted uppercase">Costo</p>
+                    <p class="text-base font-black" style="color:#eab308">${fmtMoney(totMes.costo)}</p>
                 </div>
                 <div class="surface rounded-xl p-3 text-center" style="border-left:4px solid #3b82f6">
-                    <p class="text-[9px] font-black muted uppercase">Utilidad mes</p>
-                    <p class="text-lg font-black" style="color:#3b82f6">${fmtMoney(utilMes)}</p>
+                    <p class="text-[9px] font-black muted uppercase">Utilidad</p>
+                    <p class="text-base font-black" style="color:#3b82f6">${fmtMoney(utilMes)}</p>
                     <p class="text-[9px] muted">${totMes.importe>0?Math.round(utilMes/totMes.importe*100):0}% margen</p>
                 </div>
                 <div class="surface rounded-xl p-3 text-center" style="border-left:4px solid #a67cff">
-                    <p class="text-[9px] font-black muted uppercase">Piezas totales</p>
-                    <p class="text-lg font-black" style="color:#a67cff">${fmtNum(totMes.cats.acum+totMes.cats.lub+totMes.cats.moto+totMes.cats.filt+totMes.cats.llan+totMes.cats.casc)}</p>
+                    <p class="text-[9px] font-black muted uppercase">Piezas</p>
+                    <p class="text-base font-black" style="color:#a67cff">${fmtNum(totMes.cats.acum+totMes.cats.lub+totMes.cats.moto+totMes.cats.filt+totMes.cats.llan+totMes.cats.casc)}</p>
                 </div>
             </div>
 
-            <!-- Selector de mes -->
-            <div class="surface rounded-2xl p-3 mb-3">
-                <p class="text-[9px] font-black muted uppercase tracking-widest mb-2">Mes</p>
-                <div class="flex gap-1 flex-wrap">${mesesData.map(chipMes).join('')}</div>
+            <!-- Dropdown vendedor -->
+            <div class="mb-2">${dropdownVend}</div>
+
+            <!-- Filtros por tienda (chips compactos) -->
+            <div class="flex gap-1 flex-wrap mb-3">
+                <button onclick="factDiaSetTienda(null)" class="px-2 py-1 rounded-lg text-[9px] font-black uppercase ${factDiaState.filtroTienda===null?'chip-accent':'surface-2 muted'}">Todas</button>
+                ${tiendas.map(chipTienda).join('')}
             </div>
 
-            <!-- Filtros de tienda y vendedor -->
-            <div class="surface rounded-2xl p-3 mb-3">
-                <p class="text-[9px] font-black muted uppercase tracking-widest mb-2">Filtros</p>
-                <div class="mb-2">
-                    <p class="text-[8px] muted uppercase mb-1">Tienda</p>
-                    <div class="flex gap-1 flex-wrap">
-                        <button onclick="factDiaState.filtroTienda=null;factDiaState.filtroVendedor=null;pintarFacturacionDia()" class="px-3 py-1.5 rounded-lg text-[9px] font-black uppercase ${factDiaState.filtroTienda===null?'chip-accent':'surface-2 muted'}">Todas</button>
-                        ${tiendas.map(chipTienda).join('')}
-                    </div>
-                </div>
-                <div>
-                    <p class="text-[8px] muted uppercase mb-1">Vendedor</p>
-                    <div class="flex gap-1 flex-wrap">
-                        <button onclick="factDiaState.filtroVendedor=null;pintarFacturacionDia()" class="px-3 py-1.5 rounded-lg text-[9px] font-black uppercase ${factDiaState.filtroVendedor===null?'chip-accent':'surface-2 muted'}">Todos</button>
-                        ${vendedoresActivos.map(chipVend).join('')}
-                    </div>
-                </div>
+            <!-- Header de calendario tipo AGENDA con navegación -->
+            <div class="rounded-2xl p-3 mb-2 flex items-center justify-between" style="background:linear-gradient(135deg,#001529,#0c1f44)">
+                <button onclick="factDiaState.mes=${prevMes.m};factDiaState.anio=${prevMes.a};pintarFacturacionDia()" class="w-10 h-10 rounded-lg flex items-center justify-center" style="background:rgba(255,255,255,.1);color:#facc15;border:1px solid rgba(250,204,21,.3)"><i class="fas fa-chevron-left"></i></button>
+                <p class="text-[14px] font-black uppercase tracking-widest" style="color:#facc15">${mesesLargos[mesSel-1]} ${anioSel}</p>
+                <button onclick="factDiaState.mes=${nextMes.m};factDiaState.anio=${nextMes.a};pintarFacturacionDia()" class="w-10 h-10 rounded-lg flex items-center justify-center" style="background:rgba(255,255,255,.1);color:#facc15;border:1px solid rgba(250,204,21,.3)"><i class="fas fa-chevron-right"></i></button>
             </div>
 
             <!-- Calendario -->
-            <div class="surface rounded-2xl p-3 mb-6">
-                <p class="text-center text-[11px] font-black txt uppercase tracking-widest mb-3">${mesesLargos[mesSel-1]} ${anioSel}</p>
+            <div class="surface rounded-2xl p-3 mb-3">
                 ${calHtml}
-                <p class="text-center text-[9px] muted mt-3">Tap en cualquier día para ver el desglose por vendedor · Filtros: ${factDiaState.filtroTienda||'todas las tiendas'} · ${factDiaState.filtroVendedor?FACT_DIA_VENDEDORES.find(v=>v.clave===factDiaState.filtroVendedor)?.nombre:'todos los vendedores'}</p>
+                ${legendaHtml}
+                <p class="text-center text-[9px] muted mt-3">📅 ${totMes.importe>0?fmtMoney(totMes.importe)+' facturados este mes':'Sin facturación'} · Toca un día para el desglose</p>
             </div>
             ${modalHtml}`;
         }
