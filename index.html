@@ -3148,13 +3148,17 @@
             const esRegalo = importe < 1; // < 1 peso = regalo/bonificación
             // MOTOBATERÍA
             if(clasif.includes('8 MOTOBAT') || clasif.includes('MOTOBAT')) return {linea:'MOTOBAT', esRegalo};
-            // HIDRÁULICO (código empieza con 025 002 01 o 0250201, con o sin espacios)
             const codigoLimpio = codigo.replace(/\s+/g,'');
+            // HIDRAULICO 300 LTH / 300 ISO — cubeta 19L de este tipo (promo precio especial) — SE DETECTA ANTES del código HIDRAULICO
+            // Descripción típica: "ACEITE LTH LUB HIDRAULICO 300 ISO 19L"
+            const es300Cubeta = (desc.includes('300 LTH') || desc.includes('HIDRAULICO 300') || desc.includes('300 ISO'))
+                                && (/\b19\s*L\b/.test(desc) || desc.includes('CUBETA') || /\b19LTS?\b/.test(desc));
+            if(es300Cubeta) return {linea:'LUBRICANTE', subtipo:'CUB19L_300LTH', esRegalo};
+            // HIDRÁULICO (código empieza con 025 002 01 o 0250201, con o sin espacios) — el resto de hidráulicos por litros
             if(codigoLimpio.startsWith('0250201')) return {linea:'HIDRAULICO', esRegalo};
             // LUBRICANTE (detectar por tamaño en descripción — orden importa: primero los especiales, luego los grandes)
             let subtipo = null;
-            // HIDRAULICO 300 LTH — cubeta 19L de este tipo específico (promo precio especial)
-            if(desc.includes('300 LTH') || desc.includes('HIDRAULICO 300')) subtipo = 'CUB19L_300LTH';
+            if(desc.includes('300 LTH') || desc.includes('HIDRAULICO 300') || desc.includes('300 ISO')) subtipo = 'CUB19L_300LTH';
             else if(/\b1000\s*L\b/.test(desc) || desc.includes('TOTEM')) subtipo = 'TOTEM1000L';
             else if(/\b(208|200)\s*L\b/.test(desc) || desc.includes('TAMBO')) subtipo = 'TAMBO200L';
             else if(/\b19\s*L\b/.test(desc) || desc.includes('CUBETA')) subtipo = 'CUBETA19L';
