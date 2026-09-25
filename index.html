@@ -3356,6 +3356,9 @@
             else if(/\b5\s*L\b/.test(desc) || desc.includes('GARRAFA')) subtipo = 'GARRAFA5L';
             else if(/\b1\s*L\b/.test(desc) || desc.includes('BOTELLA')) subtipo = 'BOTELLA1L';
             if(subtipo) return {linea:'LUBRICANTE', subtipo, esRegalo};
+            // Fallback: si la clasificación dice "7 LUBRICAN" pero no logramos identificar envase,
+            // sigue siendo lubricante — la cantidad se toma directo como litros (útil para regalos de 4T sueltos).
+            if(clasif.includes('7 LUBRICAN') || clasif.includes('LUBRICAN')) return {linea:'LUBRICANTE', subtipo:'RAW_LITROS', esRegalo};
             return {linea:null, esRegalo};
         }
 
@@ -3367,6 +3370,7 @@
             if(subtipo === 'CUB19L_300LTH') return { cubetas300: cantidad/19,        litros: cantidad };     // hidráulico 300 LTH, cantidad en LITROS
             if(subtipo === 'TAMBO200L')     return { tambos: cantidad,               litros: cantidad*200 }; // 1 tambo = 200/208L
             if(subtipo === 'TOTEM1000L')    return { totems: cantidad,               litros: cantidad*1000 };
+            if(subtipo === 'RAW_LITROS')    return { litros: cantidad };              // fallback: lubricante sin envase identificado (regalo suelto)
             return {};
         }
 
