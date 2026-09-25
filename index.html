@@ -3172,8 +3172,8 @@
         function convertirEnvases(subtipo, cantidad){
             if(subtipo === 'BOTELLA1L')     return { cajas: Math.floor(cantidad/12), litros: cantidad };     // 12 botellas = 1 caja
             if(subtipo === 'GARRAFA5L')     return { cajas: Math.floor(cantidad/4),  litros: cantidad*5 };   // 4 garrafas = 1 caja de garrafas
-            if(subtipo === 'CUBETA19L')     return { cubetas: cantidad,              litros: cantidad*19 };
-            if(subtipo === 'CUB19L_300LTH') return { cubetas300: cantidad,           litros: cantidad*19 }; // hidráulico 300 LTH
+            if(subtipo === 'CUBETA19L')     return { cubetas: cantidad/19,           litros: cantidad };     // cantidad viene en LITROS
+            if(subtipo === 'CUB19L_300LTH') return { cubetas300: cantidad/19,        litros: cantidad };     // hidráulico 300 LTH, cantidad en LITROS
             if(subtipo === 'TAMBO200L')     return { tambos: cantidad,               litros: cantidad*200 }; // 1 tambo = 200/208L
             if(subtipo === 'TOTEM1000L')    return { totems: cantidad,               litros: cantidad*1000 };
             return {};
@@ -3447,18 +3447,17 @@
                             <thead>
                                 <tr style="background:var(--surface-2)">
                                     <th class="p-2 text-left font-black uppercase text-[9px] tracking-widest">Vendedor</th>
+                                    <th class="p-2 text-center font-black uppercase text-[9px] tracking-widest">Detalle</th>
                                     <th class="p-2 text-center font-black uppercase text-[9px] tracking-widest" style="color:#dc2626">Motobat</th>
                                     <th class="p-2 text-center font-black uppercase text-[9px] tracking-widest" style="color:#f59e0b">Lts 4T esp.</th>
                                     <th class="p-2 text-center font-black uppercase text-[9px] tracking-widest" style="color:#0891b2">Cajas 1L</th>
                                     <th class="p-2 text-center font-black uppercase text-[9px] tracking-widest" style="color:#0891b2">Cajas 5L</th>
-                                    <th class="p-2 text-center font-black uppercase text-[9px] tracking-widest" style="color:#0891b2">Cub 19L</th>
                                     <th class="p-2 text-center font-black uppercase text-[9px] tracking-widest" style="color:#22c55e">Cub 300 LTH</th>
                                     <th class="p-2 text-center font-black uppercase text-[9px] tracking-widest" style="color:#0891b2">Tambo 200L</th>
                                     <th class="p-2 text-center font-black uppercase text-[9px] tracking-widest" style="color:#0891b2">Totem 1000L</th>
                                     <th class="p-2 text-center font-black uppercase text-[9px] tracking-widest" style="color:#16a34a">Lts regalo</th>
                                     <th class="p-2 text-center font-black uppercase text-[9px] tracking-widest" style="color:#a67cff">Lts hidr.</th>
                                     <th class="p-2 text-center font-black uppercase text-[9px] tracking-widest" style="color:#facc15">Fact. promo</th>
-                                    <th class="p-2 text-center font-black uppercase text-[9px] tracking-widest">Detalle</th>
                                 </tr>
                             </thead>
                             <tbody>`;
@@ -3471,11 +3470,15 @@
                     const diffColor = diff4T > 0 ? '#f59e0b' : (diff4T < 0 ? '#dc2626' : '#16a34a');
                     const diffTexto = diff4T === 0 && v.motobat === 0 ? '—' : (diff4T > 0 ? '+'+fmtNum(diff4T) : fmtNum(diff4T));
 
+                    const cub300Unid = Math.round(v.cubetas300LTH);
                     html += `
                         <tr style="border-top:1px solid var(--surface-2)">
                             <td class="p-2">
                                 <p class="font-black txt text-[11px]">${v.nombre}</p>
                                 <p class="text-[9px] muted uppercase">Cod ${v.codVend}${v.almacen?' · Alm '+v.almacen:''}</p>
+                            </td>
+                            <td class="p-2 text-center">
+                                ${v.facturasDetalle.length>0?`<button onclick="verDesglosePromos('${v.clave}')" class="glass-btn px-2 py-1 rounded text-[9px] font-black uppercase" style="background:rgba(59,130,246,.15);color:#3b82f6"><i class="fas fa-magnifying-glass mr-1"></i>Ver</button>`:'<span class="text-[9px] muted">—</span>'}
                             </td>
                             <td class="p-2 text-center font-black txt">${fmtNum(v.motobat)}</td>
                             <td class="p-2 text-center">
@@ -3484,19 +3487,15 @@
                             </td>
                             <td class="p-2 text-center font-black txt">${fmtNum(v.cajasBotella)}</td>
                             <td class="p-2 text-center font-black txt">${fmtNum(v.cajasGarrafa)}</td>
-                            <td class="p-2 text-center font-black txt">${fmtNum(v.cubetas19L)}</td>
                             <td class="p-2 text-center">
-                                <p class="font-black text-[11px]" style="color:#22c55e">${fmtNum(v.cubetas300LTH)}</p>
-                                ${v.cubetas300LTH>0?`<p class="text-[8px] muted">$${precioProm300.toLocaleString('es-MX',{maximumFractionDigits:0})}/pza</p>`:''}
+                                <p class="font-black text-[13px]" style="color:#22c55e">${fmtNum(cub300Unid)}</p>
+                                ${cub300Unid>0?`<p class="text-[8px] muted">cub · ${fmtNum(Math.round(v.cubetas300LTH*19))} L</p>`:''}
                             </td>
                             <td class="p-2 text-center font-black txt">${fmtNum(v.tambos200L)}</td>
                             <td class="p-2 text-center font-black txt">${fmtNum(v.totems1000L)}</td>
                             <td class="p-2 text-center font-black" style="color:#16a34a">${fmtNum(v.litrosLubRegalo)}</td>
                             <td class="p-2 text-center font-black" style="color:#a67cff">${fmtNum(v.litrosHidraulico)}</td>
                             <td class="p-2 text-center font-black" style="color:#facc15">${v.facturasPromo.size}</td>
-                            <td class="p-2 text-center">
-                                ${v.facturasDetalle.length>0?`<button onclick="verDesglosePromos('${v.clave}')" class="glass-btn px-2 py-1 rounded text-[9px] font-black uppercase" style="background:rgba(59,130,246,.15);color:#3b82f6"><i class="fas fa-magnifying-glass mr-1"></i>Ver</button>`:'<span class="text-[9px] muted">—</span>'}
-                            </td>
                         </tr>`;
                 });
 
@@ -3858,39 +3857,44 @@
                     dayNumColor = '#dc2626';
                 }
 
+                // Formato compacto de moneda para celdas: $61.2k / $1.2M
+                const fmtCell = v => {
+                    if(v >= 1_000_000) return '$'+(v/1_000_000).toFixed(1).replace('.0','')+'M';
+                    if(v >= 10_000)    return '$'+Math.round(v/1000)+'k';
+                    if(v >= 1000)      return '$'+(v/1000).toFixed(1).replace('.0','')+'k';
+                    return '$'+Math.round(v);
+                };
                 // Contenido inline
                 let bodyHtml = '';
                 if(hayVenta){
                     const catRow = (label, val, color) => val > 0
-                        ? `<div class="flex justify-between items-center text-[9px] leading-tight"><span class="muted">${label}</span><span class="font-black" style="color:${color}">${val}</span></div>`
+                        ? `<div class="flex justify-between items-center gap-1" style="font-size:9px;line-height:1.15"><span style="color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${label}</span><span class="font-black" style="color:${color}">${Math.round(val)}</span></div>`
                         : '';
                     bodyHtml = `
-                        <div class="text-[10px] font-black leading-tight" style="color:var(--txt)">${fmtMoney(info.importe)}</div>
-                        <div class="text-[9px] font-black leading-tight" style="color:#16a34a">Util ${fmtMoney(utilDia)}</div>
-                        <div class="text-[9px] leading-tight muted">${nClientes} clientes</div>
-                        <div class="mt-0.5 space-y-0.5">
-                            ${catRow('Acum.', info.cats.acum, '#3aa6ff')}
-                            ${catRow('Lubric.', info.cats.lub, '#0891b2')}
-                            ${catRow('Motobat', info.cats.moto, '#dc2626')}
-                            ${catRow('Filtros', info.cats.filt, '#16a34a')}
-                            ${catRow('Llantas', info.cats.llan, '#64748b')}
-                            ${catRow('Cascos', info.cats.casc, '#a67cff')}
-                        </div>`;
+                        <div style="font-size:11px;font-weight:900;line-height:1.15;color:var(--txt)">${fmtCell(info.importe)}</div>
+                        <div style="font-size:9px;font-weight:900;line-height:1.15;color:#16a34a">Util ${fmtCell(utilDia)}</div>
+                        <div style="font-size:9px;line-height:1.15;color:var(--muted);margin-bottom:2px">${nClientes} client${nClientes===1?'e':'es'}</div>
+                        ${catRow('Acum', info.cats.acum, '#3aa6ff')}
+                        ${catRow('Lubr', info.cats.lub, '#0891b2')}
+                        ${catRow('Moto', info.cats.moto, '#dc2626')}
+                        ${catRow('Filt', info.cats.filt, '#16a34a')}
+                        ${catRow('Llan', info.cats.llan, '#64748b')}
+                        ${catRow('Casc', info.cats.casc, '#a67cff')}`;
                 } else if(esFuturo){
-                    bodyHtml = `<div class="text-[9px] muted text-center mt-2">—</div>`;
+                    bodyHtml = `<div style="font-size:9px;color:var(--muted);text-align:center;margin-top:8px">—</div>`;
                 } else if(esDomingo){
-                    bodyHtml = `<div class="text-[9px] muted text-center mt-2">Domingo</div>`;
+                    bodyHtml = `<div style="font-size:9px;color:var(--muted);text-align:center;margin-top:8px">Domingo</div>`;
                 } else {
-                    bodyHtml = `<div class="text-[9px] font-black text-center mt-2" style="color:#dc2626">Sin venta</div>`;
+                    bodyHtml = `<div style="font-size:9px;font-weight:900;color:#dc2626;text-align:center;margin-top:8px">Sin venta</div>`;
                 }
 
                 calHtml += `
-                <div onclick="factDiaState.diaAbierto='${fechaKey}';pintarFacturacionDia()" class="rounded-xl cursor-pointer overflow-hidden flex flex-col" style="background:${bg};border:1px solid var(--surface-2);border-top:3px solid ${stripe};min-height:130px">
-                    <div class="flex items-baseline justify-between px-1.5 pt-1">
-                        <span class="text-lg font-black leading-none" style="color:${dayNumColor}">${d}</span>
-                        <span class="text-[8px] font-black uppercase muted">${nombresDiasLargo[dow]}</span>
+                <div onclick="factDiaState.diaAbierto='${fechaKey}';pintarFacturacionDia()" class="rounded-xl cursor-pointer" style="background:${bg};border:1px solid var(--surface-2);border-top:3px solid ${stripe};min-height:170px;display:flex;flex-direction:column">
+                    <div style="display:flex;align-items:baseline;justify-content:space-between;padding:3px 5px 0">
+                        <span style="font-size:16px;font-weight:900;line-height:1;color:${dayNumColor}">${d}</span>
+                        <span style="font-size:8px;font-weight:900;text-transform:uppercase;color:var(--muted)">${nombresDiasLargo[dow]}</span>
                     </div>
-                    <div class="px-1.5 pb-1.5 pt-1 flex-1">${bodyHtml}</div>
+                    <div style="padding:2px 5px 5px;flex:1">${bodyHtml}</div>
                 </div>`;
             }
             calHtml += '</div>';
