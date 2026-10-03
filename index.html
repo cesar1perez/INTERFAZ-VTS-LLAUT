@@ -1601,11 +1601,40 @@
         //    accion: función a llamar al hacer clic (ej: 'renderCampania()')
         //    link: URL externa (alternativa a accion)
         const ESTRATEGIAS_POR_MES = {
+            'OCTUBRE 2026': [
+                {
+                    producto:'Acumuladores', color:'#3aa6ff', icono:'fa-car-battery',
+                    titulo:'Recuperación de venta de Acumuladores',
+                    estado:'ACTIVA', periodo:'1 – 31 oct 2026 · 4 clientes selectos',
+                    descripcion:'Campaña mensual dirigida a 4 clientes clave (uno en Autoeléctrica Roma y tres en Tulancingo). Ventas leídas en vivo del Google Sheet filtradas solo por el mes en curso. Objetivos todos en línea Estándar.',
+                    puntos:[
+                        'IRVING ARIEL GRANILLO · 176 estándar',
+                        'FOSADO CUEVAS SALOMON · 140 estándar',
+                        'MOTA CORTES JOSE JAIME · 70 estándar',
+                        'XIMENA OROZCO GONZALEZ · 200 estándar (Auto Roma)'
+                    ],
+                    linkLabel:'Ver seguimiento del mes',
+                    accion:"renderCampaniaAgo('OCTUBRE')"
+                },
+                {
+                    producto:'Promociones', color:'#0891b2', icono:'fa-tags',
+                    titulo:'Promociones del Mes · Octubre 2026',
+                    estado:'ACTIVA', periodo:'Octubre 2026 · Tulancingo y Poza Rica',
+                    descripcion:'Promociones vigentes para venta mayoreo de motobatería, lubricante y pila alcalina LTH, tanto para Llanterama Tulancingo como Llanterama Poza Rica.',
+                    puntos:[
+                        'Motobatería: bonificación por volumen + aceite 4T LTH gratis',
+                        'Lubricante: bonificaciones por 10 y 15 cajas/cubetas + precio especial cubeta 19L',
+                        'Pila alcalina LTH: lista de precios vigente'
+                    ],
+                    linkLabel:'Ver promociones (Tulancingo y Poza Rica)',
+                    accion:'renderPromosAgosto()'
+                }
+            ],
             'SEPTIEMBRE 2026': [
                 {
                     producto:'Acumuladores', color:'#3aa6ff', icono:'fa-car-battery',
                     titulo:'Recuperación de venta de Acumuladores',
-                    estado:'ACTIVA', periodo:'1 – 30 sep 2026 · 4 clientes selectos',
+                    estado:'CERRADA', periodo:'1 – 30 sep 2026 · 4 clientes selectos',
                     descripcion:'Campaña mensual dirigida a 4 clientes clave (uno en Autoeléctrica Roma y tres en Tulancingo). Ventas leídas en vivo del Google Sheet filtradas solo por septiembre. Objetivos todos en línea Estándar.',
                     puntos:[
                         'IRVING ARIEL GRANILLO · 176 estándar',
@@ -1619,7 +1648,7 @@
                 {
                     producto:'Promociones', color:'#0891b2', icono:'fa-tags',
                     titulo:'Promociones del Mes · Septiembre 2026',
-                    estado:'ACTIVA', periodo:'Septiembre 2026 · Tulancingo y Poza Rica',
+                    estado:'CERRADA', periodo:'Septiembre 2026 · Tulancingo y Poza Rica',
                     descripcion:'Promociones vigentes para venta mayoreo de motobatería, lubricante y pila alcalina LTH, tanto para Llanterama Tulancingo como Llanterama Poza Rica.',
                     puntos:[
                         'Motobatería: bonificación por volumen + aceite 4T LTH gratis',
@@ -1750,12 +1779,12 @@
             const isPZ = currentOrg === 'PZ';
             let entries = Object.entries(ESTRATEGIAS_POR_MES);
             if(isPZ){
-                // Solo Septiembre (mes actual) y sin el concurso de lubricantes
-                entries = entries.filter(([mes])=>mes==='SEPTIEMBRE 2026').map(([mes,arr])=>[mes, arr.filter(s=>s.accion!=='renderConcurso()')]);
+                // Solo el mes actual (octubre) y sin el concurso de lubricantes
+                entries = entries.filter(([mes])=>mes==='OCTUBRE 2026').map(([mes,arr])=>[mes, arr.filter(s=>s.accion!=='renderConcurso()')]);
             }
-            // Orden: septiembre primero (más reciente), luego agosto y julio
+            // Orden: octubre primero (más reciente), luego septiembre, agosto y julio
             const secciones = entries.map(([mes,arr], idx)=>{
-                const esActual = mes === 'SEPTIEMBRE 2026';
+                const esActual = mes === 'OCTUBRE 2026';
                 const [mesN, anio] = mes.split(' ');
                 const separadorTop = idx>0 ? '<div style="height:32px"></div>' : '';
                 return `
@@ -2055,14 +2084,23 @@
                 {codCliente:'007498', nombre:'MOTA CORTES JOSE JAIME',                        org:'TULANCINGO', obj:{PREMIUM:0, AGM:0, ESTANDAR:70,  VALUE:0}},
                 // AUTOELECTRICA ROMA
                 {codCliente:'002199', nombre:'XIMENA OROZCO GONZALEZ',                        org:'AUTO_ROMA',  obj:{PREMIUM:0, AGM:0, ESTANDAR:200, VALUE:0}}
+            ],
+            // Lista de clientes OCTUBRE 2026 (mismos clientes que septiembre, mismas metas base)
+            clientesOctubre: [
+                {codCliente:'005955', nombre:'IRVING ARIEL GRANILLO GARRIDO',                 org:'TULANCINGO', obj:{PREMIUM:0, AGM:0, ESTANDAR:176, VALUE:0}},
+                {codCliente:'000294', nombre:'FOSADO CUEVAS SALOMON',                         org:'TULANCINGO', obj:{PREMIUM:0, AGM:0, ESTANDAR:140, VALUE:0}},
+                {codCliente:'007498', nombre:'MOTA CORTES JOSE JAIME',                        org:'TULANCINGO', obj:{PREMIUM:0, AGM:0, ESTANDAR:70,  VALUE:0}},
+                {codCliente:'002199', nombre:'XIMENA OROZCO GONZALEZ',                        org:'AUTO_ROMA',  obj:{PREMIUM:0, AGM:0, ESTANDAR:200, VALUE:0}}
             ]
         };
         // Getter dinámico: elige la lista de clientes correcta según el mes filtrado.
-        // Si no hay filtro, por defecto usa la lista de SEPTIEMBRE (mes actual).
+        // Si no hay filtro, por defecto usa la lista de OCTUBRE (mes actual).
         Object.defineProperty(CAMPANIA_AGO_CONFIG, 'clientes', {
             get: function(){
-                const filt = (typeof campAgoState !== 'undefined' && campAgoState && campAgoState.filtroMes) ? campAgoState.filtroMes.label : 'SEPTIEMBRE';
-                const lista = (filt === 'AGOSTO') ? this.clientesAgosto : this.clientesSeptiembre;
+                const filt = (typeof campAgoState !== 'undefined' && campAgoState && campAgoState.filtroMes) ? campAgoState.filtroMes.label : 'OCTUBRE';
+                const lista = (filt === 'AGOSTO') ? this.clientesAgosto
+                            : (filt === 'SEPTIEMBRE') ? this.clientesSeptiembre
+                            : this.clientesOctubre;
                 const m = this.mesesAcumulados || 1;
                 return lista.map(c => ({
                     ...c,
@@ -2235,14 +2273,14 @@
         }
 
         function renderCampaniaAgo(mesFiltro){
-            // mesFiltro (opcional): 'AGOSTO' o 'SEPTIEMBRE' → filtra solo ese mes de las hojas.
-            //                       Si se omite → por defecto SEPTIEMBRE (mes actual).
+            // mesFiltro (opcional): 'AGOSTO' | 'SEPTIEMBRE' | 'OCTUBRE' → filtra solo ese mes de las hojas.
+            //                       Si se omite → por defecto OCTUBRE (mes actual).
             const cfg = CAMPANIA_AGO_CONFIG;
             const hayApi = !!(cfg.csvUrls && cfg.csvUrls.TULANCINGO);
 
-            // Normalizar filtro a objeto {mes,anio}. Si no viene, default = SEPTIEMBRE (mes actual).
-            const MESES = { 'AGOSTO':8, 'SEPTIEMBRE':9 };
-            const mesFinal = mesFiltro || 'SEPTIEMBRE';
+            // Normalizar filtro a objeto {mes,anio}. Si no viene, default = OCTUBRE (mes actual).
+            const MESES = { 'AGOSTO':8, 'SEPTIEMBRE':9, 'OCTUBRE':10 };
+            const mesFinal = mesFiltro || 'OCTUBRE';
             const filtroObj = MESES[mesFinal] ? {mes:MESES[mesFinal], anio:2026, label:mesFinal} : null;
             // Guardar en estado global para que las demás funciones sepan el mes activo
             campAgoState.filtroMes = filtroObj;
@@ -2323,8 +2361,8 @@
             const orgNombre = {'TULANCINGO':'Llanterama Tulancingo', 'AUTO_ROMA':'Autoeléctrica Roma', 'POZA_RICA':'Llanterama Poza Rica'};
             const orgShort  = {'TULANCINGO':'Tulancingo', 'AUTO_ROMA':'Auto Roma', 'POZA_RICA':'Poza Rica'};
             // Etiquetas dinámicas según el mes activo (siempre mensual — trimestral quedó fuera)
-            const filt = campAgoState.filtroMes || {label:'SEPTIEMBRE', anio:2026};
-            const mesNom = filt.label==='AGOSTO' ? 'Agosto' : 'Septiembre';
+            const filt = campAgoState.filtroMes || {label:'OCTUBRE', anio:2026};
+            const mesNom = filt.label==='AGOSTO' ? 'Agosto' : (filt.label==='SEPTIEMBRE' ? 'Septiembre' : 'Octubre');
             const lbl = {
                 tag:     `Estrategia especial · ${mesNom} ${filt.anio}`,
                 titulo:  'Recuperación de venta de',
@@ -2928,11 +2966,11 @@
             return `
             <div class="promo-doc">
                 <div class="promo-doc-head" style="background:linear-gradient(135deg,#001529,#0c1f44)">
-                    <p class="promo-doc-tag">Ventas Mayoreo · Septiembre 2026</p>
+                    <p class="promo-doc-tag">Ventas Mayoreo · Octubre 2026</p>
                     <h3 class="promo-doc-title"><i class="fas fa-motorcycle mr-2" style="color:#fca5a5"></i>Promoción de Motobatería</h3>
                 </div>
                 <div class="promo-doc-body">
-                    <p class="promo-doc-intro">Estimados, en el mes de <b>Septiembre 2026</b> estaremos otorgando las siguientes promociones en <b>venta mayoreo</b>:</p>
+                    <p class="promo-doc-intro">Estimados, en el mes de <b>Octubre 2026</b> estaremos otorgando las siguientes promociones en <b>venta mayoreo</b>:</p>
 
                     <div class="promo-highlight" style="background:linear-gradient(135deg,#dc2626,#991b1b);position:relative">
                         <p class="promo-highlight-txt">Por cada <span>1 motobatería</span><br>1 litro de <span>aceite 4T LTH</span> sin costo</p>
@@ -2960,11 +2998,11 @@
             return `
             <div class="promo-doc">
                 <div class="promo-doc-head" style="background:linear-gradient(135deg,#7c2d12,#c2410c)">
-                    <p class="promo-doc-tag">Ventas Mayoreo · Septiembre 2026</p>
+                    <p class="promo-doc-tag">Ventas Mayoreo · Octubre 2026</p>
                     <h3 class="promo-doc-title"><i class="fas fa-oil-can mr-2" style="color:#fed7aa"></i>Promoción de Lubricante</h3>
                 </div>
                 <div class="promo-doc-body">
-                    <p class="promo-doc-intro">Estimados, en el mes de <b>Septiembre 2026</b> estaremos otorgando las siguientes promociones en <b>venta mayoreo</b>:</p>
+                    <p class="promo-doc-intro">Estimados, en el mes de <b>Octubre 2026</b> estaremos otorgando las siguientes promociones en <b>venta mayoreo</b>:</p>
 
                     <p class="promo-section-title" style="color:#c2410c"><i class="fas fa-layer-group mr-1"></i>Lubricante General</p>
                     <ol class="promo-reglas-num">
@@ -3136,7 +3174,7 @@
             }
             const data = promosResState.data;
             const fmtNum = n => Math.round(Number(n)||0).toLocaleString('es-MX');
-            const mes = promosResState.mesFiltro || 'SEPTIEMBRE';
+            const mes = promosResState.mesFiltro || 'OCTUBRE';
 
             // Definiciones de cada promo: título, columnas y extractor
             const PROMO_MODAL_DEFS = {
@@ -3271,7 +3309,7 @@
                 <i class="fas fa-tags text-4xl mb-3" style="color:#cffafe"></i>
                 <p class="text-[10px] font-black uppercase tracking-[0.3em] mb-1" style="color:#cffafe">Promociones vigentes · Ventas Mayoreo</p>
                 <h2 class="text-3xl font-black uppercase tracking-tight leading-none">Promociones del Mes</h2>
-                <p class="text-[11px] font-bold uppercase mt-2" style="color:#cffafe">Septiembre 2026</p>
+                <p class="text-[11px] font-bold uppercase mt-2" style="color:#cffafe">Octubre 2026</p>
             </div>
             <div class="rounded-[1.75rem] p-5 mb-5 text-white" style="background:${barra}">
                 <p class="text-[10px] font-black uppercase tracking-[0.3em]" style="color:#facc15">Empresa</p>
@@ -3310,7 +3348,7 @@
         ];
 
         // Estado del módulo
-        const promosResState = { mesFiltro:'SEPTIEMBRE', data:null, loading:false, err:null };
+        const promosResState = { mesFiltro:'OCTUBRE', data:null, loading:false, err:null };
 
         // Fórmulas de escalones — SEPTIEMBRE 2026
         // MOTOBATERÍA: 1 litro 4T LTH por cada motobatería + 10 litros extra por cada 10 motobat + 1 motobat gratis por cada 10 motobat
@@ -3564,7 +3602,7 @@
             <div class="surface rounded-2xl p-4 mb-4">
                 <p class="text-[10px] font-black muted uppercase tracking-widest mb-2">Mes a consultar</p>
                 <div class="flex gap-2 flex-wrap">
-                    ${['SEPTIEMBRE','AGOSTO','JULIO'].map(m=>`
+                    ${['OCTUBRE','SEPTIEMBRE','AGOSTO','JULIO'].map(m=>`
                         <button onclick="promosResState.mesFiltro='${m}';renderPromosResultados()" class="px-4 py-2 rounded-xl text-[11px] font-black uppercase tracking-widest ${promosResState.mesFiltro===m?'chip-accent':'glass-btn'}">${m}</button>
                     `).join('')}
                 </div>
@@ -3724,7 +3762,7 @@
 
             html += `
             <div class="surface rounded-2xl p-4 mb-4 text-[10px] muted leading-relaxed" style="border-left:4px solid #f97316">
-                <p class="font-black txt uppercase tracking-widest mb-1 text-[11px]"><i class="fas fa-info-circle mr-1" style="color:#f97316"></i>Reglas de cálculo · Septiembre 2026</p>
+                <p class="font-black txt uppercase tracking-widest mb-1 text-[11px]"><i class="fas fa-info-circle mr-1" style="color:#f97316"></i>Reglas de cálculo · Octubre 2026</p>
                 <p><b class="txt">Motobat:</b> filas con Clasificación "8 MOTOBAT". <b class="txt">Lts 4T esp.:</b> 1 lt por cada motobat + 10 lts extra por cada 10 motobat. La columna Δ muestra la diferencia con los litros efectivamente regalados.</p>
                 <p><b class="txt">Cajas 1L:</b> 12 botellas = 1 caja · <b class="txt">Cajas 5L:</b> 4 garrafas = 1 caja · <b class="txt">Cub 19L:</b> 1 cubeta = 1 unidad · <b class="txt">Tambo:</b> 200/208L = 1 tambo · <b class="txt">Totem:</b> 1000L = 1 totem.</p>
                 <p><b class="txt">Cub 300 LTH:</b> cubeta 19L Hidráulico 300 LTH (promo precio especial $1,049 desde 20 cubetas). Se detecta por "300 LTH" o "HIDRAULICO 300" en la descripción. El precio bajo cada dato es el promedio facturado.</p>
