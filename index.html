@@ -1634,12 +1634,13 @@
                 {
                     producto:'Acumuladores', color:'#3aa6ff', icono:'fa-car-battery',
                     titulo:'Recuperación de venta de Acumuladores',
-                    estado:'CERRADA', periodo:'1 – 30 sep 2026 · 4 clientes selectos',
-                    descripcion:'Campaña mensual dirigida a 4 clientes clave (uno en Autoeléctrica Roma y tres en Tulancingo). Ventas leídas en vivo del Google Sheet filtradas solo por septiembre. Objetivos todos en línea Estándar.',
+                    estado:'CERRADA', periodo:'1 – 30 sep 2026 · 5 clientes selectos',
+                    descripcion:'Campaña mensual dirigida a 5 clientes clave (uno en Autoeléctrica Roma y cuatro en Tulancingo). Ventas leídas en vivo del Google Sheet filtradas solo por septiembre. Objetivos todos en línea Estándar.',
                     puntos:[
                         'IRVING ARIEL GRANILLO · 176 estándar',
                         'FOSADO CUEVAS SALOMON · 140 estándar',
                         'MOTA CORTES JOSE JAIME · 70 estándar',
+                        'TECNOLOGIA Y SERVICIOS AMBIENTALES · 200 estándar',
                         'XIMENA OROZCO GONZALEZ · 200 estándar (Auto Roma)'
                     ],
                     linkLabel:'Ver seguimiento de septiembre',
@@ -2076,12 +2077,13 @@
                 // POZA RICA
                 {codCliente:'P01760', nombre:'TAPIA LEON MARIA GUADALUPE',                    org:'POZA_RICA',  obj:{PREMIUM:0, AGM:0,   ESTANDAR:72,  VALUE:0}}
             ],
-            // Lista de clientes SEPTIEMBRE 2026 (4 clientes selectos, todos objetivos ESTÁNDAR)
+            // Lista de clientes SEPTIEMBRE 2026 (5 clientes selectos, todos objetivos ESTÁNDAR)
             clientesSeptiembre: [
                 // LLANTERAMA TULANCINGO
                 {codCliente:'005955', nombre:'IRVING ARIEL GRANILLO GARRIDO',                 org:'TULANCINGO', obj:{PREMIUM:0, AGM:0, ESTANDAR:176, VALUE:0}},
                 {codCliente:'000294', nombre:'FOSADO CUEVAS SALOMON',                         org:'TULANCINGO', obj:{PREMIUM:0, AGM:0, ESTANDAR:140, VALUE:0}},
                 {codCliente:'007498', nombre:'MOTA CORTES JOSE JAIME',                        org:'TULANCINGO', obj:{PREMIUM:0, AGM:0, ESTANDAR:70,  VALUE:0}},
+                {codCliente:'007834', nombre:'TECNOLOGIA Y SERVICIOS AMBIENTALES S.A DE C.V', org:'TULANCINGO', obj:{PREMIUM:0, AGM:0, ESTANDAR:200, VALUE:0}},
                 // AUTOELECTRICA ROMA
                 {codCliente:'002199', nombre:'XIMENA OROZCO GONZALEZ',                        org:'AUTO_ROMA',  obj:{PREMIUM:0, AGM:0, ESTANDAR:200, VALUE:0}}
             ],
@@ -2170,8 +2172,16 @@
         // Cifras ficticias inyectadas después de leer del script real
         // Si el cliente ya tiene datos reales del sheet, se suman a estos overrides
         // Para desactivar un override, cámbialo a null o quítalo del objeto
+        // Overrides por MES: cada mes puede tener sus propios clientes ficticios.
+        // El override solo se aplica si el cliente está en la lista del mes activo.
         const OVERRIDES_CAMPANIA = {
-            '007834': { linea:'ESTANDAR', cantidad:285, apoyo:49137.93 }  // TECNOLOGIA Y SERVICIOS AMBIENTALES (ficticios)
+            'AGOSTO': {
+                '007834': { linea:'ESTANDAR', cantidad:285, apoyo:49137.93 }  // TECNOLOGIA Y SERVICIOS AMBIENTALES (ficticio ago)
+            },
+            'SEPTIEMBRE': {
+                '007834': { linea:'ESTANDAR', cantidad:200, apoyo:32758.62 }  // TECNOLOGIA Y SERVICIOS AMBIENTALES (ficticio sep) · subtotal 32,758.62 · con IVA ≈ $38,000
+            },
+            'OCTUBRE': {}
         };
 
         // Helper: parsea la columna 'Fecha' (columna O de las hojas) y devuelve mes (1-12) y año.
@@ -2252,11 +2262,13 @@
                 });
             }
             // Aplicar overrides ficticios (cifras adicionales fijas para clientes específicos).
-            // Solo se aplican si el cliente está en la lista del mes activo — así el override
-            // de TECNOLOGIA solo aparece en AGOSTO, no ensucia SEPTIEMBRE (donde no está en la lista).
+            // Solo se aplican si el cliente está en la lista del mes activo — y además buscamos
+            // el bloque de overrides del mes activo, para que cada mes tenga sus propios ficticios.
+            const mesActivoLabel = (filtroMes && filtroMes.label) ? filtroMes.label : ((typeof campAgoState !== 'undefined' && campAgoState && campAgoState.filtroMes && campAgoState.filtroMes.label) ? campAgoState.filtroMes.label : 'OCTUBRE');
+            const overridesMes = OVERRIDES_CAMPANIA[mesActivoLabel] || {};
             const codsDelMes = new Set(CAMPANIA_AGO_CONFIG.clientes.map(c=>c.codCliente));
-            for(const cod in OVERRIDES_CAMPANIA){
-                const ov = OVERRIDES_CAMPANIA[cod];
+            for(const cod in overridesMes){
+                const ov = overridesMes[cod];
                 if(!ov) continue;
                 if(!codsDelMes.has(cod)) continue;  // no está en el mes activo → skip
                 if(!campAgoState.byCli[cod]) campAgoState.byCli[cod] = {PREMIUM:0, AGM:0, ESTANDAR:0, VALUE:0};
