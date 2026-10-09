@@ -1641,7 +1641,7 @@
                         'FOSADO CUEVAS SALOMON · 140 estándar',
                         'MOTA CORTES JOSE JAIME · 70 estándar',
                         'TECNOLOGIA Y SERVICIOS AMBIENTALES · 200 estándar',
-                        'REFACCIONARIA TREMA · 318 estándar (apoyo 5% fin de mes)',
+                        'REFACCIONARIA TREMA · 318 acumuladores (regla especial: sep + oct con DCTOAPOYO = 5%)',
                         'XIMENA OROZCO GONZALEZ · 200 estándar (Auto Roma)'
                     ],
                     linkLabel:'Ver seguimiento de septiembre',
@@ -2242,10 +2242,47 @@
             }));
             // Diagnóstico: contadores para saber cuántas filas se descartan y por qué
             let diag = { total:0, sinFecha:0, fechaOtroMes:0, sinCodCli:0, sinLinea:0, procesadas:0, ejemplosFecha:[] };
+            // Reglas especiales por cliente (sobre-escriben el filtro de mes del tab)
+            // TREMA (000791): solo cuenta ventas de SEP + OCT 2026 cuyo DCTOAPOYO sea 5 (5% apoyo).
+            const TREMA_COD = '000791';
             for(const orgLabel in data){
                 const filas = data[orgLabel] || [];
                 filas.forEach(row=>{
                     diag.total++;
+                    // Identificar código de cliente antes de cualquier filtro
+                    let codCliRaw = String(row['Cod de cliente'] || row['COD DE CLIENTE'] || '').trim();
+                    if(!codCliRaw){ diag.sinCodCli++; return; }
+                    const codCli = /^\d+$/.test(codCliRaw) ? codCliRaw.padStart(6,'0') : codCliRaw.toUpperCase();
+
+                    // ===== CASO ESPECIAL: TREMA (000791) =====
+                    if(codCli === TREMA_COD){
+                        const raw = row['Fecha'] || row['FECHA'] || row['fecha'];
+                        if(diag.ejemplosFecha.length < 5 && raw) diag.ejemplosFecha.push(String(raw));
+                        const f = parseFechaVenta(raw);
+                        if(!f){ diag.sinFecha++; return; }
+                        // Debe caer en septiembre u octubre 2026
+                        if(f.anio !== 2026 || (f.mes !== 9 && f.mes !== 10)){ diag.fechaOtroMes++; return; }
+                        // DCTOAPOYO debe ser 5 (acepta "5", "5%", "5.00", "0.05")
+                        const dctoRaw = row['DCTOAPOYO'] || row['Dctoapoyo'] || row['DCTO APOYO'] || row['Dcto Apoyo'] || '';
+                        let dctoStr = String(dctoRaw).replace('%','').replace(/,/g,'.').trim();
+                        let dctoNum = parseFloat(dctoStr);
+                        if(isNaN(dctoNum)) return;
+                        if(dctoNum > 0 && dctoNum < 1) dctoNum = dctoNum * 100; // 0.05 → 5
+                        if(Math.abs(dctoNum - 5) > 0.01) return;
+                        // Pasa las dos reglas → acumular como venta válida
+                        const linea = lineaDeCodigo(row['Codigo'] || row['CODIGO']);
+                        const cant = n(row['Cantidad'] || row['CANTIDAD']);
+                        const apoyo = n(row['MONTOAPOYO'] || row['MontoApoyo'] || row['MONTO APOYO']);
+                        if(!campAgoState.byCli[codCli]) campAgoState.byCli[codCli] = {PREMIUM:0, AGM:0, ESTANDAR:0, VALUE:0};
+                        if(linea) campAgoState.byCli[codCli][linea] += cant;
+                        else diag.sinLinea++;
+                        campAgoState.apoyo[codCli] = (campAgoState.apoyo[codCli]||0) + apoyo;
+                        diag.procesadas++;
+                        if(codsSelMes.has(codCli)) campAgoState.rawRows.push({ _org: orgLabel, ...row });
+                        return;
+                    }
+
+                    // ===== CASO GENERAL: resto de clientes =====
                     // Filtrar por mes si se pidió (columna 'Fecha' es la O)
                     if(filtroMes){
                         const raw = row['Fecha'] || row['FECHA'] || row['fecha'];
@@ -2255,9 +2292,6 @@
                         if(!f){ diag.sinFecha++; return; }
                         if(f.mes !== filtroMes.mes || f.anio !== filtroMes.anio){ diag.fechaOtroMes++; return; }
                     }
-                    let codCliRaw = String(row['Cod de cliente'] || row['COD DE CLIENTE'] || '').trim();
-                    if(!codCliRaw){ diag.sinCodCli++; return; }
-                    const codCli = /^\d+$/.test(codCliRaw) ? codCliRaw.padStart(6,'0') : codCliRaw.toUpperCase();
                     const linea = lineaDeCodigo(row['Codigo'] || row['CODIGO']);
                     const cant = n(row['Cantidad'] || row['CANTIDAD']);
                     const apoyo = n(row['MONTOAPOYO'] || row['MontoApoyo'] || row['MONTO APOYO']);
