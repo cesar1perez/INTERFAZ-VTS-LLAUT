@@ -2234,7 +2234,12 @@
 
         function procesarDataCampania(data, filtroMes){
             // filtroMes: null = sin filtro (suma todo). {mes:8,anio:2026} = solo agosto 2026.
-            campAgoState.byCli = {}; campAgoState.apoyo = {};
+            campAgoState.byCli = {}; campAgoState.apoyo = {}; campAgoState.rawRows = [];
+            // Set de códigos de clientes seleccionados para el mes activo (para filtrar filas raw a exportar)
+            const codsSelMes = new Set(CAMPANIA_AGO_CONFIG.clientes.map(c=>{
+                const r = String(c.codCliente||'').trim();
+                return /^\d+$/.test(r) ? r.padStart(6,'0') : r.toUpperCase();
+            }));
             // Diagnóstico: contadores para saber cuántas filas se descartan y por qué
             let diag = { total:0, sinFecha:0, fechaOtroMes:0, sinCodCli:0, sinLinea:0, procesadas:0, ejemplosFecha:[] };
             for(const orgLabel in data){
@@ -2261,6 +2266,8 @@
                     else diag.sinLinea++;
                     campAgoState.apoyo[codCli] = (campAgoState.apoyo[codCli]||0) + apoyo;
                     diag.procesadas++;
+                    // Guardar fila raw si el cliente está en la lista del mes activo (para export Excel detallado)
+                    if(codsSelMes.has(codCli)) campAgoState.rawRows.push({ _org: orgLabel, ...row });
                 });
             }
             // Aplicar overrides ficticios (cifras adicionales fijas para clientes específicos).
@@ -2457,6 +2464,9 @@
                     </button>
                     <button onclick="descargarPdfCampania()" class="glass-btn py-3 px-4 rounded-xl text-[11px] font-black uppercase tracking-widest flex items-center gap-2" style="background:linear-gradient(135deg,#065f46,#10b981);color:#fff">
                         <i class="fas fa-file-pdf"></i>PDF
+                    </button>
+                    <button onclick="descargarExcelCampaniaDetalle()" class="glass-btn py-3 px-4 rounded-xl text-[11px] font-black uppercase tracking-widest flex items-center gap-2" style="background:linear-gradient(135deg,#064e3b,#16a34a);color:#fff" title="Descargar todas las filas de venta + apoyo de los clientes seleccionados">
+                        <i class="fas fa-file-excel"></i>Excel detalle
                     </button>
                 </div>`;
 
@@ -2708,6 +2718,89 @@
               </section>
             </div>`;
             window.scrollTo(0,0);
+        }
+
+        function descargarExcelCampaniaDetalle(){
+            // Carga SheetJS on-demand (igual que el concurso)
+            if(typeof XLSX === 'undefined'){
+                const pl = document.createElement('div');
+                pl.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff';
+                pl.innerHTML = '<div class="w-12 h-12 border-4 rounded-full animate-spin mb-4" style="border-color:#16a34a;border-top-color:transparent"></div><p class="text-[12px] font-black uppercase tracking-widest" style="color:#bbf7d0">Preparando Excel...</p>';
+                document.body.appendChild(pl);
+                cargarSheetJs().then(()=>{ document.body.removeChild(pl); descargarExcelCampaniaDetalle(); })
+                             .catch(()=>{ document.body.removeChild(pl); alert('No se pudo cargar la librería de Excel.'); });
+                return;
+            }
+            const raw = (campAgoState && campAgoState.rawRows) || [];
+            if(!raw.length){ alert('No hay filas para exportar.\nIntenta recargar la pantalla primero.'); return; }
+            // Encabezados exactos tal como vienen de la hoja
+            const headers = ['Codigo','Descripcion','Cod Vend 1','Cantidad','Importe','Costo','Cliente','Cod de cliente','Clasificacion','Almacen','Factura','Cod Vend 2','Descuento','Equi','Fecha','1','2','3','4','5','DCTOAPOYO','MONTOAPOYO'];
+            // Normaliza llaves por si la hoja viene en mayúsculas / variantes
+            const pick = (row, keys) => {
+                for(const k of keys){ if(row[k] !== undefined && row[k] !== null && row[k] !== '') return row[k]; }
+                // intento case-insensitive
+                const lk = keys.map(k=>k.toLowerCase());
+                for(const key in row){ if(lk.includes(String(key).toLowerCase())) return row[key]; }
+                return '';
+            };
+            const mapHeader = {
+                'Codigo':['Codigo','CODIGO','codigo'],
+                'Descripcion':['Descripcion','DESCRIPCION','descripcion'],
+                'Cod Vend 1':['Cod Vend 1','COD VEND 1','Cod Vend','COD VEND'],
+                'Cantidad':['Cantidad','CANTIDAD'],
+                'Importe':['Importe','IMPORTE'],
+                'Costo':['Costo','COSTO'],
+                'Cliente':['Cliente','CLIENTE'],
+                'Cod de cliente':['Cod de cliente','COD DE CLIENTE','Cod Cliente','COD CLIENTE'],
+                'Clasificacion':['Clasificacion','CLASIFICACION'],
+                'Almacen':['Almacen','ALMACEN'],
+                'Factura':['Factura','FACTURA'],
+                'Cod Vend 2':['Cod Vend 2','COD VEND 2'],
+                'Descuento':['Descuento','DESCUENTO'],
+                'Equi':['Equi','EQUI'],
+                'Fecha':['Fecha','FECHA'],
+                '1':['1'], '2':['2'], '3':['3'], '4':['4'], '5':['5'],
+                'DCTOAPOYO':['DCTOAPOYO','Dcto Apoyo','DCTO APOYO','Dctoapoyo'],
+                'MONTOAPOYO':['MONTOAPOYO','MontoApoyo','MONTO APOYO']
+            };
+            // Filas a exportar — ya vienen filtradas por mes y por clientes seleccionados.
+            // Ordenar por Fecha ascendente para que sea cómodo revisar.
+            const parseFecha = (v)=> { const f = parseFechaVenta(v); return f ? (f.anio*10000 + f.mes*100 + f.dia) : 0; };
+            const sorted = raw.slice().sort((a,b)=> parseFecha(pick(a,mapHeader['Fecha'])) - parseFecha(pick(b,mapHeader['Fecha'])));
+            const aoa = [headers];
+            sorted.forEach(row=>{
+                aoa.push(headers.map(h => pick(row, mapHeader[h] || [h])));
+            });
+            const ws = XLSX.utils.aoa_to_sheet(aoa);
+            // Anchos de columna razonables
+            ws['!cols'] = headers.map(h=>{
+                if(h==='Descripcion') return {wch:38};
+                if(h==='Cliente') return {wch:34};
+                if(h==='Clasificacion') return {wch:14};
+                if(h==='Fecha') return {wch:11};
+                if(['1','2','3','4','5'].includes(h)) return {wch:5};
+                return {wch:12};
+            });
+            const wb = XLSX.utils.book_new();
+            const filt = campAgoState.filtroMes;
+            const mesLbl = filt ? filt.label : 'ACUM';
+            XLSX.utils.book_append_sheet(wb, ws, 'Detalle '+mesLbl);
+            // Hoja 2: resumen por cliente
+            const clientes = CAMPANIA_AGO_CONFIG.clientes;
+            const sum = [['Cliente','Cod','Org','Objetivo total','Facturado total','% Cumpl.','Apoyo (subtotal)','Apoyo (c/IVA ×1.16)']];
+            clientes.forEach(c=>{
+                const b = campAgoState.byCli[c.codCliente] || {PREMIUM:0,AGM:0,ESTANDAR:0,VALUE:0};
+                const real = (b.PREMIUM||0)+(b.AGM||0)+(b.ESTANDAR||0)+(b.VALUE||0);
+                const obj  = (c.obj.PREMIUM||0)+(c.obj.AGM||0)+(c.obj.ESTANDAR||0)+(c.obj.VALUE||0);
+                const apoyo= campAgoState.apoyo[c.codCliente] || 0;
+                const pct  = obj>0 ? Math.round((real/obj)*100) : 0;
+                sum.push([c.nombre, c.codCliente, c.org, obj, real, pct+'%', apoyo, apoyo*1.16]);
+            });
+            const ws2 = XLSX.utils.aoa_to_sheet(sum);
+            ws2['!cols'] = [{wch:40},{wch:10},{wch:14},{wch:14},{wch:16},{wch:10},{wch:16},{wch:18}];
+            XLSX.utils.book_append_sheet(wb, ws2, 'Resumen');
+            const fecha = new Date().toISOString().slice(0,10);
+            XLSX.writeFile(wb, `Acumuladores_${mesLbl}_detalle_${fecha}.xlsx`);
         }
 
         function descargarPdfCampania(){
