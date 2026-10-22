@@ -3981,7 +3981,11 @@
             {clave:'TUL-023',     hoja:'TULANCINGO', codVend:'023', almacen:null,  nombre:'CS Río Mayoreo',       tienda:'CS Río de las Avenidas', color:'#0891b2'},
             {clave:'AR-003-001',  hoja:'AUTO_ROMA',  codVend:'003', almacen:'001', nombre:'Colosio-Mayoreo',      tienda:'CS Colosio',           color:'#16a34a'},
             {clave:'AR-003-003',  hoja:'AUTO_ROMA',  codVend:'003', almacen:'003', nombre:'CS CD Sahagún Mayoreo',tienda:'CD Sahagún',           color:'#eab308'},
-            {clave:'AR-022',      hoja:'AUTO_ROMA',  codVend:'022', almacen:null,  nombre:'Celene Soto',          tienda:'CS Tizayuca',          color:'#ec4899'},
+            {clave:'AR-022',      hoja:'AUTO_ROMA',  codVend:'022', almacen:null,  nombre:'Celene Soto',          tienda:'CS Tizayuca',          color:'#ec4899',
+                // Celene se trasladó a Llanterama Tulancingo a partir de octubre 2026 con el código 024.
+                // En octubre todavía tuvo movimientos en campaauto (022), así que sumamos ambas hojas.
+                // A partir de noviembre, todo debería caer en TULANCINGO/024.
+                aliases:[ {hoja:'TULANCINGO', codVend:'024', almacen:null} ]},
             {clave:'AR-023',      hoja:'AUTO_ROMA',  codVend:'023', almacen:null,  nombre:'José Martín López',    tienda:'CS Tizayuca',          color:'#f97316'}
         ];
 
@@ -4041,9 +4045,15 @@
                     const codVend = String(codVendRaw).replace(/\D/g,'').padStart(3,'0');
                     let almacenRaw = row['Almacen'] || row['ALMACEN'] || '';
                     const almacen = String(almacenRaw).replace(/\D/g,'').padStart(3,'0');
-                    const vendedor = FACT_DIA_VENDEDORES.find(v =>
-                        v.hoja === hoja && v.codVend === codVend && (v.almacen === null || v.almacen === almacen)
-                    );
+                    // Match principal + alias (soporta vendedores que operan en 2 hojas, p.ej. Celene en octubre
+                    // tras moverse de AUTO_ROMA/022 a TULANCINGO/024 — se cuentan ambas hojas bajo la misma clave).
+                    const matchVend = (v) => {
+                        const primario = v.hoja === hoja && v.codVend === codVend && (v.almacen === null || v.almacen === almacen);
+                        if(primario) return true;
+                        if(!v.aliases) return false;
+                        return v.aliases.some(a => a.hoja === hoja && a.codVend === codVend && (a.almacen == null || a.almacen === almacen));
+                    };
+                    const vendedor = FACT_DIA_VENDEDORES.find(matchVend);
                     if(!vendedor) return;
 
                     const importe = n(row['Importe'] || row['IMPORTE']);
