@@ -725,6 +725,47 @@
             const [m,a]=period.split(' ');
             const sellers = db.filter(r => r.ZONA===z && r.MES===m && r.AÑO===a && (n(r[COL_IMP()])>0 || n(r['REAL ACUMULADORES'])>0));
             let html = `${backBtn(`selectMonth('${period}')`,"Zonas")}`;
+
+            // ===== Bloque de llantas vendidas por vendedor en esta zona (periodo activo) =====
+            const llantasPorVend = sellers.map(s=>{
+                const auto = n(s['REAL AUTO']);
+                const camta= n(s['REAL CAMIONETA'] || s['REAL CAMTA']);
+                const cam  = n(s['REAL CAMION']);
+                return { v: s.VENDEDOR, auto, camta, cam, total: auto+camta+cam };
+            }).sort((a,b)=> b.total - a.total);
+            const totalZonaLlan = llantasPorVend.reduce((s,r)=>s+r.total,0);
+            if(totalZonaLlan > 0){
+                const barras = llantasPorVend.filter(r=>r.total>0).map(r=>{
+                    const pct = (r.total/llantasPorVend[0].total*100);
+                    return `
+                    <div class="flex items-center gap-2 py-2" style="border-bottom:1px solid var(--surface-2)">
+                        <div class="w-1.5 h-7 rounded-sm shrink-0" style="background:#f59e0b"></div>
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center justify-between">
+                                <p class="text-[12px] font-black txt truncate">${r.v}</p>
+                                <p class="text-[14px] font-black" style="color:#f59e0b">${f(r.total)}</p>
+                            </div>
+                            <div class="w-full h-1.5 rounded-full mt-1" style="background:var(--surface-2)">
+                                <div class="h-1.5 rounded-full" style="width:${pct.toFixed(1)}%;background:linear-gradient(90deg,#f59e0b,#d97706)"></div>
+                            </div>
+                            <p class="text-[9px] muted mt-0.5">Auto ${f(r.auto)} · Camioneta ${f(r.camta)} · Camión ${f(r.cam)}</p>
+                        </div>
+                    </div>`;
+                }).join('');
+                html += `
+                <div class="surface p-5 rounded-2xl mb-5" style="border-left:6px solid #f59e0b">
+                    <div class="flex items-center justify-between mb-3">
+                        <div>
+                            <p class="text-[10px] font-black muted uppercase tracking-widest"><i class="fas fa-tire mr-1" style="color:#f59e0b"></i>Llantas vendidas · ${z}</p>
+                            <p class="text-[9px] muted">${period} · ranking por vendedor</p>
+                        </div>
+                        <p class="text-2xl font-black" style="color:#f59e0b">${f(totalZonaLlan)}</p>
+                    </div>
+                    ${barras}
+                    <p class="text-center text-[9px] muted mt-2">Suma de REAL AUTO + REAL CAMIONETA + REAL CAMIÓN</p>
+                </div>`;
+            }
+
             sellers.forEach(s=>{
                 html += `<div onclick="renderReport('${s.VENDEDOR}','${period}')" class="glass-btn surface p-7 rounded-2xl mb-4 flex justify-between items-center" style="border-left:8px solid var(--navy)">
                     <p class="font-black uppercase text-lg tracking-tight txt">${s.VENDEDOR}</p>
